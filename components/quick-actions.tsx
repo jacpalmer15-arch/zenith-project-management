@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Plus, FileText, Users, FolderOpen, Package } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
@@ -14,28 +14,24 @@ export function QuickActions() {
           <Link href="/app/quotes/new" className="block">
             <Button className="w-full" size="lg">
               <Plus className="w-4 h-4 mr-2" />
-              <FileText className="w-4 h-4 mr-2" />
               Create Quote
             </Button>
           </Link>
           <Link href="/app/customers/new" className="block">
             <Button variant="secondary" className="w-full" size="lg">
               <Plus className="w-4 h-4 mr-2" />
-              <Users className="w-4 h-4 mr-2" />
               Add Customer
             </Button>
           </Link>
           <Link href="/app/projects/new" className="block">
             <Button variant="secondary" className="w-full" size="lg">
               <Plus className="w-4 h-4 mr-2" />
-              <FolderOpen className="w-4 h-4 mr-2" />
               Add Project
             </Button>
           </Link>
           <Link href="/app/parts/new" className="block">
             <Button variant="secondary" className="w-full" size="lg">
               <Plus className="w-4 h-4 mr-2" />
-              <Package className="w-4 h-4 mr-2" />
               Add Part
             </Button>
           </Link>
