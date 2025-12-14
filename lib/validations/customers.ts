@@ -4,7 +4,7 @@ export const customerSchema = z.object({
   name: z.string().min(1, 'Customer name is required'),
   contact_name: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
-  email: z.string().email('Invalid email').optional().or(z.literal('')).nullable(),
+  email: z.string().email('Invalid email').optional().or(z.literal('')),
   
   billing_street: z.string().optional().nullable(),
   billing_city: z.string().optional().nullable(),

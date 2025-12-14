@@ -11,7 +11,7 @@ export const partSchema = z.object({
   cost_type_id: z.string().uuid().optional().nullable(),
   cost_code_id: z.string().uuid().optional().nullable(),
   
-  sell_price: z.number().min(0, 'Sell price must be positive').default(0),
+  sell_price: z.number().min(0, 'Sell price must be non-negative').default(0),
   is_active: z.boolean().default(true),
 })
 

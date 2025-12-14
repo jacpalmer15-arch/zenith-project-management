@@ -3,7 +3,7 @@ import { z } from 'zod'
 export const settingsSchema = z.object({
   company_name: z.string().min(1, 'Company name is required'),
   company_phone: z.string().optional().nullable(),
-  company_email: z.string().email('Invalid email').optional().nullable(),
+  company_email: z.string().email('Invalid email').optional().or(z.literal('')),
   company_address: z.string().optional().nullable(),
   default_quote_terms: z.string(),
   default_tax_rule_id: z.string().uuid().optional().nullable(),
