@@ -112,10 +112,7 @@ This application uses Supabase for backend services including database, authenti
 After setting up your database schema, generate TypeScript types for type-safe database queries:
 
 ```bash
-# Install Supabase CLI if not already installed
-npm install -g supabase
-
-# Login to Supabase
+# Login to Supabase (uses npx to avoid global installation)
 npx supabase login
 
 # Generate types (replace YOUR_PROJECT_ID with your actual project ID)
