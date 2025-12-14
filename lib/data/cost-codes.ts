@@ -1,10 +1,14 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/serverClient'
-import { CostCode, CostCodeInsert, CostCodeUpdate } from '@/lib/db'
+import { CostCode, CostCodeInsert, CostCodeUpdate, CostType } from '@/lib/db'
 
 export interface ListCostCodesOptions {
   cost_type_id?: string
+}
+
+export type CostCodeWithRelations = CostCode & {
+  cost_type?: CostType | null
 }
 
 /**
@@ -12,7 +16,7 @@ export interface ListCostCodesOptions {
  */
 export async function listCostCodes(
   options?: ListCostCodesOptions
-): Promise<CostCode[]> {
+): Promise<CostCodeWithRelations[]> {
   const supabase = await createClient()
   
   let query = supabase
@@ -30,13 +34,13 @@ export async function listCostCodes(
     throw new Error(`Failed to fetch cost codes: ${error.message}`)
   }
   
-  return (data || []) as CostCode[]
+  return (data || []) as CostCodeWithRelations[]
 }
 
 /**
  * Get a single cost code by ID
  */
-export async function getCostCode(id: string): Promise<CostCode> {
+export async function getCostCode(id: string): Promise<CostCodeWithRelations> {
   const supabase = await createClient()
   
   const { data, error } = await supabase
@@ -53,7 +57,7 @@ export async function getCostCode(id: string): Promise<CostCode> {
     throw new Error('Cost code not found')
   }
   
-  return data as CostCode
+  return data as CostCodeWithRelations
 }
 
 /**

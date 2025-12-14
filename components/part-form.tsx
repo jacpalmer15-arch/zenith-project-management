@@ -6,7 +6,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { partSchema, PartFormData } from '@/lib/validations'
 import { createPartAction, updatePartAction } from '@/app/actions/parts'
-import { Part, PartCategory, CostType, CostCode } from '@/lib/db'
+import { PartCategory, CostType, CostCode } from '@/lib/db'
+import { PartWithRelations } from '@/lib/data/parts'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -22,7 +23,7 @@ import {
 import { toast } from 'sonner'
 
 interface PartFormProps {
-  part?: Part
+  part?: PartWithRelations
   categories: PartCategory[]
   costTypes: CostType[]
   costCodes: CostCode[]
@@ -74,7 +75,8 @@ export function PartForm({ part, categories, costTypes, costCodes }: PartFormPro
     } else {
       setValue('cost_code_id', null)
     }
-  }, [selectedCostTypeId, filteredCostCodes, setValue, watch])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCostTypeId, setValue])
 
   const onSubmit = async (data: PartFormData) => {
     setIsSubmitting(true)

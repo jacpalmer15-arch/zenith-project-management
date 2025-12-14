@@ -22,13 +22,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { createCostCodeAction, updateCostCodeAction } from '@/app/actions/cost-codes'
-import { CostCode, CostType } from '@/lib/db'
+import { CostType } from '@/lib/db'
+import { CostCodeWithRelations } from '@/lib/data/cost-codes'
 import { toast } from 'sonner'
 
 interface CostCodeDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  costCode?: CostCode
+  costCode?: CostCodeWithRelations
   costTypes: CostType[]
 }
 

@@ -20,11 +20,12 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { CostCodeDialog } from '@/components/cost-code-dialog'
-import { CostCode, CostType } from '@/lib/db'
+import { CostType } from '@/lib/db'
+import { CostCodeWithRelations } from '@/lib/data/cost-codes'
 import { Pencil } from 'lucide-react'
 
 interface CostCodesSectionProps {
-  costCodes: CostCode[]
+  costCodes: CostCodeWithRelations[]
   costTypes: CostType[]
   selectedCostTypeId?: string
 }
@@ -36,14 +37,14 @@ export function CostCodesSection({
 }: CostCodesSectionProps) {
   const router = useRouter()
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingCostCode, setEditingCostCode] = useState<CostCode | undefined>()
+  const [editingCostCode, setEditingCostCode] = useState<CostCodeWithRelations | undefined>()
 
   const handleAdd = () => {
     setEditingCostCode(undefined)
     setDialogOpen(true)
   }
 
-  const handleEdit = (costCode: CostCode) => {
+  const handleEdit = (costCode: CostCodeWithRelations) => {
     setEditingCostCode(costCode)
     setDialogOpen(true)
   }
@@ -111,7 +112,7 @@ export function CostCodesSection({
                 <TableCell className="font-medium">{costCode.code}</TableCell>
                 <TableCell>{costCode.name}</TableCell>
                 <TableCell>
-                  {costCode.cost_type ? (costCode.cost_type as any).name : '-'}
+                  {costCode.cost_type?.name || '-'}
                 </TableCell>
                 <TableCell>{costCode.sort_order}</TableCell>
                 <TableCell className="text-right">

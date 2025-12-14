@@ -32,6 +32,7 @@ export function PartFilters({ categories }: PartFiltersProps) {
       updateFilters({ search })
     }, 300)
     return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search])
 
   const updateFilters = (updates: Record<string, string>) => {

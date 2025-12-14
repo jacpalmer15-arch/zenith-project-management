@@ -109,7 +109,7 @@ export default async function PartsPage({ searchParams }: PartsPageProps) {
                   </TableCell>
                   <TableCell>{part.name}</TableCell>
                   <TableCell>
-                    {part.category ? (part.category as any).name : '-'}
+                    {part.category?.name || '-'}
                   </TableCell>
                   <TableCell>{part.uom}</TableCell>
                   <TableCell className="text-right">
