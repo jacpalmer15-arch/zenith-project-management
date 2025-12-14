@@ -15,6 +15,8 @@ import {
 import { Search, X } from 'lucide-react'
 
 const PROJECT_STATUSES: ProjectStatus[] = ['Planning', 'Quoted', 'Active', 'Completed', 'Closed']
+const ALL_CUSTOMERS_OPTION = 'all-customers'
+const ALL_STATUSES_OPTION = 'all-statuses'
 
 interface ProjectFiltersProps {
   customers: Customer[]
@@ -60,13 +62,15 @@ export function ProjectFilters({ customers }: ProjectFiltersProps) {
   }, [searchValue, updateFilters])
 
   const handleCustomerChange = (value: string) => {
-    setCustomerId(value)
-    updateFilters({ customer_id: value })
+    const normalizedValue = value === ALL_CUSTOMERS_OPTION ? '' : value
+    setCustomerId(normalizedValue)
+    updateFilters({ customer_id: normalizedValue })
   }
 
   const handleStatusChange = (value: string) => {
-    setStatus(value)
-    updateFilters({ status: value })
+    const normalizedValue = value === ALL_STATUSES_OPTION ? '' : value
+    setStatus(normalizedValue)
+    updateFilters({ status: normalizedValue })
   }
 
   const clearFilters = () => {
@@ -93,12 +97,12 @@ export function ProjectFilters({ customers }: ProjectFiltersProps) {
       </div>
 
       {/* Customer Filter */}
-      <Select value={customerId} onValueChange={handleCustomerChange}>
+      <Select value={customerId || ALL_CUSTOMERS_OPTION} onValueChange={handleCustomerChange}>
         <SelectTrigger className="w-[200px]">
           <SelectValue placeholder="All Customers" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">All Customers</SelectItem>
+          <SelectItem value={ALL_CUSTOMERS_OPTION}>All Customers</SelectItem>
           {customers.map((customer) => (
             <SelectItem key={customer.id} value={customer.id}>
               {customer.name}
@@ -108,12 +112,12 @@ export function ProjectFilters({ customers }: ProjectFiltersProps) {
       </Select>
 
       {/* Status Filter */}
-      <Select value={status} onValueChange={handleStatusChange}>
+      <Select value={status || ALL_STATUSES_OPTION} onValueChange={handleStatusChange}>
         <SelectTrigger className="w-[160px]">
           <SelectValue placeholder="All Statuses" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">All Statuses</SelectItem>
+          <SelectItem value={ALL_STATUSES_OPTION}>All Statuses</SelectItem>
           {PROJECT_STATUSES.map((s) => (
             <SelectItem key={s} value={s}>
               {s}

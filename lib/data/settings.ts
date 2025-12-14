@@ -11,7 +11,7 @@ export async function getSettings(): Promise<Settings> {
   
   const { data, error } = await supabase
     .from('settings')
-    .select('*, default_tax_rule:tax_rules(id, name, rate, is_active)')
+    .select('*')
     .single()
   
   if (error) {
@@ -38,7 +38,7 @@ export async function updateSettings(
     .from('settings')
     .update(updates as never)
     .eq('id', id)
-    .select('*, default_tax_rule:tax_rules(id, name, rate, is_active)')
+    .select('*')
     .single()
   
   if (error) {
