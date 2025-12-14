@@ -23,8 +23,17 @@ import { toast } from 'sonner'
 
 const PROJECT_STATUSES: ProjectStatus[] = ['Planning', 'Quoted', 'Active', 'Completed', 'Closed']
 
+type ProjectWithCustomer = Project & {
+  customer?: {
+    id: string
+    customer_no: string
+    name: string
+    contact_name: string | null
+  } | null
+}
+
 interface ProjectFormProps {
-  project?: Project & { customer?: any }
+  project?: ProjectWithCustomer
   customers: Customer[]
 }
 

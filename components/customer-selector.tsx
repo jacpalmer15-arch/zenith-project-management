@@ -2,6 +2,7 @@
 
 import { Control, Controller } from 'react-hook-form'
 import { Customer } from '@/lib/db'
+import { ProjectFormData } from '@/lib/validations/projects'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -12,7 +13,7 @@ import {
 } from '@/components/ui/select'
 
 interface CustomerSelectorProps {
-  control: Control<any>
+  control: Control<ProjectFormData>
   customers: Customer[]
   error?: string
 }

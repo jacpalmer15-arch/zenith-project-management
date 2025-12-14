@@ -12,7 +12,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Pencil } from 'lucide-react'
-import { ProjectStatus } from '@/lib/db'
+import { Project, ProjectStatus } from '@/lib/db'
 
 interface ProjectsPageProps {
   searchParams: {
@@ -20,6 +20,15 @@ interface ProjectsPageProps {
     customer_id?: string
     status?: string
   }
+}
+
+type ProjectWithCustomer = Project & {
+  customer?: {
+    id: string
+    customer_no: string
+    name: string
+    contact_name: string | null
+  } | null
 }
 
 export default async function ProjectsPage({ searchParams }: ProjectsPageProps) {
@@ -66,20 +75,17 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
               </TableRow>
             </TableHeader>
             <TableBody>
-              {projects.map((project) => {
+              {(projects as ProjectWithCustomer[]).map((project) => {
                 const jobLocation = [project.job_city, project.job_state]
                   .filter(Boolean)
                   .join(', ') || '-'
-                
-                // Type assertion for customer relation
-                const projectWithCustomer = project as any
                 
                 return (
                   <TableRow key={project.id}>
                     <TableCell className="font-medium">{project.project_no}</TableCell>
                     <TableCell>{project.name}</TableCell>
                     <TableCell>
-                      {projectWithCustomer.customer?.name || '-'}
+                      {project.customer?.name || '-'}
                     </TableCell>
                     <TableCell>
                       <StatusBadge status={project.status} />
