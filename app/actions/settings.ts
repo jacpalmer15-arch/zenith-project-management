@@ -11,11 +11,11 @@ export async function updateSettingsAction(formData: FormData) {
     // Parse form data
     const data = {
       company_name: formData.get('company_name') as string,
-      company_phone: formData.get('company_phone') as string | null,
-      company_email: formData.get('company_email') as string,
-      company_address: formData.get('company_address') as string | null,
+      company_phone: (formData.get('company_phone') as string) || null,
+      company_email: formData.get('company_email') as string || '',
+      company_address: (formData.get('company_address') as string) || null,
       default_quote_terms: formData.get('default_quote_terms') as string,
-      default_tax_rule_id: formData.get('default_tax_rule_id') as string | null,
+      default_tax_rule_id: (formData.get('default_tax_rule_id') as string) || null,
       customer_number_prefix: formData.get('customer_number_prefix') as string,
       project_number_prefix: formData.get('project_number_prefix') as string,
       quote_number_prefix: formData.get('quote_number_prefix') as string,
