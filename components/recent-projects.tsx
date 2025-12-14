@@ -72,7 +72,7 @@ export function RecentProjects({ projects }: RecentProjectsProps) {
                   Updated {formatRelativeTime(project.updated_at)}
                 </p>
               </div>
-              <Link href={`/app/projects/${project.id}`}>
+              <Link href={`/app/projects/${project.id}/edit`}>
                 <Button variant="outline" size="sm">
                   View
                 </Button>
