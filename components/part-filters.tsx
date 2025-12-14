@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -26,16 +26,7 @@ export function PartFilters({ categories }: PartFiltersProps) {
   const [categoryId, setCategoryId] = useState(searchParams.get('category_id') || 'all')
   const [activeStatus, setActiveStatus] = useState(searchParams.get('is_active') || 'all')
 
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      updateFilters({ search })
-    }, 300)
-    return () => clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search])
-
-  const updateFilters = (updates: Record<string, string>) => {
+  const updateFilters = useCallback((updates: Record<string, string>) => {
     const params = new URLSearchParams(searchParams.toString())
     
     // Apply updates
@@ -48,7 +39,15 @@ export function PartFilters({ categories }: PartFiltersProps) {
     })
     
     router.push(`/app/parts?${params.toString()}`)
-  }
+  }, [router, searchParams])
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      updateFilters({ search })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [search, updateFilters])
 
   const handleCategoryChange = (value: string) => {
     setCategoryId(value)

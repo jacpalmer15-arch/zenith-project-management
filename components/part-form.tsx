@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -58,25 +58,26 @@ export function PartForm({ part, categories, costTypes, costCodes }: PartFormPro
   const isTaxable = watch('is_taxable')
   const isActive = watch('is_active')
   const selectedCostTypeId = watch('cost_type_id')
+  const currentCostCodeId = watch('cost_code_id')
 
   // Filter cost codes by selected cost type
-  const filteredCostCodes = selectedCostTypeId
-    ? costCodes.filter((cc) => cc.cost_type_id === selectedCostTypeId)
-    : []
+  const filteredCostCodes = useMemo(() => {
+    return selectedCostTypeId
+      ? costCodes.filter((cc) => cc.cost_type_id === selectedCostTypeId)
+      : []
+  }, [selectedCostTypeId, costCodes])
 
   // Reset cost code when cost type changes
   useEffect(() => {
     if (selectedCostTypeId && filteredCostCodes.length > 0) {
-      const currentCostCodeId = watch('cost_code_id')
       const isValidCostCode = filteredCostCodes.some(cc => cc.id === currentCostCodeId)
       if (!isValidCostCode) {
         setValue('cost_code_id', null)
       }
-    } else {
+    } else if (currentCostCodeId) {
       setValue('cost_code_id', null)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCostTypeId, setValue])
+  }, [selectedCostTypeId, currentCostCodeId, filteredCostCodes, setValue])
 
   const onSubmit = async (data: PartFormData) => {
     setIsSubmitting(true)
@@ -84,14 +85,14 @@ export function PartForm({ part, categories, costTypes, costCodes }: PartFormPro
       const formData = new FormData()
       
       // Append all fields to FormData
-      if (data.sku) formData.append('sku', data.sku)
+      if (data.sku !== null && data.sku !== undefined) formData.append('sku', data.sku)
       formData.append('name', data.name)
       formData.append('description_default', data.description_default || '')
-      if (data.category_id) formData.append('category_id', data.category_id)
+      if (data.category_id !== null && data.category_id !== undefined) formData.append('category_id', data.category_id)
       formData.append('uom', data.uom)
       formData.append('is_taxable', data.is_taxable.toString())
-      if (data.cost_type_id) formData.append('cost_type_id', data.cost_type_id)
-      if (data.cost_code_id) formData.append('cost_code_id', data.cost_code_id)
+      if (data.cost_type_id !== null && data.cost_type_id !== undefined) formData.append('cost_type_id', data.cost_type_id)
+      if (data.cost_code_id !== null && data.cost_code_id !== undefined) formData.append('cost_code_id', data.cost_code_id)
       formData.append('sell_price', data.sell_price.toString())
       formData.append('is_active', data.is_active.toString())
 
