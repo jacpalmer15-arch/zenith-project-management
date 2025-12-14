@@ -395,17 +395,23 @@ begin
 
   if p_kind = 'customer' then
     out_no := s.customer_number_prefix || lpad(s.next_customer_seq::text, 6, '0');
-    update public.settings set next_customer_seq = next_customer_seq + 1;
+    update public.settings
+      set next_customer_seq = next_customer_seq + 1
+      where id = s.id;
     return out_no;
 
   elsif p_kind = 'project' then
     out_no := s.project_number_prefix || lpad(s.next_project_seq::text, 6, '0');
-    update public.settings set next_project_seq = next_project_seq + 1;
+    update public.settings
+      set next_project_seq = next_project_seq + 1
+      where id = s.id;
     return out_no;
 
   elsif p_kind = 'quote' then
     out_no := s.quote_number_prefix || lpad(s.next_quote_seq::text, 6, '0');
-    update public.settings set next_quote_seq = next_quote_seq + 1;
+    update public.settings
+      set next_quote_seq = next_quote_seq + 1
+      where id = s.id;
     return out_no;
 
   else
