@@ -1,27 +1,32 @@
-export default function DashboardPage() {
+import { getDashboardMetrics, getRecentQuotes, getRecentProjects } from '@/lib/data'
+import { DashboardMetrics } from '@/components/dashboard-metrics'
+import { RecentQuotes } from '@/components/recent-quotes'
+import { RecentProjects } from '@/components/recent-projects'
+import { QuickActions } from '@/components/quick-actions'
+
+export default async function DashboardPage() {
+  // Fetch all dashboard data in parallel
+  const [metrics, recentQuotes, recentProjects] = await Promise.all([
+    getDashboardMetrics(),
+    getRecentQuotes(5),
+    getRecentProjects(5),
+  ])
+
   return (
-    <div>
-      <h1 className="text-3xl font-bold text-slate-900 mb-6">Dashboard</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg border border-slate-200">
-          <h3 className="text-sm font-medium text-slate-500 mb-2">
-            Total Customers
-          </h3>
-          <p className="text-3xl font-bold text-slate-900">0</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg border border-slate-200">
-          <h3 className="text-sm font-medium text-slate-500 mb-2">
-            Active Projects
-          </h3>
-          <p className="text-3xl font-bold text-slate-900">0</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg border border-slate-200">
-          <h3 className="text-sm font-medium text-slate-500 mb-2">
-            Pending Quotes
-          </h3>
-          <p className="text-3xl font-bold text-slate-900">0</p>
-        </div>
+    <div className="space-y-8">
+      <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+      
+      {/* Metrics Section */}
+      <DashboardMetrics metrics={metrics} />
+      
+      {/* Recent Activity Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <RecentQuotes quotes={recentQuotes} />
+        <RecentProjects projects={recentProjects} />
       </div>
+      
+      {/* Quick Actions Section */}
+      <QuickActions />
     </div>
-  );
+  )
 }

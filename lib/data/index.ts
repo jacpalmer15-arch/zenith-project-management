@@ -27,3 +27,6 @@ export * from './quotes'
 
 // RPCs
 export * from './rpcs'
+
+// Dashboard
+export * from './dashboard'
