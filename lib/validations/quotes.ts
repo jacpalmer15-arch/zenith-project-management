@@ -1,0 +1,22 @@
+import { z } from 'zod'
+
+export const quoteHeaderSchema = z.object({
+  project_id: z.string().uuid('Project is required'),
+  quote_type: z.enum(['BASE', 'CHANGE_ORDER']).default('BASE'),
+  parent_quote_id: z.string().uuid().optional().nullable(),
+  tax_rule_id: z.string().uuid('Tax rule is required'),
+  quote_date: z.string(), // ISO date string
+  valid_until: z.string().optional().nullable(), // ISO date string
+})
+
+export const quoteLineSchema = z.object({
+  part_id: z.string().uuid().optional().nullable(),
+  description: z.string().min(1, 'Description is required'),
+  uom: z.string().min(1, 'Unit of measure is required'),
+  qty: z.number().positive('Quantity must be positive'),
+  unit_price: z.number().min(0, 'Unit price must be non-negative'),
+  is_taxable: z.boolean().default(true),
+})
+
+export type QuoteHeaderFormData = z.infer<typeof quoteHeaderSchema>
+export type QuoteLineFormData = z.infer<typeof quoteLineSchema>
