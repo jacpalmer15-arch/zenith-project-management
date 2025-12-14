@@ -89,16 +89,89 @@ zenith-project-management/
 
 ## Connecting to Supabase
 
-1. **Create a Supabase project** at [supabase.com](https://supabase.com)
-2. **Copy your project credentials** from Project Settings > API:
-   - Project URL
-   - Anon/Public Key
-3. **Add credentials to `.env.local`** (see Installation step 4)
-4. **Configure Supabase** (in future prompts):
-   - Set up database schema
-   - Configure authentication providers
-   - Set up storage buckets
-   - Configure RLS policies
+This application uses Supabase for backend services including database, authentication, and storage. Follow these steps to connect your Supabase project.
+
+### 1. Get your Supabase credentials
+
+- Go to your Supabase project dashboard at [supabase.com](https://supabase.com)
+- Navigate to **Settings > API**
+- Copy the **Project URL** and **anon/public key**
+
+### 2. Configure environment variables
+
+- Copy `.env.example` to `.env.local`:
+  ```bash
+  cp .env.example .env.local
+  ```
+- Add your Supabase URL and anon key to `.env.local`
+- (Optional) Add service role key if needed for admin operations
+  - **Warning:** Keep this key secret and never commit it to version control
+
+### 3. Generate TypeScript types
+
+After setting up your database schema, generate TypeScript types for type-safe database queries:
+
+```bash
+# Install Supabase CLI if not already installed
+npm install -g supabase
+
+# Login to Supabase
+npx supabase login
+
+# Generate types (replace YOUR_PROJECT_ID with your actual project ID)
+npx supabase gen types typescript --project-id YOUR_PROJECT_ID > lib/supabase/types.ts
+```
+
+**Note:** Your project ID can be found in your Supabase project URL: `https://app.supabase.com/project/YOUR_PROJECT_ID`
+
+### 4. Using the Supabase clients
+
+The application provides three Supabase clients for different use cases:
+
+#### Browser Client (Client Components)
+
+Use in Client Components that run in the browser:
+
+```typescript
+// In a Client Component
+'use client'
+import { createClient } from '@/lib/supabase/browserClient'
+
+export function MyComponent() {
+  const supabase = createClient()
+  // Use supabase client...
+}
+```
+
+#### Server Client (Server Components)
+
+Use in Server Components, Server Actions, and Route Handlers:
+
+```typescript
+// In a Server Component
+import { createClient } from '@/lib/supabase/serverClient'
+
+export default async function MyPage() {
+  const supabase = await createClient()
+  // Use supabase client...
+}
+```
+
+#### Admin Client (Server-Side Only)
+
+Use **only** for server-side operations that require service role access. Avoid using this unless absolutely necessary:
+
+```typescript
+// In a Server Action or Route Handler only
+import { createAdminClient } from '@/lib/supabase/adminClient'
+
+export async function myServerAction() {
+  const supabase = createAdminClient()
+  // Use admin client with caution...
+}
+```
+
+**Important:** The admin client bypasses Row Level Security (RLS) policies. Use with extreme caution.
 
 ## Development Commands
 
