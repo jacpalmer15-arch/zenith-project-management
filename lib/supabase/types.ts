@@ -1,5 +1,5 @@
 // TypeScript types generated from Supabase database schema
-// Based on: Zenith Project Managemtn SQL.txt
+// Based on: Zenith Project Management SQL.txt
 
 export type Json =
   | string
