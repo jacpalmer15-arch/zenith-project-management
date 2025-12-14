@@ -1,0 +1,416 @@
+FIELD SERVICE QUOTING APP (V1) — COPILOT PROMPT PACK
+===========================================================
+Goal
+----
+Build a single-tenant (one company) field-service web app MVP using:
+- Next.js (App Router) + TypeScript
+- Supabase (Postgres + Auth + Storage)
+- Tailwind + shadcn/ui
+- No separate Express server (use Next.js Route Handlers where needed)
+
+Hard requirements
+-----------------
+- Use the database schema EXACTLY as provided in the SQL migration (tables/enums/RPCs/triggers).
+- Do NOT invent extra tables or fields unless the prompt explicitly says to add them.
+- Accepted quotes are locked (DB triggers enforce this). UI must respect it.
+- Tax is chosen on the QUOTE and applied per line item via quote_lines.is_taxable.
+- Tax is computed and ROUNDED PER LINE ITEM.
+- Quote numbers, project numbers, customer numbers are sequential via RPC get_next_number(kind).
+- Accepting a quote must call RPC accept_quote(quote_id) and refresh project rollups.
+- Quotes can be BASE or CHANGE_ORDER. CHANGE_ORDER requires parent_quote_id and can have many accepted per project.
+- Only one accepted BASE quote per project (DB partial unique index enforces).
+- Accepting a change order forces project.status = 'Active' (RPC does this via rollup update).
+
+Architecture constraints
+------------------------
+- Prefer Supabase client direct CRUD from the web app (RLS already allows authenticated access for now).
+- Use server-side code ONLY for:
+  - Auth guard / server session retrieval
+  - PDF generation route handler
+  - Secure actions if needed (but keep minimal)
+- Keep code modular, with shared validation schemas and types.
+
+Repo structure (single repo)
+----------------------------
+- /app (Next.js app router)
+- /lib (supabase clients, helpers)
+- /components (ui components)
+- /db (types, queries if needed)
+- /features (domain modules: customers, projects, quotes, parts, settings)
+- /app/api (route handlers e.g. pdf)
+
+Coding standards
+----------------
+- TypeScript strict
+- Zod for validation
+- TanStack Query (or SWR) for data fetching/caching (choose one and be consistent)
+- React Hook Form for forms
+- Use shadcn/ui primitives (Dialog, Sheet, Table, Input, Button, Select, Tabs)
+- Provide helpful empty states, loading states, and error toasts
+- No excessive abstraction; ship an MVP
+
+===========================================================
+PROMPT 0 — Confirm prerequisites
+===========================================================
+You are GitHub Copilot. Before coding, list:
+1) Node/Next versions you will assume
+2) Packages you will install (by category)
+3) Any Supabase configuration steps needed (Auth providers, redirect URLs, storage buckets)
+Then proceed only after listing these assumptions.
+
+===========================================================
+PROMPT 1 — Initialize the Next.js project + base tooling
+===========================================================
+Create a Next.js (App Router) TypeScript project with:
+- Tailwind CSS configured
+- shadcn/ui installed and initialized
+- React Hook Form + Zod
+- TanStack Query (preferred) OR SWR (pick one)
+- A toast/notification system
+- ESLint + Prettier (basic)
+Add a top-level README with:
+- how to run locally
+- required env vars
+- how to connect to Supabase
+Do not build business screens yet.
+
+===========================================================
+PROMPT 2 — Supabase clients (browser + server) and env config
+===========================================================
+Implement Supabase client setup:
+- lib/supabase/browserClient.ts using createBrowserClient
+- lib/supabase/serverClient.ts using createServerClient (reads cookies/headers in Next App Router)
+- lib/supabase/adminClient.ts ONLY if needed (avoid using service key for MVP)
+Add env vars:
+- NEXT_PUBLIC_SUPABASE_URL
+- NEXT_PUBLIC_SUPABASE_ANON_KEY
+Ensure types can be injected later.
+Provide example .env.local template.
+
+===========================================================
+PROMPT 3 — Authentication (email/password) + protected routing
+===========================================================
+Implement Supabase Auth (email/password) with:
+- /login page
+- /logout action
+- Protected /app routes
+Requirements:
+- Redirect unauthenticated users to /login
+- After login, redirect to /app/dashboard
+- Persist session and handle refresh
+- Basic “Account” menu in app shell (show email, logout)
+Do not implement roles/permissions beyond “authenticated required”.
+
+===========================================================
+PROMPT 4 — App shell layout + navigation
+===========================================================
+Create an authenticated app shell under /app with:
+- Sidebar navigation: Dashboard, Customers, Projects, Parts, Quotes, Settings
+- Top bar with search placeholder (future), account menu, and breadcrumb
+- Responsive layout (works on desktop/tablet; mobile acceptable but not primary)
+Implement routes with placeholder pages for each section.
+
+===========================================================
+PROMPT 5 — Database types + runtime validation schemas
+===========================================================
+Generate strict TypeScript types aligned to the SQL schema for:
+- settings
+- tax_rules
+- customers
+- projects
+- part_categories
+- cost_types
+- cost_codes
+- parts
+- quotes
+- quote_lines
+- inventory_ledger
+- files
+Include enums:
+- project_status
+- quote_status
+- quote_type
+- inventory_txn_type
+- file_entity_type
+- file_kind
+Also create Zod schemas for create/update forms for:
+- customer
+- project
+- part
+- quote (header fields)
+- quote_line
+- tax_rule
+- settings
+Important:
+- Do not invent fields not present in the SQL migration.
+
+===========================================================
+PROMPT 6 — Data access layer (thin)
+===========================================================
+Create a thin data layer with functions for each resource using Supabase client:
+- listCustomers, getCustomer, createCustomer, updateCustomer
+- listProjects, getProject, createProject, updateProject
+- listParts, getPart, createPart, updatePart
+- listQuotes, getQuote, createQuote, updateQuote
+- listQuoteLines, addQuoteLine, updateQuoteLine, deleteQuoteLine
+- listTaxRules, createTaxRule, updateTaxRule
+- getSettings, updateSettings
+- callRpc_getNextNumber(kind)
+- callRpc_acceptQuote(quoteId)
+Keep it straightforward; no ORM.
+Include error handling and typed return values.
+
+===========================================================
+PROMPT 7 — Settings page (company + numbering + default tax + terms)
+===========================================================
+Build /app/settings page:
+- Load settings (single row)
+- Editable fields:
+  - company_name, company_phone, company_email, company_address
+  - default_quote_terms
+  - customer_number_prefix, project_number_prefix, quote_number_prefix
+  - default_tax_rule_id selection
+- Display next_*_seq values read-only (or show “Next number preview” computed client-side)
+- Save updates with validation
+Add section to upload company logo:
+- Create Supabase Storage bucket (e.g. 'files') if needed
+- Upload logo to /settings/logo/{uuid}.(png/jpg)
+- Insert row in files table: entity_type='settings', entity_id=settings.id, file_kind='logo'
+- Store files.id in settings (add settings.logo_file_id only if it exists in schema; if not in schema, store logo in files and display latest logo by entity_id)
+If schema does NOT include logo_file_id, do not add it; instead query files.
+
+===========================================================
+PROMPT 8 — Tax rules CRUD (Settings subpage)
+===========================================================
+Build /app/settings/tax page:
+- List tax_rules (name, rate, is_active)
+- Create/edit tax rule form
+- Validation: rate between 0 and 1
+- Allow deactivating rules
+- “Set Default” button that updates settings.default_tax_rule_id
+UX: show default badge on the default rule.
+
+===========================================================
+PROMPT 9 — Customers: list + create + edit + search (with numbering RPC)
+===========================================================
+Build /app/customers:
+- List table with search by name (client-side or server-side query using full text index if desired)
+- Create customer dialog/page:
+  - On submit, call RPC get_next_number('customer') and set customer_no
+  - Insert into customers
+- Edit customer screen
+- Customer detail page that shows:
+  - customer info
+  - linked projects list (projects where customer_id = this customer)
+
+===========================================================
+PROMPT 10 — Projects: list + create + edit + detail (with numbering RPC)
+===========================================================
+Build /app/projects:
+- List with filters:
+  - status
+  - customer
+- Create project:
+  - call get_next_number('project') for project_no
+  - choose customer (search/select)
+  - fields: name, status, job address
+- Project detail page:
+  - Customer summary
+  - Financial summary fields:
+    - base_contract_amount, change_order_amount, contract_amount
+    - budget_amount, invoiced_amount, paid_amount, total_cost
+    - computed balance = invoiced_amount - paid_amount
+  - Quotes list for the project (link to quote pages)
+  - Photos section placeholder (later prompt)
+
+===========================================================
+PROMPT 11 — Admin screens for part_categories, cost_types, cost_codes
+===========================================================
+Under /app/parts/admin:
+- part categories CRUD (name, sort_order)
+- cost types CRUD (name, sort_order)
+- cost codes CRUD (code, name, cost_type_id, sort_order)
+All with simple list+edit forms.
+
+===========================================================
+PROMPT 12 — Parts catalog: list + filters + create/edit
+===========================================================
+Build /app/parts:
+- List with:
+  - category filter
+  - search by name (use tsvector index if you want)
+  - active/inactive toggle filter
+- Create/edit part:
+  - name, description_default
+  - category_id
+  - uom (required)
+  - is_taxable
+  - cost_type_id, cost_code_id
+  - sell_price
+  - avg_cost read-only (starts 0)
+  - is_active
+Include a “Pick Cost Code” UI that filters cost_codes by cost_type.
+
+===========================================================
+PROMPT 13 — Quotes: list + create BASE quote (select project)
+===========================================================
+Build /app/quotes:
+- List with filters:
+  - status
+  - quote_type
+  - project
+- Create BASE quote flow:
+  - user selects project (search/select)
+  - call RPC get_next_number('quote') for quote_no
+  - tax_rule_id defaults to settings.default_tax_rule_id (required)
+  - quote_type='BASE'
+  - status='Draft'
+Create record in quotes table and route to /app/quotes/[id].
+
+===========================================================
+PROMPT 14 — Quote builder (core)
+===========================================================
+Build /app/quotes/[id] quote builder UI with:
+Header section:
+- quote_no (read-only)
+- quote_type badge (BASE/CHANGE_ORDER)
+- status badge (Draft/Sent/Accepted/Rejected)
+- tax_rule selector (disabled when Accepted)
+- quote_date, valid_until (disabled when Accepted)
+- project link
+Actions:
+- Save (if needed)
+- Mark Sent (Draft -> Sent)
+- Accept Quote (calls RPC accept_quote)
+- Download PDF (placeholder button for now)
+
+Line items section:
+- Table of lines with inline editing (or edit in dialog)
+- Add line options:
+  1) Add from Parts: open a modal with search + category filter; select a part
+     - default fields from part: description_default -> description, uom, sell_price -> unit_price, is_taxable
+  2) Add Ad-hoc line: description required, uom required, unit_price, qty, taxable toggle
+- For each line compute:
+  - line_subtotal = round(qty * unit_price, 2)
+  - line_tax = if is_taxable then round(line_subtotal * tax_rate, 2) else 0
+  - line_total = line_subtotal + line_tax
+- IMPORTANT: tax rounding is PER LINE ITEM.
+Persist computed values into quote_lines.
+
+Totals section:
+- subtotal = sum(line_subtotal)
+- tax_total = sum(line_tax)
+- total = subtotal + tax_total
+Persist into quotes on line changes.
+
+Locking:
+- If quote.status = 'Accepted':
+  - Disable all edits (header + lines + status transitions)
+  - Show a “Locked” notice
+  - Still allow Download PDF
+DB triggers will reject updates anyway; UI must prevent.
+
+Performance:
+- Debounce updates when editing lines
+- Avoid re-fetching everything on each keystroke
+
+===========================================================
+PROMPT 15 — Change Orders (CHANGE_ORDER creation from accepted BASE)
+===========================================================
+On an accepted BASE quote page:
+- Add button “Create Change Order”
+- On click:
+  - create new quote with:
+    - quote_type='CHANGE_ORDER'
+    - parent_quote_id = base_quote.id
+    - project_id same as base
+    - quote_no from get_next_number('quote')
+    - tax_rule_id default from base (or settings default if base missing)
+    - status='Draft'
+  - Navigate to the new quote page
+Ensure a project may have multiple accepted change orders.
+Ensure CHANGE_ORDER requires parent_quote_id (DB check constraint).
+
+Acceptance:
+- Accepting a change order uses the SAME accept_quote RPC.
+- RPC updates project rollups and forces project status to Active.
+
+===========================================================
+PROMPT 16 — Quote acceptance UX + project rollup refresh
+===========================================================
+Implement Accept Quote button:
+- Only visible/enabled for status Draft or Sent
+- On click:
+  - confirm dialog (this will lock the quote)
+  - call RPC accept_quote(quote_id)
+  - refetch quote + project
+After acceptance:
+- show updated project base_contract_amount/change_order_amount/contract_amount
+- ensure project.status displays Active
+
+===========================================================
+PROMPT 17 — PDF generation (single template) + Supabase Storage
+===========================================================
+Implement Download PDF for a quote using a Next.js Route Handler:
+Route:
+- GET /app/api/quotes/[id]/pdf (or /api/quotes/[id]/pdf)
+Behavior:
+- Fetch settings, project, customer, quote, quote_lines, tax rule
+- Render a single consistent template (HTML/CSS) and generate a PDF.
+- Store PDF in Supabase Storage bucket (e.g., 'files') at:
+  /quotes/{quote_id}/quote.pdf
+- Upsert/insert a files row:
+  - entity_type='quote'
+  - entity_id=quote_id
+  - file_kind='pdf'
+  - storage_path
+  - mime_type='application/pdf'
+- Update quotes.pdf_file_id if present in schema; if not, do not add fields.
+- Return the PDF as a download response with correct headers.
+Notes:
+- Keep template professional: logo/header, customer/job address, line table, totals, terms.
+- If logo is stored as a file record, include it in the header if available.
+
+===========================================================
+PROMPT 18 — Project photos (upload + gallery)
+===========================================================
+On /app/projects/[id]:
+- Add photo upload button:
+  - upload images to Storage under /projects/{project_id}/photos/{uuid}.jpg (preserve extension)
+  - insert files row:
+    - entity_type='project'
+    - entity_id=project_id
+    - file_kind='photo'
+    - storage_path, mime_type
+- Display a simple gallery grid of thumbnails and allow opening full image.
+- Deleting a photo can be deferred; if included, delete storage object + files row.
+
+===========================================================
+PROMPT 19 — Dashboard (drilldown filters)
+===========================================================
+Build /app/dashboard:
+- Filters: date range, project status, quote status
+- KPIs:
+  - Active project count
+  - Open quotes (Draft+Sent)
+  - Total contract_amount (sum projects.contract_amount)
+  - Total invoiced_amount, paid_amount, and balance (sum invoiced - sum paid)
+- Each KPI is clickable and routes to Projects or Quotes list with those filters pre-applied.
+- Provide “Recently updated projects” list
+
+===========================================================
+PROMPT 20 — Quality pass (must-haves before handing to cousin)
+===========================================================
+Do a final quality pass:
+- Confirm accepted quotes cannot be edited (UI + DB)
+- Confirm only one accepted BASE per project (test it)
+- Confirm change order acceptance updates contract rollups and forces project Active
+- Confirm tax is per-line and rounding per line
+- Confirm sequential numbering via RPC works
+- Confirm PDF download works and is stored
+- Confirm photo upload works
+- Ensure all forms have validation and helpful errors
+- Add empty states and loading indicators
+
+END OF PROMPT PACK
+===========================================================
