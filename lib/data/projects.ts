@@ -6,6 +6,7 @@ import { Project, ProjectInsert, ProjectUpdate, ProjectStatus } from '@/lib/db'
 export interface ListProjectsOptions {
   customer_id?: string
   status?: ProjectStatus
+  search?: string
 }
 
 /**
@@ -27,6 +28,12 @@ export async function listProjects(
   
   if (options?.status) {
     query = query.eq('status', options.status)
+  }
+  
+  if (options?.search) {
+    query = query.or(
+      `name.ilike.%${options.search}%,project_no.ilike.%${options.search}%`
+    )
   }
   
   const { data, error } = await query
