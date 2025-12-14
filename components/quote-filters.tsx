@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Search, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import type { Project, QuoteStatus, QuoteType } from '@/lib/db'
 
 interface QuoteFiltersProps {
@@ -27,17 +27,7 @@ export function QuoteFilters({ projects }: QuoteFiltersProps) {
   const searchParams = useSearchParams()
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
 
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      updateFilter('search', searchTerm)
-    }, 300)
-
-    return () => clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm])
-
-  const updateFilter = (key: string, value: string) => {
+  const updateFilter = useCallback((key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString())
     if (value && value !== 'All') {
       params.set(key, value)
@@ -45,7 +35,16 @@ export function QuoteFilters({ projects }: QuoteFiltersProps) {
       params.delete(key)
     }
     router.push(`/app/quotes?${params.toString()}`)
-  }
+  }, [router, searchParams])
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      updateFilter('search', searchTerm)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [searchTerm, updateFilter])
 
   const clearFilters = () => {
     setSearchTerm('')

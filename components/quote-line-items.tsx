@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useFieldArray, Control, UseFormWatch } from 'react-hook-form'
+import { useFieldArray, Control, UseFormWatch, Controller } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -232,12 +232,15 @@ export function QuoteLineItems({
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex justify-center">
-                        <Checkbox
-                          {...control.register(`lines.${index}.is_taxable`)}
-                          checked={line.is_taxable}
-                          onCheckedChange={(checked) => {
-                            control._formValues.lines[index].is_taxable = checked
-                          }}
+                        <Controller
+                          control={control}
+                          name={`lines.${index}.is_taxable`}
+                          render={({ field }) => (
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          )}
                         />
                       </div>
                     </TableCell>

@@ -86,8 +86,10 @@ export default async function QuotesPage({ searchParams }: PageProps) {
             </TableHeader>
             <TableBody>
               {filteredQuotes.map((quote: any) => {
-                // Calculate total (would normally come from aggregated data)
-                const total = 0 // Placeholder - would need to calculate from lines
+                // TODO: Total should be calculated from quote_lines aggregation
+                // Currently showing 0 as we don't have total stored on quote header
+                // For production, consider adding total field to quotes table or using RPC
+                const total = 0
                 
                 return (
                   <TableRow key={quote.id}>
