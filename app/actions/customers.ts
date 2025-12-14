@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createCustomer, updateCustomer } from '@/lib/data'
-import { customerSchema } from '@/lib/validations'
+import { customerSchema } from '@/lib/validations/customers'
 import { getNextNumber } from '@/lib/data'
 
 export async function createCustomerAction(formData: FormData) {

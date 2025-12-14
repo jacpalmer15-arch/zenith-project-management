@@ -93,7 +93,6 @@ export function CustomerForm({ customer }: CustomerFormProps) {
         toast.error(result.error)
       } else {
         toast.success(customer ? 'Customer updated successfully' : 'Customer created successfully')
-        // The action will redirect, but we'll navigate here in case it doesn't
       }
     } catch (error) {
       toast.error('An unexpected error occurred')
