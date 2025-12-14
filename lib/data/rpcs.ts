@@ -11,7 +11,7 @@ export async function getNextNumber(kind: 'customer' | 'project' | 'quote'): Pro
   
   const { data, error } = await supabase.rpc('get_next_number', {
     p_kind: kind,
-  })
+  } as never)
   
   if (error) {
     throw new Error(`Failed to get next ${kind} number: ${error.message}`)
@@ -33,7 +33,7 @@ export async function acceptQuote(quote_id: string): Promise<void> {
   
   const { error } = await supabase.rpc('accept_quote', {
     p_quote_id: quote_id,
-  })
+  } as never)
   
   if (error) {
     throw new Error(`Failed to accept quote: ${error.message}`)

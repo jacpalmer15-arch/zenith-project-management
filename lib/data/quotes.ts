@@ -49,7 +49,7 @@ export async function listQuotes(options?: ListQuotesOptions): Promise<Quote[]> 
     throw new Error(`Failed to fetch quotes: ${error.message}`)
   }
   
-  return data || []
+  return (data || []) as Quote[]
 }
 
 /**
@@ -74,7 +74,7 @@ export async function getQuote(id: string): Promise<Quote> {
     throw new Error('Quote not found')
   }
   
-  return data
+  return data as Quote
 }
 
 /**
@@ -85,7 +85,7 @@ export async function createQuote(quote: QuoteInsert): Promise<Quote> {
   
   const { data, error } = await supabase
     .from('quotes')
-    .insert(quote)
+    .insert(quote as never)
     .select(
       '*, project:projects(id, project_no, name, customer:customers(id, customer_no, name)), tax_rule:tax_rules(id, name, rate, is_active), parent_quote:quotes(id, quote_no)'
     )
@@ -99,7 +99,7 @@ export async function createQuote(quote: QuoteInsert): Promise<Quote> {
     throw new Error('Quote not returned after creation')
   }
   
-  return data
+  return data as Quote
 }
 
 /**
@@ -113,7 +113,7 @@ export async function updateQuote(
   
   const { data, error } = await supabase
     .from('quotes')
-    .update(updates)
+    .update(updates as never)
     .eq('id', id)
     .select(
       '*, project:projects(id, project_no, name, customer:customers(id, customer_no, name)), tax_rule:tax_rules(id, name, rate, is_active), parent_quote:quotes(id, quote_no)'
@@ -128,7 +128,7 @@ export async function updateQuote(
     throw new Error('Quote not found after update')
   }
   
-  return data
+  return data as Quote
 }
 
 // ============================================================================
@@ -151,7 +151,7 @@ export async function listQuoteLines(quote_id: string): Promise<QuoteLine[]> {
     throw new Error(`Failed to fetch quote lines: ${error.message}`)
   }
   
-  return data || []
+  return (data || []) as QuoteLine[]
 }
 
 /**
@@ -174,7 +174,7 @@ export async function getQuoteLine(id: string): Promise<QuoteLine> {
     throw new Error('Quote line not found')
   }
   
-  return data
+  return data as QuoteLine
 }
 
 /**
@@ -187,7 +187,7 @@ export async function createQuoteLine(
   
   const { data, error } = await supabase
     .from('quote_lines')
-    .insert(quoteLine)
+    .insert(quoteLine as never)
     .select('*, part:parts(id, sku, name, uom)')
     .single()
   
@@ -199,7 +199,7 @@ export async function createQuoteLine(
     throw new Error('Quote line not returned after creation')
   }
   
-  return data
+  return data as QuoteLine
 }
 
 /**
@@ -213,7 +213,7 @@ export async function updateQuoteLine(
   
   const { data, error } = await supabase
     .from('quote_lines')
-    .update(updates)
+    .update(updates as never)
     .eq('id', id)
     .select('*, part:parts(id, sku, name, uom)')
     .single()
@@ -226,7 +226,7 @@ export async function updateQuoteLine(
     throw new Error('Quote line not found after update')
   }
   
-  return data
+  return data as QuoteLine
 }
 
 /**

@@ -66,7 +66,7 @@ export async function createCustomer(customer: CustomerInsert): Promise<Customer
   
   const { data, error } = await supabase
     .from('customers')
-    .insert(customer)
+    .insert(customer as never)
     .select('*')
     .single()
   
@@ -92,7 +92,7 @@ export async function updateCustomer(
   
   const { data, error } = await supabase
     .from('customers')
-    .update(updates)
+    .update(updates as never)
     .eq('id', id)
     .select('*')
     .single()

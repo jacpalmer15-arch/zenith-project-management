@@ -52,7 +52,7 @@ export async function createCostType(costType: CostTypeInsert): Promise<CostType
   
   const { data, error } = await supabase
     .from('cost_types')
-    .insert(costType)
+    .insert(costType as never)
     .select('*')
     .single()
   
@@ -78,7 +78,7 @@ export async function updateCostType(
   
   const { data, error } = await supabase
     .from('cost_types')
-    .update(updates)
+    .update(updates as never)
     .eq('id', id)
     .select('*')
     .single()

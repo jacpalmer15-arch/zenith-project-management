@@ -42,7 +42,7 @@ export async function listParts(options?: ListPartsOptions): Promise<Part[]> {
     throw new Error(`Failed to fetch parts: ${error.message}`)
   }
   
-  return data || []
+  return (data || []) as Part[]
 }
 
 /**
@@ -67,7 +67,7 @@ export async function getPart(id: string): Promise<Part> {
     throw new Error('Part not found')
   }
   
-  return data
+  return data as Part
 }
 
 /**
@@ -78,7 +78,7 @@ export async function createPart(part: PartInsert): Promise<Part> {
   
   const { data, error } = await supabase
     .from('parts')
-    .insert(part)
+    .insert(part as never)
     .select(
       '*, category:part_categories(id, name, sort_order), cost_type:cost_types(id, name, sort_order), cost_code:cost_codes(id, code, name, cost_type_id)'
     )
@@ -92,7 +92,7 @@ export async function createPart(part: PartInsert): Promise<Part> {
     throw new Error('Part not returned after creation')
   }
   
-  return data
+  return data as Part
 }
 
 /**
@@ -106,7 +106,7 @@ export async function updatePart(
   
   const { data, error } = await supabase
     .from('parts')
-    .update(updates)
+    .update(updates as never)
     .eq('id', id)
     .select(
       '*, category:part_categories(id, name, sort_order), cost_type:cost_types(id, name, sort_order), cost_code:cost_codes(id, code, name, cost_type_id)'
@@ -121,5 +121,5 @@ export async function updatePart(
     throw new Error('Part not found after update')
   }
   
-  return data
+  return data as Part
 }

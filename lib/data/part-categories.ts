@@ -54,7 +54,7 @@ export async function createPartCategory(
   
   const { data, error } = await supabase
     .from('part_categories')
-    .insert(partCategory)
+    .insert(partCategory as never)
     .select('*')
     .single()
   
@@ -80,7 +80,7 @@ export async function updatePartCategory(
   
   const { data, error } = await supabase
     .from('part_categories')
-    .update(updates)
+    .update(updates as never)
     .eq('id', id)
     .select('*')
     .single()

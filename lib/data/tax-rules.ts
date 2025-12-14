@@ -52,7 +52,7 @@ export async function createTaxRule(taxRule: TaxRuleInsert): Promise<TaxRule> {
   
   const { data, error } = await supabase
     .from('tax_rules')
-    .insert(taxRule)
+    .insert(taxRule as never)
     .select('*')
     .single()
   
@@ -78,7 +78,7 @@ export async function updateTaxRule(
   
   const { data, error } = await supabase
     .from('tax_rules')
-    .update(updates)
+    .update(updates as never)
     .eq('id', id)
     .select('*')
     .single()

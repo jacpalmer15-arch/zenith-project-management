@@ -22,7 +22,7 @@ export async function getSettings(): Promise<Settings> {
     throw new Error('Settings not found')
   }
   
-  return data
+  return data as Settings
 }
 
 /**
@@ -36,7 +36,7 @@ export async function updateSettings(
   
   const { data, error } = await supabase
     .from('settings')
-    .update(updates)
+    .update(updates as never)
     .eq('id', id)
     .select('*, default_tax_rule:tax_rules(id, name, rate, is_active)')
     .single()
@@ -49,5 +49,5 @@ export async function updateSettings(
     throw new Error('Settings not found after update')
   }
   
-  return data
+  return data as Settings
 }

@@ -30,7 +30,7 @@ export async function listCostCodes(
     throw new Error(`Failed to fetch cost codes: ${error.message}`)
   }
   
-  return data || []
+  return (data || []) as CostCode[]
 }
 
 /**
@@ -53,7 +53,7 @@ export async function getCostCode(id: string): Promise<CostCode> {
     throw new Error('Cost code not found')
   }
   
-  return data
+  return data as CostCode
 }
 
 /**
@@ -64,7 +64,7 @@ export async function createCostCode(costCode: CostCodeInsert): Promise<CostCode
   
   const { data, error } = await supabase
     .from('cost_codes')
-    .insert(costCode)
+    .insert(costCode as never)
     .select('*, cost_type:cost_types(id, name, sort_order)')
     .single()
   
@@ -76,7 +76,7 @@ export async function createCostCode(costCode: CostCodeInsert): Promise<CostCode
     throw new Error('Cost code not returned after creation')
   }
   
-  return data
+  return data as CostCode
 }
 
 /**
@@ -90,7 +90,7 @@ export async function updateCostCode(
   
   const { data, error } = await supabase
     .from('cost_codes')
-    .update(updates)
+    .update(updates as never)
     .eq('id', id)
     .select('*, cost_type:cost_types(id, name, sort_order)')
     .single()
@@ -103,5 +103,5 @@ export async function updateCostCode(
     throw new Error('Cost code not found after update')
   }
   
-  return data
+  return data as CostCode
 }

@@ -35,7 +35,7 @@ export async function listProjects(
     throw new Error(`Failed to fetch projects: ${error.message}`)
   }
   
-  return data || []
+  return (data || []) as Project[]
 }
 
 /**
@@ -58,7 +58,7 @@ export async function getProject(id: string): Promise<Project> {
     throw new Error('Project not found')
   }
   
-  return data
+  return data as Project
 }
 
 /**
@@ -69,7 +69,7 @@ export async function createProject(project: ProjectInsert): Promise<Project> {
   
   const { data, error } = await supabase
     .from('projects')
-    .insert(project)
+    .insert(project as never)
     .select('*, customer:customers(id, customer_no, name, contact_name)')
     .single()
   
@@ -81,7 +81,7 @@ export async function createProject(project: ProjectInsert): Promise<Project> {
     throw new Error('Project not returned after creation')
   }
   
-  return data
+  return data as Project
 }
 
 /**
@@ -95,7 +95,7 @@ export async function updateProject(
   
   const { data, error } = await supabase
     .from('projects')
-    .update(updates)
+    .update(updates as never)
     .eq('id', id)
     .select('*, customer:customers(id, customer_no, name, contact_name)')
     .single()
@@ -108,5 +108,5 @@ export async function updateProject(
     throw new Error('Project not found after update')
   }
   
-  return data
+  return data as Project
 }
