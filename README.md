@@ -115,11 +115,12 @@ After setting up your database schema, generate TypeScript types for type-safe d
 # Login to Supabase (uses npx to avoid global installation)
 npx supabase login
 
-# Generate types (replace YOUR_PROJECT_ID with your actual project ID)
-npx supabase gen types typescript --project-id YOUR_PROJECT_ID > lib/supabase/types.ts
+# Generate types for this project (zmyupmxabjbhnyoubcqp)
+npx supabase gen types typescript --project-id zmyupmxabjbhnyoubcqp > lib/supabase/types.ts
 ```
 
-**Note:** Your project ID can be found in your Supabase project URL: `https://app.supabase.com/project/YOUR_PROJECT_ID`
+**Note:** Your project ID can be found in your Supabase project URL: `https://app.supabase.com/project/YOUR_PROJECT_ID`  
+**This project's ID:** `zmyupmxabjbhnyoubcqp`
 
 ### 4. Using the Supabase clients
 
