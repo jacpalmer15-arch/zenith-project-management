@@ -12,7 +12,7 @@ export async function updateSettingsAction(formData: FormData) {
     const data = {
       company_name: formData.get('company_name') as string,
       company_phone: (formData.get('company_phone') as string) || null,
-      company_email: formData.get('company_email') as string || '',
+      company_email: (formData.get('company_email') as string) || '',
       company_address: (formData.get('company_address') as string) || null,
       default_quote_terms: formData.get('default_quote_terms') as string,
       default_tax_rule_id: (formData.get('default_tax_rule_id') as string) || null,

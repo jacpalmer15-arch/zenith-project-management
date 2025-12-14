@@ -4,13 +4,20 @@ import { revalidatePath } from 'next/cache'
 import { createTaxRule, updateTaxRule } from '@/lib/data/tax-rules'
 import { taxRuleSchema } from '@/lib/validations/tax-rules'
 
+/**
+ * Convert percentage (0-100) to decimal (0-1) for storage
+ */
+function percentageToDecimal(percentage: number): number {
+  return percentage / 100
+}
+
 export async function createTaxRuleAction(formData: FormData) {
   try {
     // Parse form data - rate comes as percentage, convert to decimal
     const ratePercent = parseFloat(formData.get('rate') as string)
     const data = {
       name: formData.get('name') as string,
-      rate: ratePercent / 100, // Convert percentage to decimal (0-1)
+      rate: percentageToDecimal(ratePercent),
       is_active: formData.get('is_active') === 'true',
     }
 
@@ -41,7 +48,7 @@ export async function updateTaxRuleAction(formData: FormData) {
     const ratePercent = parseFloat(formData.get('rate') as string)
     const data = {
       name: formData.get('name') as string,
-      rate: ratePercent / 100, // Convert percentage to decimal (0-1)
+      rate: percentageToDecimal(ratePercent),
       is_active: formData.get('is_active') === 'true',
     }
 

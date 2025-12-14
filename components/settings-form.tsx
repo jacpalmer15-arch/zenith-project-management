@@ -19,6 +19,8 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 
+const NO_TAX_RULE_VALUE = 'none'
+
 interface SettingsFormProps {
   settings: Settings
   taxRules: TaxRule[]
@@ -194,16 +196,16 @@ export function SettingsForm({ settings, taxRules }: SettingsFormProps) {
           <div>
             <Label htmlFor="default_tax_rule_id">Default Tax Rule</Label>
             <Select
-              value={defaultTaxRuleId || 'none'}
+              value={defaultTaxRuleId || NO_TAX_RULE_VALUE}
               onValueChange={(value) =>
-                setValue('default_tax_rule_id', value === 'none' ? '' : value)
+                setValue('default_tax_rule_id', value === NO_TAX_RULE_VALUE ? '' : value)
               }
             >
               <SelectTrigger id="default_tax_rule_id">
                 <SelectValue placeholder="Select a default tax rule" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">None</SelectItem>
+                <SelectItem value={NO_TAX_RULE_VALUE}>None</SelectItem>
                 {taxRules
                   .filter((rule) => rule.is_active)
                   .map((rule) => (
