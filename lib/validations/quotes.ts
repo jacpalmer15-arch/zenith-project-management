@@ -7,7 +7,19 @@ export const quoteHeaderSchema = z.object({
   tax_rule_id: z.string().uuid('Tax rule is required'),
   quote_date: z.string(), // ISO date string
   valid_until: z.string().optional().nullable(), // ISO date string
-})
+}).refine(
+  (data) => {
+    // If quote_type is CHANGE_ORDER, parent_quote_id is required
+    if (data.quote_type === 'CHANGE_ORDER') {
+      return !!data.parent_quote_id
+    }
+    return true
+  },
+  {
+    message: 'Parent quote is required for change orders',
+    path: ['parent_quote_id'],
+  }
+)
 
 export const quoteLineSchema = z.object({
   part_id: z.string().uuid().optional().nullable(),
