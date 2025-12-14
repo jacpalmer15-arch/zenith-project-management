@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/serverClient'
-import { Part, PartInsert, PartUpdate } from '@/lib/db'
+import { Part, PartInsert, PartUpdate, PartCategory, CostType, CostCode } from '@/lib/db'
 
 export interface ListPartsOptions {
   category_id?: string
@@ -9,10 +9,16 @@ export interface ListPartsOptions {
   search?: string
 }
 
+export type PartWithRelations = Part & {
+  category?: PartCategory | null
+  cost_type?: CostType | null
+  cost_code?: CostCode | null
+}
+
 /**
  * List all parts with optional filters
  */
-export async function listParts(options?: ListPartsOptions): Promise<Part[]> {
+export async function listParts(options?: ListPartsOptions): Promise<PartWithRelations[]> {
   const supabase = await createClient()
   
   let query = supabase
@@ -42,13 +48,13 @@ export async function listParts(options?: ListPartsOptions): Promise<Part[]> {
     throw new Error(`Failed to fetch parts: ${error.message}`)
   }
   
-  return (data || []) as Part[]
+  return (data || []) as PartWithRelations[]
 }
 
 /**
  * Get a single part by ID
  */
-export async function getPart(id: string): Promise<Part> {
+export async function getPart(id: string): Promise<PartWithRelations> {
   const supabase = await createClient()
   
   const { data, error } = await supabase
@@ -67,7 +73,7 @@ export async function getPart(id: string): Promise<Part> {
     throw new Error('Part not found')
   }
   
-  return data as Part
+  return data as PartWithRelations
 }
 
 /**
