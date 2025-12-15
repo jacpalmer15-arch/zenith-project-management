@@ -61,7 +61,7 @@ export async function getQuote(id: string): Promise<Quote> {
   const { data, error } = await supabase
     .from('quotes')
     .select(
-      '*, project:projects(id, project_no, name, customer:customers(id, customer_no, name)), tax_rule:tax_rules(id, name, rate, is_active), parent_quote:quotes(id, quote_no)'
+      '*, project:projects(id, project_no, name, customer:customers(id, customer_no, name, email)), tax_rule:tax_rules(id, name, rate, is_active), parent_quote:quotes(id, quote_no)'
     )
     .eq('id', id)
     .single()
