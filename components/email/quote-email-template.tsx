@@ -1,3 +1,5 @@
+import { formatDate } from '../../lib/utils/format-date'
+
 interface QuoteEmailTemplateProps {
   customerName: string
   quoteNo: string
@@ -28,14 +30,6 @@ export function QuoteEmailTemplate({
       style: 'currency',
       currency: 'USD',
     }).format(amount)
-  }
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
   }
 
   const currentYear = new Date().getFullYear()
