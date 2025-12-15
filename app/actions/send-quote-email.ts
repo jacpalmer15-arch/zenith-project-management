@@ -68,6 +68,11 @@ export async function sendQuoteEmail(quoteId: string) {
       return { error: pdfResult.error || 'Failed to generate PDF' }
     }
 
+    // Validate PDF data is valid base64
+    if (typeof pdfResult.pdf !== 'string' || pdfResult.pdf.length === 0) {
+      return { error: 'Invalid PDF data generated' }
+    }
+
     // Render email template
     const emailHtml = QuoteEmailTemplate({
       customerName: quoteWithRelations.project.customer.name,
@@ -85,6 +90,9 @@ export async function sendQuoteEmail(quoteId: string) {
     // Initialize Resend
     const resend = new Resend(resendApiKey)
 
+    // Convert base64 PDF to Buffer for Resend attachment
+    const pdfBuffer = Buffer.from(pdfResult.pdf, 'base64')
+
     // Send email with PDF attachment
     const { data, error } = await resend.emails.send({
       from: fromEmail,
@@ -94,7 +102,7 @@ export async function sendQuoteEmail(quoteId: string) {
       attachments: [
         {
           filename: pdfResult.filename || `${quote.quote_no}.pdf`,
-          content: pdfResult.pdf,
+          content: pdfBuffer,
         },
       ],
     })

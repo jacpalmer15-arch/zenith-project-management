@@ -7,7 +7,7 @@ interface QuoteEmailTemplateProps {
   subtotal: number
   taxAmount: number
   total: number
-  taxRate: number
+  taxRate: number // Expected as decimal (e.g., 0.10 for 10%)
   companyName?: string
 }
 
