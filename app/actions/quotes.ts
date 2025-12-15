@@ -25,6 +25,29 @@ export async function createQuoteAction(headerData: any, lines: QuoteLineData[])
   }
 
   try {
+    // Filter out empty lines (blank lines with no content)
+    const validLines = lines.filter(line => {
+      // Description must exist and not be empty after trimming
+      if (!line.description || typeof line.description !== 'string' || line.description.trim().length === 0) {
+        return false
+      }
+      // Quantity must be a positive number
+      const qty = Number(line.qty)
+      if (isNaN(qty) || qty <= 0) {
+        return false
+      }
+      // Price must be a positive number
+      const price = Number(line.unit_price)
+      if (isNaN(price) || price <= 0) {
+        return false
+      }
+      return true
+    })
+
+    if (validLines.length === 0) {
+      return { error: 'At least one line item is required' }
+    }
+
     // Generate quote number
     const quoteNo = await getNextNumber('quote')
     
@@ -36,8 +59,8 @@ export async function createQuoteAction(headerData: any, lines: QuoteLineData[])
     })
 
     // Create quote lines
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i]
+    for (let i = 0; i < validLines.length; i++) {
+      const line = validLines[i]
       await createQuoteLine({
         quote_id: quote.id,
         line_no: i + 1,
@@ -66,11 +89,34 @@ export async function updateQuoteAction(id: string, headerData: any, lines: Quot
   }
 
   try {
+    // Filter out empty lines (blank lines with no content)
+    const validLines = lines.filter(line => {
+      // Description must exist and not be empty after trimming
+      if (!line.description || typeof line.description !== 'string' || line.description.trim().length === 0) {
+        return false
+      }
+      // Quantity must be a positive number
+      const qty = Number(line.qty)
+      if (isNaN(qty) || qty <= 0) {
+        return false
+      }
+      // Price must be a positive number
+      const price = Number(line.unit_price)
+      if (isNaN(price) || price <= 0) {
+        return false
+      }
+      return true
+    })
+
+    if (validLines.length === 0) {
+      return { error: 'At least one line item is required' }
+    }
+
     // Update quote header
     await updateQuote(id, parsed.data)
 
     // Track which existing lines are still present
-    const updatedLineIds = new Set(lines.filter(l => l.id).map(l => l.id!))
+    const updatedLineIds = new Set(validLines.filter(l => l.id).map(l => l.id!))
     
     // Delete lines that were removed
     for (const lineId of existingLineIds) {
@@ -80,8 +126,8 @@ export async function updateQuoteAction(id: string, headerData: any, lines: Quot
     }
 
     // Update or create lines
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i]
+    for (let i = 0; i < validLines.length; i++) {
+      const line = validLines[i]
       if (line.id) {
         // Update existing line
         await updateQuoteLine(line.id, {

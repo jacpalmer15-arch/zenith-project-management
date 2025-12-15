@@ -52,18 +52,22 @@ export function QuoteDetails({
   const [isEditing, setIsEditing] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const { control, watch, handleSubmit, reset } = useForm({
+  const { control, watch, handleSubmit, reset, setValue, getValues } = useForm({
     defaultValues: {
-      lines: lines.map((line, index) => ({
-        id: line.id,
-        part_id: line.part_id,
-        description: line.description,
-        uom: line.uom,
-        qty: line.qty,
-        unit_price: line.unit_price,
-        is_taxable: line.is_taxable,
-        line_no: index + 1,
-      })),
+      lines: lines.map((line, index) => {
+        const matchedPart = parts.find((candidate) => candidate.id === line.part_id)
+        return {
+          id: line.id,
+          part_id: line.part_id,
+          sku: matchedPart?.sku || '',
+          description: line.description,
+          uom: line.uom,
+          qty: line.qty,
+          unit_price: line.unit_price,
+          is_taxable: line.is_taxable,
+          line_no: index + 1,
+        }
+      }),
     },
   })
 
@@ -96,6 +100,22 @@ export function QuoteDetails({
   const handleSaveLines = async (data: any) => {
     setIsSubmitting(true)
     try {
+      // Filter out blank lines before saving
+      const validLines = data.lines.filter((line: any) => {
+        if (!line.description || typeof line.description !== 'string' || line.description.trim().length === 0) {
+          return false
+        }
+        const qty = Number(line.qty)
+        if (isNaN(qty) || qty <= 0) {
+          return false
+        }
+        const price = Number(line.unit_price)
+        if (isNaN(price) || price <= 0) {
+          return false
+        }
+        return true
+      })
+
       const existingLineIds = lines.map((line) => line.id)
       const result = await updateQuoteAction(
         quote.id,
@@ -108,13 +128,17 @@ export function QuoteDetails({
           valid_until: quote.valid_until,
           status: quote.status,
         },
-        data.lines,
+        validLines,
         existingLineIds
       )
 
       if (result.error) {
         toast.error(result.error)
       } else {
+        // Update the form state to remove blank lines immediately
+        reset({
+          lines: validLines
+        })
         toast.success('Quote updated successfully')
         setIsEditing(false)
         router.refresh()
@@ -146,7 +170,7 @@ export function QuoteDetails({
             >
               Cancel
             </Button>
-            <Button onClick={handleSubmit(handleSaveLines)} disabled={isSubmitting}>
+            <Button onClick={handleSubmit(handleSaveLines)} disabled={isSubmitting} type="button">
               {isSubmitting ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>
@@ -187,6 +211,8 @@ export function QuoteDetails({
         <QuoteLineItems
           control={control}
           watch={watch}
+          setValue={setValue}
+          getValues={getValues}
           taxRate={taxRate}
           parts={parts}
           readOnly={false}
@@ -277,14 +303,14 @@ export function QuoteDetails({
             </div>
             <div>
               <p className="text-sm text-slate-600">Quote Date</p>
-              <p className="font-medium">
+              <p className="font-medium" suppressHydrationWarning>
                 {new Date(quote.quote_date).toLocaleDateString()}
               </p>
             </div>
             {quote.valid_until && (
               <div>
                 <p className="text-sm text-slate-600">Valid Until</p>
-                <p className="font-medium">
+                <p className="font-medium" suppressHydrationWarning>
                   {new Date(quote.valid_until).toLocaleDateString()}
                 </p>
               </div>
@@ -309,6 +335,8 @@ export function QuoteDetails({
       <QuoteLineItems
         control={control}
         watch={watch}
+        setValue={setValue}
+        getValues={getValues}
         taxRate={taxRate}
         parts={parts}
         readOnly={true}

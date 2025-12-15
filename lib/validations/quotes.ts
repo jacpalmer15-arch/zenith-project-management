@@ -25,9 +25,10 @@ export const quoteLineSchema = z.object({
   part_id: z.string().uuid().optional().nullable(),
   description: z.string().min(1, 'Description is required'),
   uom: z.string().min(1, 'Unit of measure is required'),
-  qty: z.number().positive('Quantity must be positive'),
-  unit_price: z.number().min(0, 'Unit price must be non-negative'),
+  qty: z.number().positive('Quantity must be greater than 0'),
+  unit_price: z.number().positive('Unit price must be greater than 0'),
   is_taxable: z.boolean().default(true),
+  sku: z.string().optional().nullable(),
 })
 
 export type QuoteHeaderFormData = z.infer<typeof quoteHeaderSchema>

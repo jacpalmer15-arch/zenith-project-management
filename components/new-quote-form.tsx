@@ -35,7 +35,7 @@ export function NewQuoteForm({ projects, taxRules, quotes, parts }: NewQuoteForm
   const [headerData, setHeaderData] = useState<any>(null)
   const [showLineItems, setShowLineItems] = useState(false)
 
-  const { control, watch, handleSubmit } = useForm({
+  const { control, watch, handleSubmit, setValue, getValues } = useForm({
     defaultValues: {
       lines: [],
     },
@@ -120,6 +120,8 @@ export function NewQuoteForm({ projects, taxRules, quotes, parts }: NewQuoteForm
         <QuoteLineItems
           control={control}
           watch={watch}
+          setValue={setValue}
+          getValues={getValues}
           taxRate={taxRules.find((tr) => tr.id === headerData.tax_rule_id)?.rate || 0}
           parts={parts}
           readOnly={false}
