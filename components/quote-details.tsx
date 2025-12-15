@@ -9,6 +9,7 @@ import { QuoteHeaderForm } from './quote-header-form'
 import { QuoteLineItems, QuoteLineItemFormData } from './quote-line-items'
 import { QuoteStatusBadge } from './quote-status-badge'
 import { QuoteTypeBadge } from './quote-type-badge'
+import { DownloadQuotePDF } from './download-quote-pdf'
 import { acceptQuoteAction, updateQuoteAction } from '@/app/actions/quotes'
 import { toast } from 'sonner'
 import { ArrowLeft, Edit, CheckCircle } from 'lucide-react'
@@ -208,6 +209,7 @@ export function QuoteDetails({
           <h1 className="text-3xl font-bold text-slate-900">Quote #{quote.quote_no}</h1>
         </div>
         <div className="flex gap-3">
+          <DownloadQuotePDF quoteId={quote.id} quoteNo={quote.quote_no} />
           {canEdit && (
             <Button onClick={() => setIsEditing(true)} className="gap-2">
               <Edit className="h-4 w-4" />
