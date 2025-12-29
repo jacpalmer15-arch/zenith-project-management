@@ -74,6 +74,92 @@ export type Database = {
         }
         Relationships: []
       }
+      cost_entries: {
+        Row: {
+          id: string
+          work_order_id: string | null
+          bucket: Database["public"]["Enums"]["cost_bucket"]
+          origin: Database["public"]["Enums"]["cost_origin"]
+          description: string
+          qty: number
+          unit_cost: number
+          total_cost: number
+          occurred_at: string
+          time_entry_id: string | null
+          receipt_id: string | null
+          part_id: string | null
+          qb_entity_type: string | null
+          qb_entity_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          work_order_id?: string | null
+          bucket: Database["public"]["Enums"]["cost_bucket"]
+          origin: Database["public"]["Enums"]["cost_origin"]
+          description?: string
+          qty?: number
+          unit_cost?: number
+          total_cost?: number
+          occurred_at?: string
+          time_entry_id?: string | null
+          receipt_id?: string | null
+          part_id?: string | null
+          qb_entity_type?: string | null
+          qb_entity_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          work_order_id?: string | null
+          bucket?: Database["public"]["Enums"]["cost_bucket"]
+          origin?: Database["public"]["Enums"]["cost_origin"]
+          description?: string
+          qty?: number
+          unit_cost?: number
+          total_cost?: number
+          occurred_at?: string
+          time_entry_id?: string | null
+          receipt_id?: string | null
+          part_id?: string | null
+          qb_entity_type?: string | null
+          qb_entity_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_entries_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_entries_time_entry_id_fkey"
+            columns: ["time_entry_id"]
+            isOneToOne: false
+            referencedRelation: "work_order_time_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_entries_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "receipts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_entries_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       customers: {
         Row: {
           id: string
@@ -140,38 +226,163 @@ export type Database = {
         }
         Relationships: []
       }
-      files: {
+      equipment: {
         Row: {
           id: string
-          entity_type: Database["public"]["Enums"]["file_entity_type"]
-          entity_id: string
-          file_kind: Database["public"]["Enums"]["file_kind"]
-          storage_path: string
-          mime_type: string | null
-          created_by: string | null
+          name: string
+          serial_no: string | null
+          hourly_rate: number
+          daily_rate: number
+          is_active: boolean
           created_at: string
+          updated_at: string
         }
         Insert: {
           id?: string
-          entity_type: Database["public"]["Enums"]["file_entity_type"]
-          entity_id: string
-          file_kind: Database["public"]["Enums"]["file_kind"]
-          storage_path: string
-          mime_type?: string | null
-          created_by?: string | null
+          name: string
+          serial_no?: string | null
+          hourly_rate?: number
+          daily_rate?: number
+          is_active?: boolean
           created_at?: string
+          updated_at?: string
         }
         Update: {
           id?: string
-          entity_type?: Database["public"]["Enums"]["file_entity_type"]
-          entity_id?: string
-          file_kind?: Database["public"]["Enums"]["file_kind"]
-          storage_path?: string
-          mime_type?: string | null
-          created_by?: string | null
+          name?: string
+          serial_no?: string | null
+          hourly_rate?: number
+          daily_rate?: number
+          is_active?: boolean
           created_at?: string
+          updated_at?: string
         }
         Relationships: []
+      }
+      equipment_usage: {
+        Row: {
+          id: string
+          work_order_id: string
+          equipment_id: string
+          start_at: string
+          end_at: string | null
+          billed_rate: number
+          cost_total: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          work_order_id: string
+          equipment_id: string
+          start_at: string
+          end_at?: string | null
+          billed_rate?: number
+          cost_total?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          work_order_id?: string
+          equipment_id?: string
+          start_at?: string
+          end_at?: string | null
+          billed_rate?: number
+          cost_total?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_usage_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_usage_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      files: {
+        Row: {
+          id: string
+          customer_id: string | null
+          project_id: string | null
+          quote_id: string | null
+          work_order_id: string | null
+          storage_path: string
+          filename: string | null
+          mime_type: string | null
+          size_bytes: number | null
+          created_at: string
+          updated_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          customer_id?: string | null
+          project_id?: string | null
+          quote_id?: string | null
+          work_order_id?: string | null
+          storage_path: string
+          filename?: string | null
+          mime_type?: string | null
+          size_bytes?: number | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          customer_id?: string | null
+          project_id?: string | null
+          quote_id?: string | null
+          work_order_id?: string | null
+          storage_path?: string
+          filename?: string | null
+          mime_type?: string | null
+          size_bytes?: number | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "files_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "files_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "files_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       inventory_ledger: {
         Row: {
@@ -834,6 +1045,65 @@ export type Database = {
           }
         ]
       }
+      receipts: {
+        Row: {
+          id: string
+          vendor_name: string | null
+          receipt_date: string | null
+          total_amount: number
+          storage_path: string
+          notes: string | null
+          is_allocated: boolean
+          allocated_to_work_order_id: string | null
+          allocated_overhead_bucket: string | null
+          qb_source_entity: string | null
+          qb_source_id: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          vendor_name?: string | null
+          receipt_date?: string | null
+          total_amount?: number
+          storage_path: string
+          notes?: string | null
+          is_allocated?: boolean
+          allocated_to_work_order_id?: string | null
+          allocated_overhead_bucket?: string | null
+          qb_source_entity?: string | null
+          qb_source_id?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          vendor_name?: string | null
+          receipt_date?: string | null
+          total_amount?: number
+          storage_path?: string
+          notes?: string | null
+          is_allocated?: boolean
+          allocated_to_work_order_id?: string | null
+          allocated_overhead_bucket?: string | null
+          qb_source_entity?: string | null
+          qb_source_id?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipts_allocated_to_work_order_id_fkey"
+            columns: ["allocated_to_work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       settings: {
         Row: {
           id: string
@@ -957,6 +1227,8 @@ export type Database = {
       }
     }
     Enums: {
+      cost_bucket: "LABOR" | "MATERIAL" | "EQUIPMENT" | "SUB" | "OVERHEAD" | "OTHER"
+      cost_origin: "ZENITH_ESTIMATE" | "ZENITH_CAPTURED" | "QB_SYNCED"
       file_entity_type: "settings" | "customer" | "project" | "quote"
       file_kind: "photo" | "pdf" | "logo" | "other"
       inventory_txn_type: "RECEIPT" | "ADJUSTMENT" | "USAGE" | "RETURN"

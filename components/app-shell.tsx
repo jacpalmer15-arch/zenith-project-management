@@ -14,6 +14,7 @@ import {
   Calendar,
   Clock,
   ClipboardList,
+  Wrench,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { logout } from '@/app/actions/auth';
@@ -39,10 +40,11 @@ const navigation = [
   { name: 'Locations', href: '/app/locations', icon: MapPin },
   { name: 'Work Orders', href: '/app/work-orders', icon: ClipboardList },
   { name: 'Schedule', href: '/app/schedule', icon: Calendar },
+  { name: 'Time', href: '/app/time', icon: Clock },
+  { name: 'Equipment', href: '/app/equipment', icon: Wrench },
   { name: 'Quotes', href: '/app/quotes', icon: FileText },
   { name: 'Jobs', href: '/app/jobs', icon: Briefcase },
   { name: 'Parts & Inventory', href: '/app/parts', icon: Package },
-  { name: 'Time', href: '/app/time', icon: Clock },
   { name: 'Settings', href: '/app/settings', icon: Settings },
 ];
 
