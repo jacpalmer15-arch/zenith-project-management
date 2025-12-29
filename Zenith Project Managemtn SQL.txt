@@ -724,8 +724,76 @@ create unique index if not exists uq_sync_events_idempotency on public.sync_even
 create index if not exists idx_sync_events_status_next on public.sync_events(status, next_attempt_at);
 
 -- ============================================================
+-- ZENITH FIELD MANAGEMENT – REQUIRED MIGRATION (SINGLE RUN)
+-- Adds: employees table, work order contract fields, labor rate
+-- ============================================================
+
+BEGIN;
+
+-- 1) SETTINGS: default labor rate
+ALTER TABLE settings
+ADD COLUMN IF NOT EXISTS default_labor_rate numeric(12,4) NOT NULL DEFAULT 0;
+
+-- 2) EMPLOYEES (TECHNICIANS + ROLES)
+CREATE TABLE IF NOT EXISTS employees (
+  id uuid PRIMARY KEY,              -- matches auth.users.id
+  display_name text NOT NULL,
+  email text,
+  phone text,
+  role text NOT NULL DEFAULT 'TECH', -- TECH | OFFICE | ADMIN (expand later)
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE OR REPLACE FUNCTION set_employees_updated_at()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END $$;
+
+DROP TRIGGER IF EXISTS trg_employees_updated_at ON employees;
+CREATE TRIGGER trg_employees_updated_at
+BEFORE UPDATE ON employees
+FOR EACH ROW EXECUTE FUNCTION set_employees_updated_at();
+
+-- 3) WORK ORDERS: contract values from accepted quotes
+ALTER TABLE work_orders
+ADD COLUMN IF NOT EXISTS contract_subtotal numeric(12,2) NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS contract_tax      numeric(12,2) NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS contract_total    numeric(12,2) NOT NULL DEFAULT 0;
+
+-- 4) REWIRE TECH REFERENCES → employees
+-- work_orders.assigned_to
+ALTER TABLE work_orders
+DROP CONSTRAINT IF EXISTS work_orders_assigned_to_fkey;
+
+ALTER TABLE work_orders
+ADD CONSTRAINT work_orders_assigned_to_fkey
+FOREIGN KEY (assigned_to) REFERENCES employees(id);
+
+-- work_order_schedule.tech_user_id
+ALTER TABLE work_order_schedule
+DROP CONSTRAINT IF EXISTS work_order_schedule_tech_user_id_fkey;
+
+ALTER TABLE work_order_schedule
+ADD CONSTRAINT work_order_schedule_tech_user_id_fkey
+FOREIGN KEY (tech_user_id) REFERENCES employees(id);
+
+-- work_order_time_entries.tech_user_id
+ALTER TABLE work_order_time_entries
+DROP CONSTRAINT IF EXISTS work_order_time_entries_tech_user_id_fkey;
+
+ALTER TABLE work_order_time_entries
+ADD CONSTRAINT work_order_time_entries_tech_user_id_fkey
+FOREIGN KEY (tech_user_id) REFERENCES employees(id);
+
+COMMIT;
+-- ============================================================
 -- OPTIONAL: RLS BASELINE (disabled by default here)
 -- Enable and implement when you add company/tenant context.
 -- ============================================================
 -- alter table public.customers enable row level security;
 -- etc...
+
