@@ -9,6 +9,8 @@ export type FileEntityType = Database['public']['Enums']['file_entity_type']
 export type FileKind = Database['public']['Enums']['file_kind']
 export type WorkStatus = Database['public']['Enums']['work_status']
 export type ScheduleStatus = Database['public']['Enums']['schedule_status']
+export type CostBucket = Database['public']['Enums']['cost_bucket']
+export type CostOrigin = Database['public']['Enums']['cost_origin']
 
 // Table types
 export type Settings = Database['public']['Tables']['settings']['Row']
@@ -77,6 +79,22 @@ export type InventoryLedgerInsert = Database['public']['Tables']['inventory_ledg
 export type File = Database['public']['Tables']['files']['Row']
 export type FileInsert = Database['public']['Tables']['files']['Insert']
 
+export type Receipt = Database['public']['Tables']['receipts']['Row']
+export type ReceiptInsert = Database['public']['Tables']['receipts']['Insert']
+export type ReceiptUpdate = Database['public']['Tables']['receipts']['Update']
+
+export type CostEntry = Database['public']['Tables']['cost_entries']['Row']
+export type CostEntryInsert = Database['public']['Tables']['cost_entries']['Insert']
+export type CostEntryUpdate = Database['public']['Tables']['cost_entries']['Update']
+
+export type Equipment = Database['public']['Tables']['equipment']['Row']
+export type EquipmentInsert = Database['public']['Tables']['equipment']['Insert']
+export type EquipmentUpdate = Database['public']['Tables']['equipment']['Update']
+
+export type EquipmentUsage = Database['public']['Tables']['equipment_usage']['Row']
+export type EquipmentUsageInsert = Database['public']['Tables']['equipment_usage']['Insert']
+export type EquipmentUsageUpdate = Database['public']['Tables']['equipment_usage']['Update']
+
 // Join types for convenience
 export type WorkOrderWithCustomerLocation = WorkOrder & {
   customer: Customer
@@ -100,4 +118,27 @@ export type TimeEntryWithDetails = WorkOrderTimeEntry & {
 
 export type LocationWithCustomer = Location & {
   customer: Customer
+}
+
+export type CostEntryWithRelations = CostEntry & {
+  work_order?: WorkOrder & {
+    customer: Customer
+  }
+  part?: Part
+}
+
+export type EquipmentUsageWithEquipment = EquipmentUsage & {
+  equipment: Equipment
+  work_order: WorkOrder & {
+    customer: Customer
+  }
+}
+
+export type FileWithEntity = File & {
+  customer?: Customer
+  project?: Project
+  quote?: Quote
+  work_order?: WorkOrder & {
+    customer: Customer
+  }
 }
