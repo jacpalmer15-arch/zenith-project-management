@@ -7,6 +7,8 @@ export type QuoteType = Database['public']['Enums']['quote_type']
 export type InventoryTxnType = Database['public']['Enums']['inventory_txn_type']
 export type FileEntityType = Database['public']['Enums']['file_entity_type']
 export type FileKind = Database['public']['Enums']['file_kind']
+export type WorkStatus = Database['public']['Enums']['work_status']
+export type ScheduleStatus = Database['public']['Enums']['schedule_status']
 
 // Table types
 export type Settings = Database['public']['Tables']['settings']['Row']
@@ -21,9 +23,29 @@ export type Customer = Database['public']['Tables']['customers']['Row']
 export type CustomerInsert = Database['public']['Tables']['customers']['Insert']
 export type CustomerUpdate = Database['public']['Tables']['customers']['Update']
 
+export type Employee = Database['public']['Tables']['employees']['Row']
+export type EmployeeInsert = Database['public']['Tables']['employees']['Insert']
+export type EmployeeUpdate = Database['public']['Tables']['employees']['Update']
+
+export type Location = Database['public']['Tables']['locations']['Row']
+export type LocationInsert = Database['public']['Tables']['locations']['Insert']
+export type LocationUpdate = Database['public']['Tables']['locations']['Update']
+
 export type Project = Database['public']['Tables']['projects']['Row']
 export type ProjectInsert = Database['public']['Tables']['projects']['Insert']
 export type ProjectUpdate = Database['public']['Tables']['projects']['Update']
+
+export type WorkOrder = Database['public']['Tables']['work_orders']['Row']
+export type WorkOrderInsert = Database['public']['Tables']['work_orders']['Insert']
+export type WorkOrderUpdate = Database['public']['Tables']['work_orders']['Update']
+
+export type WorkOrderSchedule = Database['public']['Tables']['work_order_schedule']['Row']
+export type WorkOrderScheduleInsert = Database['public']['Tables']['work_order_schedule']['Insert']
+export type WorkOrderScheduleUpdate = Database['public']['Tables']['work_order_schedule']['Update']
+
+export type WorkOrderTimeEntry = Database['public']['Tables']['work_order_time_entries']['Row']
+export type WorkOrderTimeEntryInsert = Database['public']['Tables']['work_order_time_entries']['Insert']
+export type WorkOrderTimeEntryUpdate = Database['public']['Tables']['work_order_time_entries']['Update']
 
 export type PartCategory = Database['public']['Tables']['part_categories']['Row']
 export type PartCategoryInsert = Database['public']['Tables']['part_categories']['Insert']
@@ -54,3 +76,28 @@ export type InventoryLedgerInsert = Database['public']['Tables']['inventory_ledg
 
 export type File = Database['public']['Tables']['files']['Row']
 export type FileInsert = Database['public']['Tables']['files']['Insert']
+
+// Join types for convenience
+export type WorkOrderWithCustomerLocation = WorkOrder & {
+  customer: Customer
+  location: Location
+  assigned_employee?: Employee
+}
+
+export type ScheduleEntryWithDetails = WorkOrderSchedule & {
+  work_order: WorkOrder & {
+    customer: Customer
+  }
+  employee: Employee
+}
+
+export type TimeEntryWithDetails = WorkOrderTimeEntry & {
+  work_order: WorkOrder & {
+    customer: Customer
+  }
+  employee: Employee
+}
+
+export type LocationWithCustomer = Location & {
+  customer: Customer
+}
