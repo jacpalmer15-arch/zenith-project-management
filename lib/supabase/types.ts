@@ -394,6 +394,282 @@ export type Database = {
           }
         ]
       }
+      employees: {
+        Row: {
+          id: string
+          display_name: string
+          email: string | null
+          phone: string | null
+          role: string
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          display_name: string
+          email?: string | null
+          phone?: string | null
+          role?: string
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          display_name?: string
+          email?: string | null
+          phone?: string | null
+          role?: string
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      locations: {
+        Row: {
+          id: string
+          customer_id: string
+          label: string | null
+          street: string
+          city: string
+          state: string
+          zip: string
+          notes: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          customer_id: string
+          label?: string | null
+          street: string
+          city: string
+          state: string
+          zip: string
+          notes?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          customer_id?: string
+          label?: string | null
+          street?: string
+          city?: string
+          state?: string
+          zip?: string
+          notes?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      work_orders: {
+        Row: {
+          id: string
+          customer_id: string
+          location_id: string
+          work_order_no: string | null
+          status: Database["public"]["Enums"]["work_status"]
+          priority: number
+          summary: string
+          description: string
+          requested_window_start: string | null
+          requested_window_end: string | null
+          assigned_to: string | null
+          opened_at: string
+          completed_at: string | null
+          closed_at: string | null
+          contract_subtotal: number
+          contract_tax: number
+          contract_total: number
+          qb_subcustomer_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          customer_id: string
+          location_id: string
+          work_order_no?: string | null
+          status?: Database["public"]["Enums"]["work_status"]
+          priority?: number
+          summary?: string
+          description?: string
+          requested_window_start?: string | null
+          requested_window_end?: string | null
+          assigned_to?: string | null
+          opened_at?: string
+          completed_at?: string | null
+          closed_at?: string | null
+          contract_subtotal?: number
+          contract_tax?: number
+          contract_total?: number
+          qb_subcustomer_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          customer_id?: string
+          location_id?: string
+          work_order_no?: string | null
+          status?: Database["public"]["Enums"]["work_status"]
+          priority?: number
+          summary?: string
+          description?: string
+          requested_window_start?: string | null
+          requested_window_end?: string | null
+          assigned_to?: string | null
+          opened_at?: string
+          completed_at?: string | null
+          closed_at?: string | null
+          contract_subtotal?: number
+          contract_tax?: number
+          contract_total?: number
+          qb_subcustomer_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_orders_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_orders_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      work_order_schedule: {
+        Row: {
+          id: string
+          work_order_id: string
+          tech_user_id: string
+          start_at: string
+          end_at: string
+          status: Database["public"]["Enums"]["schedule_status"]
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          work_order_id: string
+          tech_user_id: string
+          start_at: string
+          end_at: string
+          status?: Database["public"]["Enums"]["schedule_status"]
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          work_order_id?: string
+          tech_user_id?: string
+          start_at?: string
+          end_at?: string
+          status?: Database["public"]["Enums"]["schedule_status"]
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_schedule_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_schedule_tech_user_id_fkey"
+            columns: ["tech_user_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      work_order_time_entries: {
+        Row: {
+          id: string
+          work_order_id: string
+          tech_user_id: string
+          clock_in_at: string
+          clock_out_at: string | null
+          break_minutes: number
+          notes: string | null
+          qb_timeactivity_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          work_order_id: string
+          tech_user_id: string
+          clock_in_at: string
+          clock_out_at?: string | null
+          break_minutes?: number
+          notes?: string | null
+          qb_timeactivity_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          work_order_id?: string
+          tech_user_id?: string
+          clock_in_at?: string
+          clock_out_at?: string | null
+          break_minutes?: number
+          notes?: string | null
+          qb_timeactivity_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_time_entries_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_time_entries_tech_user_id_fkey"
+            columns: ["tech_user_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       quote_lines: {
         Row: {
           id: string
@@ -464,7 +740,8 @@ export type Database = {
         Row: {
           id: string
           quote_no: string
-          project_id: string
+          project_id: string | null
+          work_order_id: string | null
           quote_type: Database["public"]["Enums"]["quote_type"]
           parent_quote_id: string | null
           status: Database["public"]["Enums"]["quote_status"]
@@ -485,7 +762,8 @@ export type Database = {
         Insert: {
           id?: string
           quote_no: string
-          project_id: string
+          project_id?: string | null
+          work_order_id?: string | null
           quote_type?: Database["public"]["Enums"]["quote_type"]
           parent_quote_id?: string | null
           status?: Database["public"]["Enums"]["quote_status"]
@@ -506,7 +784,8 @@ export type Database = {
         Update: {
           id?: string
           quote_no?: string
-          project_id?: string
+          project_id?: string | null
+          work_order_id?: string | null
           quote_type?: Database["public"]["Enums"]["quote_type"]
           parent_quote_id?: string | null
           status?: Database["public"]["Enums"]["quote_status"]
@@ -540,6 +819,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "quotes_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "quotes_tax_rule_id_fkey"
             columns: ["tax_rule_id"]
             isOneToOne: false
@@ -557,6 +843,7 @@ export type Database = {
           company_address: string | null
           default_quote_terms: string
           default_tax_rule_id: string | null
+          default_labor_rate: number
           customer_number_prefix: string
           next_customer_seq: number
           project_number_prefix: string
@@ -576,6 +863,7 @@ export type Database = {
           company_address?: string | null
           default_quote_terms?: string
           default_tax_rule_id?: string | null
+          default_labor_rate?: number
           customer_number_prefix?: string
           next_customer_seq?: number
           project_number_prefix?: string
@@ -595,6 +883,7 @@ export type Database = {
           company_address?: string | null
           default_quote_terms?: string
           default_tax_rule_id?: string | null
+          default_labor_rate?: number
           customer_number_prefix?: string
           next_customer_seq?: number
           project_number_prefix?: string
@@ -674,6 +963,8 @@ export type Database = {
       project_status: "Planning" | "Quoted" | "Active" | "Completed" | "Closed"
       quote_status: "Draft" | "Sent" | "Accepted" | "Rejected"
       quote_type: "BASE" | "CHANGE_ORDER"
+      work_status: "UNSCHEDULED" | "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CLOSED" | "CANCELED"
+      schedule_status: "PLANNED" | "DISPATCHED" | "ARRIVED" | "DONE" | "CANCELED"
     }
     CompositeTypes: {
       [_ in never]: never
