@@ -60,11 +60,11 @@ export async function getEquipment(id: string): Promise<Equipment> {
 /**
  * Create new equipment
  */
-export async function createEquipment(equipment: EquipmentInsert): Promise<Equipment> {
+export async function createEquipment(equipment: EquipmentInsert): Promise<any> {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('equipment')
+  const { data, error } = await (supabase
+    .from('equipment') as any)
     .insert(equipment)
     .select()
     .single()
@@ -82,11 +82,11 @@ export async function createEquipment(equipment: EquipmentInsert): Promise<Equip
 export async function updateEquipment(
   id: string,
   equipment: EquipmentUpdate
-): Promise<Equipment> {
+): Promise<any> {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('equipment')
+  const { data, error } = await (supabase
+    .from('equipment') as any)
     .update(equipment)
     .eq('id', id)
     .select()

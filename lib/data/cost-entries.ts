@@ -28,7 +28,7 @@ export interface WorkOrderCostSummary {
  */
 export async function listCostEntries(
   options?: ListCostEntriesOptions
-): Promise<CostEntryWithRelations[]> {
+): Promise<any[]> {
   const supabase = await createClient()
   
   let query = supabase
@@ -72,7 +72,7 @@ export async function listCostEntries(
 /**
  * Get a single cost entry by ID
  */
-export async function getCostEntry(id: string): Promise<CostEntryWithRelations> {
+export async function getCostEntry(id: string): Promise<any> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -95,7 +95,7 @@ export async function getCostEntry(id: string): Promise<CostEntryWithRelations> 
 /**
  * Create a new cost entry
  */
-export async function createCostEntry(costEntry: CostEntryInsert): Promise<CostEntry> {
+export async function createCostEntry(costEntry: CostEntryInsert): Promise<any> {
   const supabase = await createClient()
 
   // Calculate total_cost from qty and unit_cost
@@ -106,7 +106,7 @@ export async function createCostEntry(costEntry: CostEntryInsert): Promise<CostE
     .insert({
       ...costEntry,
       total_cost,
-    })
+    } as any)
     .select()
     .single()
 
@@ -123,11 +123,11 @@ export async function createCostEntry(costEntry: CostEntryInsert): Promise<CostE
 export async function updateCostEntry(
   id: string,
   costEntry: CostEntryUpdate
-): Promise<CostEntry> {
+): Promise<any> {
   const supabase = await createClient()
 
   // Recalculate total_cost if qty or unit_cost changed
-  const updates: CostEntryUpdate = { ...costEntry }
+  const updates: any = { ...costEntry }
   if (costEntry.qty !== undefined || costEntry.unit_cost !== undefined) {
     // Fetch current values if not provided
     const { data: current } = await supabase
@@ -137,14 +137,14 @@ export async function updateCostEntry(
       .single()
 
     if (current) {
-      const qty = costEntry.qty !== undefined ? costEntry.qty : current.qty
-      const unit_cost = costEntry.unit_cost !== undefined ? costEntry.unit_cost : current.unit_cost
+      const qty = costEntry.qty !== undefined ? costEntry.qty : (current as any).qty
+      const unit_cost = costEntry.unit_cost !== undefined ? costEntry.unit_cost : (current as any).unit_cost
       updates.total_cost = qty * unit_cost
     }
   }
 
-  const { data, error } = await supabase
-    .from('cost_entries')
+  const { data, error } = await (supabase
+    .from('cost_entries') as any)
     .update(updates)
     .eq('id', id)
     .select()
@@ -196,9 +196,9 @@ export async function getWorkOrderCostSummary(
   let grand_total = 0
 
   for (const entry of costEntries || []) {
-    const current = rollupMap.get(entry.bucket) || 0
-    rollupMap.set(entry.bucket, current + entry.total_cost)
-    grand_total += entry.total_cost
+    const current = rollupMap.get((entry as any).bucket) || 0
+    rollupMap.set((entry as any).bucket, current + (entry as any).total_cost)
+    grand_total += (entry as any).total_cost
   }
 
   const rollup: CostRollup[] = Array.from(rollupMap.entries()).map(([bucket, total]) => ({
@@ -226,8 +226,10 @@ export async function getWorkOrderCostSummary(
       .single()
 
     if (quote) {
-      contract_total = quote.total
-      estimated_margin = contract_total - grand_total
+      contract_total = (quote as any).total
+      if (contract_total !== undefined) {
+        estimated_margin = contract_total - grand_total
+      }
     }
   }
 

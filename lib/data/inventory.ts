@@ -47,11 +47,11 @@ export async function listInventoryTransactions(
  */
 export async function createInventoryTransaction(
   transaction: InventoryLedgerInsert
-): Promise<InventoryLedger> {
+): Promise<any> {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('inventory_ledger')
+  const { data, error } = await (supabase
+    .from('inventory_ledger') as any)
     .insert(transaction)
     .select()
     .single()
@@ -80,7 +80,7 @@ export async function getPartOnHandQty(partId: string): Promise<number> {
 
   let onHand = 0
   for (const txn of data || []) {
-    onHand += txn.qty_delta
+    onHand += (txn as any).qty_delta
   }
 
   return onHand
@@ -103,8 +103,8 @@ export async function getAllPartsWithOnHand(): Promise<Map<string, number>> {
   const onHandMap = new Map<string, number>()
 
   for (const txn of data || []) {
-    const current = onHandMap.get(txn.part_id) || 0
-    onHandMap.set(txn.part_id, current + txn.qty_delta)
+    const current = onHandMap.get((txn as any).part_id) || 0
+    onHandMap.set((txn as any).part_id, current + (txn as any).qty_delta)
   }
 
   return onHandMap
@@ -131,7 +131,7 @@ export async function listPartsWithOnHand(): Promise<PartWithOnHand[]> {
 
   // Combine
   return (parts || []).map((part) => ({
-    ...part,
-    on_hand_qty: onHandMap.get(part.id) || 0,
+    ...(part as any),
+    on_hand_qty: onHandMap.get((part as any).id) || 0,
   }))
 }

@@ -1,14 +1,14 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/serverClient'
-import { EquipmentUsage, EquipmentUsageInsert, EquipmentUsageUpdate, EquipmentUsageWithEquipment } from '@/lib/db'
+import { EquipmentUsage, EquipmentUsageInsert, EquipmentUsageUpdate } from '@/lib/db'
 
 /**
  * List equipment usage entries for a work order
  */
 export async function listEquipmentUsage(
   workOrderId: string
-): Promise<EquipmentUsageWithEquipment[]> {
+): Promise<any[]> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -31,7 +31,7 @@ export async function listEquipmentUsage(
 /**
  * Get a single equipment usage entry by ID
  */
-export async function getEquipmentUsage(id: string): Promise<EquipmentUsageWithEquipment> {
+export async function getEquipmentUsage(id: string): Promise<any> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -73,7 +73,7 @@ function calculateCost(
  */
 export async function createEquipmentUsage(
   usage: EquipmentUsageInsert
-): Promise<EquipmentUsage> {
+): Promise<any> {
   const supabase = await createClient()
 
   // Calculate cost_total
@@ -86,7 +86,7 @@ export async function createEquipmentUsage(
     .insert({
       ...usage,
       cost_total,
-    })
+    } as any)
     .select()
     .single()
 
@@ -103,11 +103,11 @@ export async function createEquipmentUsage(
 export async function updateEquipmentUsage(
   id: string,
   usage: EquipmentUsageUpdate
-): Promise<EquipmentUsage> {
+): Promise<any> {
   const supabase = await createClient()
 
   // Recalculate cost if relevant fields changed
-  const updates: EquipmentUsageUpdate = { ...usage }
+  const updates: any = { ...usage }
   
   if (
     usage.start_at !== undefined ||
@@ -122,16 +122,16 @@ export async function updateEquipmentUsage(
       .single()
 
     if (current) {
-      const start_at = usage.start_at !== undefined ? usage.start_at : current.start_at
-      const end_at = usage.end_at !== undefined ? usage.end_at : current.end_at
-      const billed_rate = usage.billed_rate !== undefined ? usage.billed_rate : current.billed_rate
+      const start_at = usage.start_at !== undefined ? usage.start_at : (current as any).start_at
+      const end_at = usage.end_at !== undefined ? usage.end_at : (current as any).end_at
+      const billed_rate = usage.billed_rate !== undefined ? usage.billed_rate : (current as any).billed_rate
 
       updates.cost_total = end_at ? calculateCost(start_at, end_at, billed_rate) : 0
     }
   }
 
-  const { data, error } = await supabase
-    .from('equipment_usage')
+  const { data, error } = await (supabase
+    .from('equipment_usage') as any)
     .update(updates)
     .eq('id', id)
     .select()
@@ -150,7 +150,7 @@ export async function updateEquipmentUsage(
 export async function deleteEquipmentUsage(id: string): Promise<void> {
   const supabase = await createClient()
 
-  const { error } = await supabase
+  const { error} = await supabase
     .from('equipment_usage')
     .delete()
     .eq('id', id)

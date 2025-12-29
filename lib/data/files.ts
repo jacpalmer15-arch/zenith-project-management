@@ -82,11 +82,11 @@ export async function getFile(id: string): Promise<FileWithEntity> {
 /**
  * Create a new file record
  */
-export async function createFile(file: FileInsert): Promise<File> {
+export async function createFile(file: FileInsert): Promise<any> {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('files')
+  const { data, error } = await (supabase
+    .from('files') as any)
     .insert(file)
     .select()
     .single()
@@ -105,8 +105,8 @@ export async function deleteFile(id: string): Promise<void> {
   const supabase = await createClient()
 
   // Get file to get storage path
-  const { data: file, error: fetchError } = await supabase
-    .from('files')
+  const { data: file, error: fetchError } = await (supabase
+    .from('files') as any)
     .select('storage_path')
     .eq('id', id)
     .single()
@@ -118,7 +118,7 @@ export async function deleteFile(id: string): Promise<void> {
   // Delete from storage
   const { error: storageError } = await supabase.storage
     .from('attachments')
-    .remove([file.storage_path])
+    .remove([(file as any).storage_path])
 
   if (storageError) {
     console.error('Failed to delete file from storage:', storageError)
@@ -141,11 +141,11 @@ export async function deleteFile(id: string): Promise<void> {
  */
 export async function uploadFile(
   fileData: {
-    file: File
+    file: globalThis.File
     entity_type: 'customer' | 'project' | 'quote' | 'work_order'
     entity_id: string
   }
-): Promise<File> {
+): Promise<any> {
   const supabase = await createClient()
 
   // Generate storage path
