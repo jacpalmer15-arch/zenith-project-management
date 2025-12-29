@@ -40,14 +40,14 @@ export function EmployeeForm({ employee }: EmployeeFormProps) {
         display_name: employee.display_name,
         email: employee.email || '',
         phone: employee.phone || '',
-        role: employee.role,
+        role: employee.role as 'TECH' | 'OFFICE' | 'ADMIN',
         is_active: employee.is_active,
       } : {
         id: crypto.randomUUID(),
         display_name: '',
         email: '',
         phone: '',
-        role: 'TECH',
+        role: 'TECH' as 'TECH',
         is_active: true,
       }),
     },
@@ -61,14 +61,14 @@ export function EmployeeForm({ employee }: EmployeeFormProps) {
     try {
       const formData = new FormData()
       
-      if (!isEdit && 'id' in data) {
+      if (!isEdit && 'id' in data && data.id) {
         formData.append('id', data.id)
       }
-      formData.append('display_name', data.display_name)
+      formData.append('display_name', data.display_name || '')
       formData.append('email', data.email || '')
       formData.append('phone', data.phone || '')
       formData.append('role', data.role || 'TECH')
-      formData.append('is_active', String(data.is_active))
+      formData.append('is_active', String(data.is_active ?? true))
 
       let result
       if (employee) {

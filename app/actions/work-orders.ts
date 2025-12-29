@@ -2,7 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createWorkOrder, updateWorkOrder, canTransitionStatus } from '@/lib/data'
+import { createWorkOrder, updateWorkOrder } from '@/lib/data'
+import { canTransitionStatus } from '@/lib/utils/work-order-utils'
 import { getNextNumber } from '@/lib/data'
 import { workOrderSchema } from '@/lib/validations/work-orders'
 import { WorkStatus } from '@/lib/db'

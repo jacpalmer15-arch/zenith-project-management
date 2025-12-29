@@ -10,6 +10,10 @@ import {
   FileText,
   Settings,
   LogOut,
+  MapPin,
+  Calendar,
+  Clock,
+  ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { logout } from '@/app/actions/auth';
@@ -32,9 +36,13 @@ interface AppShellProps {
 const navigation = [
   { name: 'Dashboard', href: '/app/dashboard', icon: LayoutDashboard },
   { name: 'Customers', href: '/app/customers', icon: Users },
-  { name: 'Projects', href: '/app/projects', icon: Briefcase },
-  { name: 'Parts', href: '/app/parts', icon: Package },
+  { name: 'Locations', href: '/app/locations', icon: MapPin },
+  { name: 'Work Orders', href: '/app/work-orders', icon: ClipboardList },
+  { name: 'Schedule', href: '/app/schedule', icon: Calendar },
   { name: 'Quotes', href: '/app/quotes', icon: FileText },
+  { name: 'Jobs', href: '/app/jobs', icon: Briefcase },
+  { name: 'Parts & Inventory', href: '/app/parts', icon: Package },
+  { name: 'Time', href: '/app/time', icon: Clock },
   { name: 'Settings', href: '/app/settings', icon: Settings },
 ];
 

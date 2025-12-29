@@ -3,10 +3,10 @@
 import { createClient } from '@/lib/supabase/serverClient'
 
 /**
- * Get the next number for a given entity type (customer, project, or quote)
+ * Get the next number for a given entity type (customer, project, quote, or work_order)
  * This calls the database function that atomically increments and returns the next number
  */
-export async function getNextNumber(kind: 'customer' | 'project' | 'quote'): Promise<string> {
+export async function getNextNumber(kind: 'customer' | 'project' | 'quote' | 'work_order'): Promise<string> {
   const supabase = await createClient()
   
   const { data, error } = await supabase.rpc('get_next_number', {

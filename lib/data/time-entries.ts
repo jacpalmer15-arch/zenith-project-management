@@ -144,19 +144,3 @@ export async function deleteTimeEntry(id: string): Promise<void> {
     throw new Error(`Failed to delete time entry: ${error.message}`)
   }
 }
-
-/**
- * Calculate hours worked from time entry
- */
-export function calculateHours(clockIn: string, clockOut: string | null, breakMinutes: number = 0): number {
-  if (!clockOut) return 0
-  
-  const start = new Date(clockIn)
-  const end = new Date(clockOut)
-  
-  const milliseconds = end.getTime() - start.getTime()
-  const minutes = milliseconds / (1000 * 60)
-  const hours = (minutes - breakMinutes) / 60
-  
-  return Math.max(0, hours)
-}

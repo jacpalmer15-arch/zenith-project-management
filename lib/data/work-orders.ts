@@ -147,32 +147,3 @@ export async function updateWorkOrder(
   
   return data
 }
-
-/**
- * Validate status transition
- */
-export function canTransitionStatus(currentStatus: WorkStatus, newStatus: WorkStatus): { allowed: boolean; message?: string } {
-  const transitions: Record<WorkStatus, WorkStatus[]> = {
-    'UNSCHEDULED': ['SCHEDULED', 'CANCELED'],
-    'SCHEDULED': ['IN_PROGRESS', 'CANCELED'],
-    'IN_PROGRESS': ['COMPLETED', 'CANCELED'],
-    'COMPLETED': ['CLOSED'],
-    'CLOSED': [],
-    'CANCELED': [],
-  }
-
-  if (currentStatus === newStatus) {
-    return { allowed: true }
-  }
-
-  const allowedTransitions = transitions[currentStatus] || []
-  
-  if (allowedTransitions.includes(newStatus)) {
-    return { allowed: true }
-  }
-
-  return {
-    allowed: false,
-    message: `Cannot transition from ${currentStatus} to ${newStatus}`
-  }
-}
