@@ -44,7 +44,7 @@ export async function logAction(
       before_data: beforeData || null,
       after_data: afterData || null,
       notes: notes || null,
-    })
+    } as any)
 
     if (error) {
       console.error('Failed to log audit action:', error)

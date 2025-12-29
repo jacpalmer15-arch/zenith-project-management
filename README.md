@@ -1,10 +1,10 @@
 # Zenith Field Service Management
 
-A single-tenant field service quoting application MVP for managing customers, projects, and quotes.
+A single-tenant field service quoting application MVP for managing customers, projects, work orders, and quotes.
 
 ## Overview
 
-Zenith is a modern web application built to streamline field service operations. This MVP provides essential features for managing customers, creating projects, and generating professional quotes.
+Zenith is a modern web application built to streamline field service operations. This MVP provides comprehensive features for managing customers, work orders, scheduling, time tracking, quotes, parts inventory, and equipment - all while preparing for QuickBooks Desktop integration.
 
 ## Tech Stack
 
@@ -18,6 +18,7 @@ Zenith is a modern web application built to streamline field service operations.
 - **Notifications:** Sonner
 - **Backend:** Supabase (Postgres + Auth + Storage)
 - **Code Quality:** ESLint + Prettier
+- **Testing:** Playwright (E2E)
 
 ## Prerequisites
 
@@ -47,13 +48,45 @@ Zenith is a modern web application built to streamline field service operations.
    - `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL (found in Project Settings > API)
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anon/public key (found in Project Settings > API)
 
-5. **Run the development server:**
+5. **Run the database migrations:**
+   - Import the schema from `Zenith Project Managemtn SQL.txt` into your Supabase project
+   - Ensure all tables, indexes, and triggers are created
+
+6. **Run the development server:**
    ```bash
    npm run dev
    ```
 
-6. **Open your browser:**
+7. **Open your browser:**
    Navigate to [http://localhost:3000](http://localhost:3000)
+
+## Schema Reference
+
+The complete database schema is documented in `Zenith Project Managemtn SQL.txt`. This file contains:
+- All table definitions with relationships
+- Enums for status types
+- Indexes for performance optimization
+- Triggers for automatic timestamp updates
+- Foreign key constraints
+
+Key tables include:
+- **customers** - Customer information and contact details
+- **locations** - Service locations linked to customers
+- **work_orders** - Service work orders with status tracking
+- **work_order_schedule** - Scheduling entries for work orders
+- **work_order_time_entries** - Time tracking for technicians
+- **quotes** - Quote management for projects and work orders
+- **quote_lines** - Line items for quotes
+- **parts** - Parts catalog and inventory tracking
+- **inventory_ledger** - Parts receipt and issue tracking
+- **equipment** - Equipment assets and assignments
+- **equipment_usage** - Equipment usage logs
+- **receipts** - Document receipts and allocations
+- **cost_entries** - Cost tracking for work orders
+- **projects** - Construction job projects
+- **files** - File attachments for various entities
+- **employees** - Employee/technician records
+- **audit_logs** - System activity audit trail (new)
 
 ## Environment Variables
 
@@ -177,6 +210,50 @@ export async function myServerAction() {
 - `npm run build` - Build the production application
 - `npm run start` - Start the production server (after build)
 - `npm run lint` - Run ESLint to check code quality
+- `npm run test:e2e` - Run Playwright E2E smoke tests (requires setup)
+
+## Module Status (Pre-QuickBooks MVP)
+
+This section tracks the implementation status of all major modules in the Zenith Field Service Management application.
+
+### ✅ Completed Modules
+
+- **Dashboard v2**: Enhanced dashboard with profit preview, completed work orders this week, unscheduled backlog, and top customers by quote total
+- **Customers**: Full CRUD for customer management with validation
+- **Locations**: Service location management linked to customers
+- **Work Orders**: Work order creation, status tracking, and management
+- **Schedule**: Work order scheduling with employee assignments
+- **Time Tracking**: Time entry logging for employees and work orders
+- **Quotes**: Quote creation with line items, tax rules, and status management
+- **Jobs (Projects)**: Construction project management
+- **Parts & Inventory**: Parts catalog with inventory ledger tracking (receipts/issues)
+- **Equipment**: Equipment asset management and usage tracking
+- **Receipts**: Document receipt upload and allocation to work orders
+- **Cost Entries**: Cost tracking and allocation for work orders
+- **Files**: File attachment management for various entities
+- **Reports**: Comprehensive reporting module with 4 reports:
+  - Work Order Profitability (estimated)
+  - Tech Hours Summary
+  - Parts Usage & Inventory On-Hand
+  - Quotes Pipeline with conversion metrics
+- **Settings**: Company settings, tax rules, user directory, and default labor rate
+- **Audit Log**: System activity logging and viewer
+
+### 🔒 Placeholder Modules (Coming Soon)
+
+- **QuickBooks Integration**: Desktop integration for customer sync, invoicing, and actual cost tracking
+
+### 🏗️ Architecture Features
+
+- **Authentication**: Supabase Auth with middleware protection
+- **Data Layer**: Organized server-side data functions in `lib/data/`
+- **Validation**: Zod schemas for all forms in `lib/validations/`
+- **UI Components**: Reusable shadcn/ui components with custom additions
+- **Audit Logging**: Centralized audit trail for key business actions
+- **CSV Export**: Reusable CSV export functionality for all reports
+- **Pagination**: Reusable pagination component (ready for implementation)
+- **Empty States**: Placeholder for list pages with no data
+- **Confirmation Dialogs**: Reusable confirmation for destructive actions
 
 ## Features (Current MVP)
 
@@ -187,13 +264,68 @@ export async function myServerAction() {
 ✅ React Hook Form + Zod validation  
 ✅ Toast notifications with Sonner  
 ✅ ESLint + Prettier configuration  
+✅ Enhanced Dashboard v2 with financial metrics  
+✅ Comprehensive reporting (4 reports)  
+✅ Audit logging infrastructure  
+✅ CSV export for all reports  
+✅ QuickBooks placeholders  
+✅ Playwright E2E testing setup  
 
 ## Next Steps
 
-🔜 **PROMPT 2:** Supabase clients setup (browser + server)  
-🔜 **PROMPT 3:** Authentication implementation  
-🔜 **PROMPT 4:** App shell layout and navigation  
-🔜 **PROMPT 5+:** Business features (customers, projects, quotes, etc.)  
+This MVP is **ready for QuickBooks Desktop integration**. The next phase of development should focus on:
+
+1. **QuickBooks Desktop Integration**
+   - Implement Web Connector for QuickBooks Desktop
+   - Sync customers and sub-customers (work orders)
+   - Sync invoices from accepted quotes
+   - Sync bills and purchase orders
+   - Sync time activities from time entries
+   - Implement actual vs estimated cost reporting
+
+2. **Row Level Security (RLS)**
+   - Implement Supabase RLS policies for multi-tenant support
+   - Add tenant isolation at the database level
+   - Update authentication to include tenant context
+
+3. **Enhanced UX**
+   - Implement pagination for all list pages
+   - Add debounced search across all modules
+   - Implement loading states with skeleton loaders
+   - Add empty states for all list pages
+   - Add confirmation dialogs for all destructive actions
+
+4. **Advanced Features**
+   - Email notifications for quotes and work orders
+   - Mobile-responsive time tracking
+   - Advanced filtering and search
+   - Bulk operations for common tasks
+   - Custom report builder
+
+5. **Performance Optimization**
+   - Implement caching strategies
+   - Optimize database queries with proper indexing
+   - Add pagination to large datasets
+   - Implement virtual scrolling for long lists
+
+## Testing
+
+### Smoke Tests
+
+Basic smoke tests are available in `tests/smoke.spec.ts`. To run them:
+
+```bash
+# Install Playwright browsers (first time only)
+npx playwright install
+
+# Run tests
+npm run test:e2e
+```
+
+**Note**: Smoke tests require:
+- A running development server
+- Valid test user credentials in Supabase Auth
+- Update TEST_EMAIL and TEST_PASSWORD in the test file
 
 ## License
 

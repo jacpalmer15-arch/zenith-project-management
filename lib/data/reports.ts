@@ -230,7 +230,7 @@ export async function getInventoryReport(
   
   const rows: InventoryReportRow[] = []
   
-  for (const part of parts || []) {
+  for (const part of (parts as any[]) || []) {
     const { data: ledger, error: ledgerError } = await supabase
       .from('inventory_ledger')
       .select('txn_type, quantity, txn_date')
@@ -247,7 +247,7 @@ export async function getInventoryReport(
     let totalReceipts = 0
     let totalIssues = 0
 
-    for (const txn of ledger || []) {
+    for (const txn of (ledger as any[]) || []) {
       if (txn.txn_type === 'RECEIPT') {
         onHandQty += txn.quantity || 0
         totalReceipts += txn.quantity || 0

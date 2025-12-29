@@ -33,8 +33,9 @@ export async function listAuditLogs(
 
   let query = supabase
     .from('audit_logs')
-    .select('*', { count: 'exact' })
-    .order('created_at', { ascending: false })
+    .select('*', { count: 'exact' }) as any
+
+  query = query.order('created_at', { ascending: false })
 
   if (options?.entity_type) {
     query = query.eq('entity_type', options.entity_type)
