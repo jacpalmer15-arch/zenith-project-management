@@ -19,13 +19,21 @@ export async function updateSettingsAction(formData: FormData) {
       customer_number_prefix: formData.get('customer_number_prefix') as string,
       project_number_prefix: formData.get('project_number_prefix') as string,
       quote_number_prefix: formData.get('quote_number_prefix') as string,
+      default_labor_rate: formData.get('default_labor_rate') 
+        ? parseFloat(formData.get('default_labor_rate') as string)
+        : undefined,
     }
 
     // Validate with zod
     const validated = settingsSchema.parse(data)
 
-    // Update settings
-    await updateSettings(id, validated)
+    // Update settings - remove null values for optional fields
+    const updateData: any = { ...validated }
+    if (updateData.default_labor_rate === null) {
+      delete updateData.default_labor_rate
+    }
+
+    await updateSettings(id, updateData)
 
     // Revalidate the settings page
     revalidatePath('/app/settings')

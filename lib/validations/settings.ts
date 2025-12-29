@@ -10,6 +10,7 @@ export const settingsSchema = z.object({
   customer_number_prefix: z.string().min(1),
   project_number_prefix: z.string().min(1),
   quote_number_prefix: z.string().min(1),
+  default_labor_rate: z.coerce.number().min(0).optional().nullable(),
 })
 
 export type SettingsFormData = z.infer<typeof settingsSchema>

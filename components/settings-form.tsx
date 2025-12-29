@@ -47,6 +47,7 @@ export function SettingsForm({ settings, taxRules }: SettingsFormProps) {
       customer_number_prefix: settings.customer_number_prefix,
       project_number_prefix: settings.project_number_prefix,
       quote_number_prefix: settings.quote_number_prefix,
+      default_labor_rate: (settings as any).default_labor_rate || null,
     },
   })
 
@@ -66,6 +67,9 @@ export function SettingsForm({ settings, taxRules }: SettingsFormProps) {
       formData.append('customer_number_prefix', data.customer_number_prefix)
       formData.append('project_number_prefix', data.project_number_prefix)
       formData.append('quote_number_prefix', data.quote_number_prefix)
+      if (data.default_labor_rate) {
+        formData.append('default_labor_rate', data.default_labor_rate.toString())
+      }
 
       const result = await updateSettingsAction(formData)
 
@@ -218,6 +222,25 @@ export function SettingsForm({ settings, taxRules }: SettingsFormProps) {
             {errors.default_tax_rule_id && (
               <p className="text-sm text-red-600 mt-1">
                 {errors.default_tax_rule_id.message}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="default_labor_rate">Default Labor Rate ($/hr)</Label>
+            <Input
+              id="default_labor_rate"
+              type="number"
+              step="0.01"
+              {...register('default_labor_rate')}
+              placeholder="0.00"
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              Used for labor cost estimation in time entries
+            </p>
+            {errors.default_labor_rate && (
+              <p className="text-sm text-red-600 mt-1">
+                {errors.default_labor_rate.message}
               </p>
             )}
           </div>
