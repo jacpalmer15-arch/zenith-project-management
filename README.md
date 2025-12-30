@@ -163,7 +163,7 @@ Zenith supports integration with QuickBooks Desktop via OAuth 2.0 for customer s
 - Bill creation from allocated receipts
 - Payment webhook handling with signature verification
 - Actual vs Estimated cost reports with QuickBooks data
-- Background sync worker (runs every 6 hours via cron)
+- Background sync worker (runs daily at midnight UTC via cron)
 - Manual sync triggers via API endpoints
 
 ### Webhook Setup
