@@ -4,8 +4,19 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createEmployee, updateEmployee } from '@/lib/data'
 import { employeeInsertSchema, employeeUpdateSchema } from '@/lib/validations/employees'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { requirePermission } from '@/lib/auth/permissions'
 
 export async function createEmployeeAction(formData: FormData) {
+  const user = await getCurrentUser()
+  
+  // Only ADMIN can create employees
+  try {
+    requirePermission(user?.role, 'edit_settings')
+  } catch (error) {
+    return { error: 'Permission denied: Only admins can create employees' }
+  }
+  
   // Parse form data
   const data = {
     id: formData.get('id') as string,
@@ -35,6 +46,15 @@ export async function createEmployeeAction(formData: FormData) {
 }
 
 export async function updateEmployeeAction(id: string, formData: FormData) {
+  const user = await getCurrentUser()
+  
+  // Only ADMIN can update employees
+  try {
+    requirePermission(user?.role, 'edit_settings')
+  } catch (error) {
+    return { error: 'Permission denied: Only admins can update employees' }
+  }
+  
   // Parse form data
   const data = {
     display_name: formData.get('display_name') as string,

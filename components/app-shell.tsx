@@ -19,6 +19,8 @@ import {
   BarChart3,
   Menu,
   X,
+  DollarSign,
+  UserCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { logout } from '@/app/actions/auth';
@@ -31,6 +33,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { hasPermission, type Permission } from '@/lib/auth/permissions';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import type { User } from '@supabase/supabase-js';
 
 interface AppShellProps {
@@ -38,24 +42,36 @@ interface AppShellProps {
   user: User;
 }
 
-const navigation = [
-  { name: 'Dashboard', href: '/app/dashboard', icon: LayoutDashboard },
-  { name: 'Customers', href: '/app/customers', icon: Users },
-  { name: 'Locations', href: '/app/locations', icon: MapPin },
-  { name: 'Work Orders', href: '/app/work-orders', icon: ClipboardList },
-  { name: 'Schedule', href: '/app/schedule', icon: Calendar },
-  { name: 'Time', href: '/app/time', icon: Clock },
-  { name: 'Equipment', href: '/app/equipment', icon: Wrench },
-  { name: 'Quotes', href: '/app/quotes', icon: FileText },
-  { name: 'Jobs', href: '/app/jobs', icon: Briefcase },
-  { name: 'Parts & Inventory', href: '/app/parts', icon: Package },
-  { name: 'Reports', href: '/app/reports', icon: BarChart3 },
-  { name: 'Settings', href: '/app/settings', icon: Settings },
+const navigation: Array<{
+  name: string
+  href: string
+  icon: React.ComponentType<{ className?: string }>
+  permission: Permission
+}> = [
+  { name: 'Dashboard', href: '/app/dashboard', icon: LayoutDashboard, permission: 'view_dashboard' },
+  { name: 'Customers', href: '/app/customers', icon: Users, permission: 'view_customers' },
+  { name: 'Locations', href: '/app/locations', icon: MapPin, permission: 'view_customers' },
+  { name: 'Work Orders', href: '/app/work-orders', icon: ClipboardList, permission: 'view_work_orders' },
+  { name: 'Schedule', href: '/app/schedule', icon: Calendar, permission: 'view_schedule' },
+  { name: 'Time', href: '/app/time', icon: Clock, permission: 'view_time' },
+  { name: 'Equipment', href: '/app/equipment', icon: Wrench, permission: 'view_parts' },
+  { name: 'Quotes', href: '/app/quotes', icon: FileText, permission: 'view_quotes' },
+  { name: 'Jobs', href: '/app/jobs', icon: Briefcase, permission: 'view_projects' },
+  { name: 'Parts & Inventory', href: '/app/parts', icon: Package, permission: 'view_parts' },
+  { name: 'Costs', href: '/app/receipts', icon: DollarSign, permission: 'view_costs' },
+  { name: 'Reports', href: '/app/reports', icon: BarChart3, permission: 'view_reports' },
+  { name: 'Employees', href: '/app/employees', icon: UserCircle, permission: 'view_settings' },
+  { name: 'Settings', href: '/app/settings', icon: Settings, permission: 'view_settings' },
 ];
 
 export function AppShell({ children, user }: AppShellProps) {
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const currentUser = useCurrentUser()
+  
+  const visibleNavItems = navigation.filter(item => 
+    hasPermission(currentUser?.role, item.permission)
+  )
 
   return (
     <div className="flex h-screen bg-slate-50">
@@ -86,7 +102,7 @@ export function AppShell({ children, user }: AppShellProps) {
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {navigation.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname?.startsWith(item.href);
 
@@ -128,7 +144,7 @@ export function AppShell({ children, user }: AppShellProps) {
                     <p className="text-sm font-medium text-slate-900 truncate">
                       {user.email}
                     </p>
-                    <p className="text-xs text-slate-500">Account</p>
+                    <p className="text-xs text-slate-500">{currentUser?.role || 'Loading...'}</p>
                   </div>
                 </div>
               </Button>
