@@ -18,6 +18,7 @@ export async function enqueueTask<T extends TaskPayload>(
   name: string,
   payload: T
 ): Promise<{ taskId: string; status: 'completed' | 'failed' }> {
+  // Generate unique task ID (replace with UUID library in production for better uniqueness)
   const taskId = `task_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
   
   console.log(`[Task] Enqueuing: ${name}`, { taskId, payload })

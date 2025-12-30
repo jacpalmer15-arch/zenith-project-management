@@ -14,6 +14,9 @@ import {
 
 /**
  * Transition a work order from one status to another
+ * 
+ * Note: getWorkOrder() throws an error if the work order is not found,
+ * so we don't need to check for null here.
  */
 export async function transitionWorkOrder(
   id: string,
