@@ -37,12 +37,16 @@ export function TechHoursClient({ initialData }: TechHoursClientProps) {
   }))
 
   const csvColumns = [
-    { key: 'employee_name', label: 'Employee' },
-    { key: 'date', label: 'Date' },
-    { key: 'work_order_no', label: 'Work Order' },
-    { key: 'customer_name', label: 'Customer' },
-    { key: 'hours_worked', label: 'Hours Worked' },
-    { key: 'break_minutes', label: 'Break Minutes' },
+    { key: 'employee_name', header: 'Employee' },
+    { key: 'date', header: 'Date' },
+    { key: 'work_order_no', header: 'Work Order' },
+    { key: 'customer_name', header: 'Customer' },
+    { 
+      key: 'hours_worked', 
+      header: 'Hours Worked',
+      format: (val: number) => val.toFixed(2)
+    },
+    { key: 'break_minutes', header: 'Break Minutes' },
   ]
 
   return (

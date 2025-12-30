@@ -33,13 +33,13 @@ export function QuotesPipelineClient({ initialData }: QuotesPipelineClientProps)
       : 0
 
   const csvColumns = [
-    { key: 'quote_no', label: 'Quote No' },
-    { key: 'customer_name', label: 'Customer' },
-    { key: 'project_name', label: 'Project' },
-    { key: 'status', label: 'Status' },
-    { key: 'quote_date', label: 'Quote Date' },
-    { key: 'quote_total', label: 'Quote Total' },
-    { key: 'days_in_status', label: 'Days in Status' },
+    { key: 'quote_no', header: 'Quote No' },
+    { key: 'customer_name', header: 'Customer' },
+    { key: 'project_name', header: 'Project' },
+    { key: 'status', header: 'Status' },
+    { key: 'quote_date', header: 'Quote Date' },
+    { key: 'quote_total', header: 'Quote Total' },
+    { key: 'days_in_status', header: 'Days in Status' },
   ]
 
   return (
