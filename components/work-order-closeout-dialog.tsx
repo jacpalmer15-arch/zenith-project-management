@@ -40,6 +40,7 @@ export function WorkOrderCloseoutDialog({
   useEffect(() => {
     if (isOpen && !validation) {
       setIsValidating(true)
+      setError(null)
       validateWorkOrderClose(workOrderId)
         .then(result => {
           setValidation({
@@ -48,7 +49,8 @@ export function WorkOrderCloseoutDialog({
           })
         })
         .catch(err => {
-          setError('Failed to validate work order')
+          const errorMessage = err instanceof Error ? err.message : 'Failed to validate work order'
+          setError(errorMessage)
           console.error('Validation error:', err)
         })
         .finally(() => {

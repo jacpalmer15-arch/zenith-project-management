@@ -20,19 +20,15 @@ export async function createScheduleEntryAction(data: {
   }
 
   try {
-    // Create schedule entry
-    await createScheduleEntry(parsed.data)
-
-    // Check if work order is UNSCHEDULED and update to SCHEDULED using workflow engine
+    // Check if work order can transition to SCHEDULED before creating schedule entry
     const workOrder = await getWorkOrder(data.work_order_id)
     if (workOrder.status === 'UNSCHEDULED') {
-      try {
-        await transitionWorkOrder(data.work_order_id, 'SCHEDULED')
-      } catch (error) {
-        console.error('Error transitioning work order to SCHEDULED:', error)
-        // Continue anyway - schedule entry is created
-      }
+      // Validate transition first
+      await transitionWorkOrder(data.work_order_id, 'SCHEDULED')
     }
+
+    // Create schedule entry after successful transition
+    await createScheduleEntry(parsed.data)
 
     revalidatePath('/app/schedule')
     revalidatePath('/app/work-orders')
@@ -41,7 +37,8 @@ export async function createScheduleEntryAction(data: {
     return { success: true }
   } catch (error) {
     console.error('Error creating schedule entry:', error)
-    return { error: 'Failed to create schedule entry' }
+    const message = error instanceof Error ? error.message : 'Failed to create schedule entry'
+    return { error: message }
   }
 }
 

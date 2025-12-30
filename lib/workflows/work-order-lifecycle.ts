@@ -16,7 +16,18 @@ export async function transitionWorkOrder(
   to: WorkOrderStatus,
   reason?: string
 ): Promise<TransitionResult> {
-  const wo = await getWorkOrder(id)
+  let wo
+  try {
+    wo = await getWorkOrder(id)
+  } catch (error) {
+    throw new InvalidTransitionError(
+      `Failed to fetch work order: ${error instanceof Error ? error.message : 'Unknown error'}`
+    )
+  }
+
+  if (!wo) {
+    throw new InvalidTransitionError('Work order not found')
+  }
   
   const transition = ALLOWED_TRANSITIONS.find(
     t => t.from === wo.status && t.to === to
