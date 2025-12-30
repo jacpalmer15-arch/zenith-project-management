@@ -114,7 +114,7 @@ Zenith supports integration with QuickBooks Desktop via OAuth 2.0 for customer s
 
 1. **Create a QuickBooks App**
    - Go to [developer.intuit.com](https://developer.intuit.com)
-   - Create a new app and select "QuickBooks Online API"
+   - Create a new app and select "QuickBooks Desktop API" or "QuickBooks Online API" (both use OAuth 2.0)
    - Note your Client ID and Client Secret
 
 2. **Configure OAuth Settings**
