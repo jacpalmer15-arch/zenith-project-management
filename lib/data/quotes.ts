@@ -14,6 +14,7 @@ import {
 
 export interface ListQuotesOptions {
   project_id?: string
+  work_order_id?: string
   status?: QuoteStatus
   quote_type?: QuoteType
 }
@@ -33,6 +34,10 @@ export async function listQuotes(options?: ListQuotesOptions): Promise<Quote[]> 
   
   if (options?.project_id) {
     query = query.eq('project_id', options.project_id)
+  }
+  
+  if (options?.work_order_id) {
+    query = query.eq('work_order_id', options.work_order_id)
   }
   
   if (options?.status) {
