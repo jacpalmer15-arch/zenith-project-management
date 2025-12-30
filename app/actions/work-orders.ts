@@ -7,6 +7,9 @@ import { canTransitionStatus } from '@/lib/utils/work-order-utils'
 import { getNextNumber } from '@/lib/data'
 import { workOrderSchema } from '@/lib/validations/work-orders'
 import { WorkStatus } from '@/lib/db'
+import { transitionWorkOrder } from '@/lib/workflows/work-order-lifecycle'
+import { validateWorkOrderClose } from '@/lib/workflows/work-order-closeout'
+import { InvalidTransitionError, ValidationError } from '@/lib/workflows/errors'
 
 export async function createWorkOrderAction(formData: FormData) {
   // Parse form data
@@ -82,26 +85,35 @@ export async function updateWorkOrderAction(id: string, formData: FormData) {
   redirect(`/app/work-orders/${id}`)
 }
 
-export async function updateWorkOrderStatusAction(id: string, newStatus: WorkStatus) {
+export async function updateWorkOrderStatusAction(id: string, newStatus: WorkStatus, reason?: string) {
   try {
-    // Get current work order to check current status
-    const { getWorkOrder } = await import('@/lib/data')
-    const workOrder = await getWorkOrder(id)
+    const result = await transitionWorkOrder(id, newStatus, reason)
     
-    // Validate transition
-    const transition = canTransitionStatus(workOrder.status, newStatus)
-    if (!transition.allowed) {
-      return { error: transition.message || 'Invalid status transition' }
-    }
-
-    // Update status
-    await updateWorkOrder(id, { status: newStatus })
     revalidatePath('/app/work-orders')
     revalidatePath(`/app/work-orders/${id}`)
     
-    return { success: true }
+    return { 
+      success: true, 
+      transition: result 
+    }
   } catch (error) {
-    console.error('Error updating work order status:', error)
-    return { error: 'Failed to update work order status' }
+    if (error instanceof InvalidTransitionError || 
+        error instanceof ValidationError) {
+      return { error: error.message }
+    }
+    throw error
   }
+}
+
+export async function closeWorkOrder(id: string, reason: string) {
+  const validation = await validateWorkOrderClose(id)
+  
+  if (!validation.canClose) {
+    return { 
+      error: 'Cannot close work order',
+      issues: validation.issues 
+    }
+  }
+  
+  return updateWorkOrderStatusAction(id, 'CLOSED', reason)
 }
