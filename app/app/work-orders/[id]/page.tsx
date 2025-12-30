@@ -1,4 +1,4 @@
-import { getWorkOrder } from '@/lib/data'
+import { getWorkOrder, listQuotes } from '@/lib/data'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import { format } from 'date-fns'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { WorkOrderCostReconciliation } from '@/components/work-order-cost-reconciliation'
 import { CostEntriesList } from '@/components/cost-entries-list'
+import { RelatedLinks } from '@/components/related-links'
 
 export default async function WorkOrderDetailPage({ params }: { params: { id: string } }) {
   let workOrder
@@ -19,6 +20,53 @@ export default async function WorkOrderDetailPage({ params }: { params: { id: st
   } catch (error) {
     notFound()
   }
+
+  // Fetch related quotes
+  const quotes = await listQuotes({ work_order_id: params.id }).catch(() => [])
+
+  // Build related entities
+  const relatedEntities: Array<{
+    type: 'customer' | 'project' | 'work_order' | 'quote' | 'location'
+    id: string
+    label: string
+    href: string
+    metadata?: string
+  }> = []
+  
+  if (workOrder.customer && workOrder.customer.name) {
+    relatedEntities.push({
+      type: 'customer' as const,
+      id: workOrder.customer.id,
+      label: workOrder.customer.name,
+      href: `/app/customers/${workOrder.customer.id}`,
+      metadata: workOrder.customer.customer_no || undefined
+    })
+  }
+  
+  if (workOrder.location) {
+    const locationLabel = workOrder.location.label || workOrder.location.street
+    if (locationLabel) {
+      relatedEntities.push({
+        type: 'location' as const,
+        id: workOrder.location.id,
+        label: locationLabel,
+        href: `/app/locations/${workOrder.location.id}`,
+        metadata: workOrder.location.street || undefined
+      })
+    }
+  }
+  
+  quotes.forEach(quote => {
+    if (quote.quote_no) {
+      relatedEntities.push({
+        type: 'quote' as const,
+        id: quote.id,
+        label: quote.quote_no,
+        href: `/app/quotes/${quote.id}`,
+        metadata: `${quote.status || 'Unknown'} - $${quote.total?.toFixed(2) || '0.00'}`
+      })
+    }
+  })
 
   return (
     <div>
@@ -53,7 +101,11 @@ export default async function WorkOrderDetailPage({ params }: { params: { id: st
         </TabsList>
         
         <TabsContent value="overview" className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Content - 2 columns */}
+        <div className="lg:col-span-2 space-y-6">
+        {/* Customer, Location, Assigned Cards in a nested grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Customer Card */}
         <div className="bg-white rounded-lg border border-slate-200 p-6">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">Customer</h2>
@@ -180,6 +232,13 @@ export default async function WorkOrderDetailPage({ params }: { params: { id: st
           </div>
         </div>
       )}
+        </div>
+
+        {/* Sidebar - 1 column */}
+        <div className="space-y-6">
+          <RelatedLinks entities={relatedEntities} />
+        </div>
+      </div>
         </TabsContent>
         
         <TabsContent value="costs" className="space-y-6">

@@ -36,6 +36,7 @@ import { Button } from '@/components/ui/button';
 import { hasPermission, type Permission } from '@/lib/auth/permissions';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import type { User } from '@supabase/supabase-js';
+import { CommandPalette } from '@/components/command-palette';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -99,6 +100,11 @@ export function AppShell({ children, user }: AppShellProps) {
         <div className="p-6 border-b border-slate-200">
           <h1 className="text-xl font-bold text-slate-900">Zenith</h1>
           <p className="text-sm text-slate-500 mt-1">Field Service</p>
+        </div>
+
+        {/* Global Search */}
+        <div className="p-4 border-b border-slate-200">
+          <CommandPalette />
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
