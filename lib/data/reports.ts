@@ -16,6 +16,10 @@ export interface WorkOrderProfitabilityRow {
   total_costs: number
   estimated_margin: number | null
   margin_percentage: number | null
+  actual_costs: number | null
+  actual_margin: number | null
+  actual_margin_percentage: number | null
+  variance: number | null
 }
 
 export interface WorkOrderProfitabilityFilters {
@@ -68,6 +72,7 @@ export async function getWorkOrderProfitability(
   const workOrderIds = workOrders?.map((wo: any) => wo.id) || []
   
   let costsByWorkOrder: Record<string, number> = {}
+  let actualCostsByWorkOrder: Record<string, number> = {}
   
   if (workOrderIds.length > 0) {
     const { data: costEntries, error: costError } = await supabase
@@ -84,6 +89,22 @@ export async function getWorkOrderProfitability(
       }
       return acc
     }, {})
+
+    // Get actual costs from QuickBooks
+    const { data: actualCosts, error: actualError } = await supabase
+      .from('qb_actual_costs')
+      .select('work_order_id, actual_amount')
+      .in('work_order_id', workOrderIds)
+
+    if (!actualError && actualCosts) {
+      // Sum actual costs by work order
+      actualCostsByWorkOrder = (actualCosts || []).reduce((acc: Record<string, number>, entry: any) => {
+        if (entry.work_order_id) {
+          acc[entry.work_order_id] = (acc[entry.work_order_id] || 0) + parseFloat(entry.actual_amount || 0)
+        }
+        return acc
+      }, {})
+    }
   }
 
   // Transform to report rows
@@ -91,11 +112,18 @@ export async function getWorkOrderProfitability(
     const acceptedQuote = wo.quotes?.find((q: any) => q.status === 'ACCEPTED')
     const acceptedQuoteTotal = acceptedQuote?.total_amount || null
     const totalCosts = costsByWorkOrder[wo.id] || 0
+    const actualCosts = actualCostsByWorkOrder[wo.id] || null
     const estimatedMargin = acceptedQuoteTotal !== null ? acceptedQuoteTotal - totalCosts : null
+    const actualMargin = acceptedQuoteTotal !== null && actualCosts !== null ? acceptedQuoteTotal - actualCosts : null
     const marginPercentage =
       acceptedQuoteTotal && acceptedQuoteTotal > 0
         ? (estimatedMargin! / acceptedQuoteTotal) * 100
         : null
+    const actualMarginPercentage =
+      acceptedQuoteTotal && acceptedQuoteTotal > 0 && actualMargin !== null
+        ? (actualMargin / acceptedQuoteTotal) * 100
+        : null
+    const variance = actualCosts !== null ? actualCosts - totalCosts : null
 
     return {
       work_order_id: wo.id,
@@ -106,6 +134,10 @@ export async function getWorkOrderProfitability(
       total_costs: totalCosts,
       estimated_margin: estimatedMargin,
       margin_percentage: marginPercentage,
+      actual_costs: actualCosts,
+      actual_margin: actualMargin,
+      actual_margin_percentage: actualMarginPercentage,
+      variance: variance,
     }
   })
 

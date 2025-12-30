@@ -20,18 +20,26 @@ export function WorkOrderProfitabilityClient({ initialData }: WorkOrderProfitabi
   const summary = {
     totalQuoted: data.reduce((sum, row) => sum + (row.accepted_quote_total || 0), 0),
     totalCosts: data.reduce((sum, row) => sum + row.total_costs, 0),
+    totalActualCosts: data.reduce((sum, row) => sum + (row.actual_costs || 0), 0),
     overallMargin: 0,
+    actualMargin: 0,
+    hasActualData: data.some((row) => row.actual_costs !== null),
   }
   summary.overallMargin = summary.totalQuoted - summary.totalCosts
+  summary.actualMargin = summary.totalQuoted - summary.totalActualCosts
 
   const csvColumns = [
     { key: 'work_order_no', label: 'Work Order No' },
     { key: 'customer_name', label: 'Customer' },
     { key: 'status', label: 'Status' },
     { key: 'accepted_quote_total', label: 'Quote Total' },
-    { key: 'total_costs', label: 'Total Costs' },
+    { key: 'total_costs', label: 'Estimated Costs' },
     { key: 'estimated_margin', label: 'Estimated Margin' },
-    { key: 'margin_percentage', label: 'Margin %' },
+    { key: 'margin_percentage', label: 'Estimated Margin %' },
+    { key: 'actual_costs', label: 'Actual Costs (QB)' },
+    { key: 'actual_margin', label: 'Actual Margin (QB)' },
+    { key: 'actual_margin_percentage', label: 'Actual Margin %' },
+    { key: 'variance', label: 'Variance' },
   ]
 
   return (
@@ -46,7 +54,9 @@ export function WorkOrderProfitabilityClient({ initialData }: WorkOrderProfitabi
           </Link>
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Work Order Profitability</h1>
-            <p className="text-slate-500 mt-1">Estimated margins (pre-QuickBooks)</p>
+            <p className="text-slate-500 mt-1">
+              Estimated vs Actual Costs {summary.hasActualData && '(with QuickBooks data)'}
+            </p>
           </div>
         </div>
         <ExportCsvButton
@@ -57,7 +67,7 @@ export function WorkOrderProfitabilityClient({ initialData }: WorkOrderProfitabi
       </div>
 
       {/* Summary Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-slate-500">Total Quoted</CardTitle>
@@ -70,7 +80,7 @@ export function WorkOrderProfitabilityClient({ initialData }: WorkOrderProfitabi
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-slate-500">Total Costs</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-500">Estimated Costs</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -78,17 +88,36 @@ export function WorkOrderProfitabilityClient({ initialData }: WorkOrderProfitabi
             </div>
           </CardContent>
         </Card>
+        {summary.hasActualData && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-slate-500">Actual Costs (QB)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">
+                ${summary.totalActualCosts.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-slate-500">Overall Margin</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-500">
+              {summary.hasActualData ? 'Actual Margin' : 'Estimated Margin'}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div
               className={`text-2xl font-bold ${
-                summary.overallMargin >= 0 ? 'text-green-600' : 'text-red-600'
+                (summary.hasActualData ? summary.actualMargin : summary.overallMargin) >= 0
+                  ? 'text-green-600'
+                  : 'text-red-600'
               }`}
             >
-              ${summary.overallMargin.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              ${(summary.hasActualData ? summary.actualMargin : summary.overallMargin).toLocaleString(
+                'en-US',
+                { minimumFractionDigits: 2 }
+              )}
             </div>
           </CardContent>
         </Card>
@@ -110,9 +139,15 @@ export function WorkOrderProfitabilityClient({ initialData }: WorkOrderProfitabi
                     <th className="text-left py-3 px-4 font-medium text-slate-700">Customer</th>
                     <th className="text-left py-3 px-4 font-medium text-slate-700">Status</th>
                     <th className="text-right py-3 px-4 font-medium text-slate-700">Quote Total</th>
-                    <th className="text-right py-3 px-4 font-medium text-slate-700">Costs</th>
-                    <th className="text-right py-3 px-4 font-medium text-slate-700">Margin</th>
-                    <th className="text-right py-3 px-4 font-medium text-slate-700">Margin %</th>
+                    <th className="text-right py-3 px-4 font-medium text-slate-700">Est. Costs</th>
+                    <th className="text-right py-3 px-4 font-medium text-slate-700">Est. Margin</th>
+                    {summary.hasActualData && (
+                      <>
+                        <th className="text-right py-3 px-4 font-medium text-slate-700">Actual Costs</th>
+                        <th className="text-right py-3 px-4 font-medium text-slate-700">Actual Margin</th>
+                        <th className="text-right py-3 px-4 font-medium text-slate-700">Variance</th>
+                      </>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -151,17 +186,41 @@ export function WorkOrderProfitabilityClient({ initialData }: WorkOrderProfitabi
                           ? `$${row.estimated_margin.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
                           : 'N/A'}
                       </td>
-                      <td
-                        className={`py-3 px-4 text-right ${
-                          row.margin_percentage !== null && row.margin_percentage >= 0
-                            ? 'text-green-600'
-                            : 'text-red-600'
-                        }`}
-                      >
-                        {row.margin_percentage !== null
-                          ? `${row.margin_percentage.toFixed(1)}%`
-                          : 'N/A'}
-                      </td>
+                      {summary.hasActualData && (
+                        <>
+                          <td className="py-3 px-4 text-right font-bold text-blue-600">
+                            {row.actual_costs !== null
+                              ? `$${row.actual_costs.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+                              : 'N/A'}
+                          </td>
+                          <td
+                            className={`py-3 px-4 text-right font-bold ${
+                              row.actual_margin !== null && row.actual_margin >= 0
+                                ? 'text-green-600'
+                                : 'text-red-600'
+                            }`}
+                          >
+                            {row.actual_margin !== null
+                              ? `$${row.actual_margin.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+                              : 'N/A'}
+                          </td>
+                          <td
+                            className={`py-3 px-4 text-right ${
+                              row.variance !== null && row.variance > 0
+                                ? 'text-red-600'
+                                : row.variance !== null && row.variance < 0
+                                ? 'text-green-600'
+                                : ''
+                            }`}
+                          >
+                            {row.variance !== null
+                              ? `${row.variance > 0 ? '+' : ''}$${row.variance.toLocaleString('en-US', {
+                                  minimumFractionDigits: 2,
+                                })}`
+                              : 'N/A'}
+                          </td>
+                        </>
+                      )}
                     </tr>
                   ))}
                 </tbody>
