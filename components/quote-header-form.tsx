@@ -100,7 +100,7 @@ export function QuoteHeaderForm({
               control={control}
               render={({ field }) => (
                 <Select
-                  value={field.value}
+                  value={field.value || undefined}
                   onValueChange={field.onChange}
                   disabled={isEdit}
                 >

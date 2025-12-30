@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { createTimeEntry, updateTimeEntry, deleteTimeEntry, getTimeEntry, getWorkOrder } from '@/lib/data'
 import { timeEntrySchema, validateTimeEntry } from '@/lib/validations/time-entries'
+import { validateTimeEntryMutable } from '@/lib/validations/data-consistency'
+import { getCurrentUser } from '@/lib/auth/get-user'
 
 export async function createTimeEntryAction(data: {
   work_order_id: string
@@ -20,6 +22,14 @@ export async function createTimeEntryAction(data: {
   }
 
   try {
+    const user = await getCurrentUser()
+    
+    // Check if work order is closed
+    await validateTimeEntryMutable(
+      { work_order_id: data.work_order_id },
+      user?.role || 'TECH'
+    )
+    
     const validation = await validateTimeEntry(parsed.data)
     
     if (!validation.valid) {
@@ -54,9 +64,17 @@ export async function updateTimeEntryAction(id: string, data: {
   notes?: string | null
 }) {
   try {
+    const user = await getCurrentUser()
+    
     // Check work order status
     const existing = await getTimeEntry(id)
     const wo = await getWorkOrder(existing.work_order_id)
+    
+    // Check if work order is closed
+    await validateTimeEntryMutable(
+      { work_order_id: existing.work_order_id },
+      user?.role || 'TECH'
+    )
     
     if (wo.status === 'CLOSED') {
       return { error: 'Cannot edit time entries for closed work orders' }
@@ -100,6 +118,14 @@ export async function updateTimeEntryAction(id: string, data: {
 
 export async function deleteTimeEntryAction(id: string, workOrderId: string) {
   try {
+    const user = await getCurrentUser()
+    
+    // Check if work order is closed
+    await validateTimeEntryMutable(
+      { work_order_id: workOrderId },
+      user?.role || 'TECH'
+    )
+    
     await deleteTimeEntry(id)
     
     revalidatePath('/app/time')
