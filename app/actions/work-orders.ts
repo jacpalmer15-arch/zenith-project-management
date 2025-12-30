@@ -2,14 +2,17 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createWorkOrder, updateWorkOrder } from '@/lib/data'
+import { createWorkOrder, updateWorkOrder, deleteWorkOrder } from '@/lib/data'
 import { canTransitionStatus } from '@/lib/utils/work-order-utils'
 import { getNextNumber } from '@/lib/data'
 import { workOrderSchema } from '@/lib/validations/work-orders'
 import { WorkStatus } from '@/lib/db'
 import { transitionWorkOrder } from '@/lib/workflows/work-order-lifecycle'
 import { validateWorkOrderClose } from '@/lib/workflows/work-order-closeout'
-import { InvalidTransitionError, ValidationError } from '@/lib/workflows/errors'
+import { withErrorHandling, handleWorkflowError } from '@/lib/errors/handler'
+import { PermissionDeniedError } from '@/lib/errors'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
 
 export async function createWorkOrderAction(formData: FormData) {
   // Parse form data
@@ -92,35 +95,65 @@ export async function updateWorkOrderAction(id: string, formData: FormData) {
   redirect(`/app/work-orders/${id}`)
 }
 
-export async function updateWorkOrderStatusAction(id: string, newStatus: WorkStatus, reason?: string) {
-  try {
+export async function updateWorkOrderStatusAction(
+  id: string,
+  newStatus: WorkStatus,
+  reason?: string
+) {
+  return withErrorHandling(async () => {
+    const user = await getCurrentUser()
+    
+    if (!hasPermission(user?.role, 'edit_work_orders')) {
+      throw new PermissionDeniedError('update status', 'work order')
+    }
+    
     const result = await transitionWorkOrder(id, newStatus, reason)
     
     revalidatePath('/app/work-orders')
     revalidatePath(`/app/work-orders/${id}`)
     
-    return { 
-      success: true, 
-      transition: result 
+    return result
+  })
+}
+
+export async function deleteWorkOrderAction(id: string) {
+  return withErrorHandling(async () => {
+    const user = await getCurrentUser()
+    
+    if (!hasPermission(user?.role, 'delete_records')) {
+      throw new PermissionDeniedError('delete', 'work order')
     }
-  } catch (error) {
-    if (error instanceof InvalidTransitionError || 
-        error instanceof ValidationError) {
-      return { error: error.message }
-    }
-    throw error
-  }
+    
+    await deleteWorkOrder(id)
+    
+    revalidatePath('/app/work-orders')
+    
+    return { deleted: true }
+  })
 }
 
 export async function closeWorkOrder(id: string, reason: string) {
-  const validation = await validateWorkOrderClose(id)
-  
-  if (!validation.canClose) {
-    return { 
-      error: 'Cannot close work order',
-      issues: validation.issues 
+  return withErrorHandling(async () => {
+    const user = await getCurrentUser()
+    
+    if (!hasPermission(user?.role, 'edit_work_orders')) {
+      throw new PermissionDeniedError('close', 'work order')
     }
-  }
-  
-  return updateWorkOrderStatusAction(id, 'CLOSED', reason)
+    
+    const validation = await validateWorkOrderClose(id)
+    
+    if (!validation.canClose) {
+      return { 
+        error: 'Cannot close work order',
+        issues: validation.issues 
+      }
+    }
+    
+    const result = await transitionWorkOrder(id, 'CLOSED', reason)
+    
+    revalidatePath('/app/work-orders')
+    revalidatePath(`/app/work-orders/${id}`)
+    
+    return result
+  })
 }

@@ -1,7 +1,12 @@
 'use server'
 
 import { getWorkOrder, updateWorkOrder } from '@/lib/data/work-orders'
-import { InvalidTransitionError, ValidationError } from './errors'
+import { 
+  InvalidTransitionError, 
+  ValidationError,
+  MissingDataError,
+  NotFoundError
+} from '@/lib/errors'
 import { 
   WorkOrderStatus, 
   TransitionResult,
@@ -16,17 +21,10 @@ export async function transitionWorkOrder(
   to: WorkOrderStatus,
   reason?: string
 ): Promise<TransitionResult> {
-  let wo
-  try {
-    wo = await getWorkOrder(id)
-  } catch (error) {
-    throw new InvalidTransitionError(
-      `Failed to fetch work order: ${error instanceof Error ? error.message : 'Unknown error'}`
-    )
-  }
-
+  const wo = await getWorkOrder(id)
+  
   if (!wo) {
-    throw new InvalidTransitionError('Work order not found')
+    throw new NotFoundError('Work Order', id)
   }
   
   const transition = ALLOWED_TRANSITIONS.find(
@@ -34,33 +32,26 @@ export async function transitionWorkOrder(
   )
   
   if (!transition) {
-    throw new InvalidTransitionError(
-      `Cannot transition from ${wo.status} to ${to}`
-    )
+    throw new InvalidTransitionError(wo.status, to)
   }
   
   if (transition.requiresReason && !reason) {
-    throw new ValidationError('Reason required for this transition')
+    throw new MissingDataError('Transition', 'reason', 'A reason is required for this status change')
   }
   
   const issues = transition.validate(wo)
   if (issues.length > 0) {
-    throw new ValidationError(`Cannot transition: ${issues.join(', ')}`, issues)
+    throw new ValidationError(issues)
   }
   
   await updateWorkOrder(id, { status: to })
   
-  // Log transition for now (no audit table yet per discussion)
-  const result: TransitionResult = {
+  return {
     workOrderId: id,
     from: wo.status,
     to,
     timestamp: new Date(),
     reason
   }
-  
-  console.log('Work order transition:', result)
-  
-  return result
 }
 

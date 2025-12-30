@@ -63,7 +63,7 @@ export function WorkOrderStatusDropdown({
         transitionReason
       )
       
-      if (result.error) {
+      if (!result.success) {
         setError(result.error)
       } else {
         setShowReasonDialog(false)

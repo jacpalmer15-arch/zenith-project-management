@@ -1,6 +1,10 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/serverClient';
 import { AppShell } from '@/components/app-shell';
+import { initializeTasks } from '@/lib/tasks/init';
+
+// Initialize tasks on server start
+initializeTasks();
 
 export default async function AppLayout({
   children,
