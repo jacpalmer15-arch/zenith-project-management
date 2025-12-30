@@ -21,6 +21,7 @@ import {
   X,
   DollarSign,
   UserCircle,
+  TestTube,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { logout } from '@/app/actions/auth';
@@ -130,6 +131,27 @@ export function AppShell({ children, user }: AppShellProps) {
               </Link>
             );
           })}
+          
+          {/* Dev Tools - Admin Only */}
+          {currentUser?.role === 'ADMIN' && (
+            <>
+              <div className="my-2 border-t border-slate-200" />
+              <Link
+                href="/app/dev/smoke-test"
+                onClick={() => setIsSidebarOpen(false)}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                  'min-h-[44px]',
+                  pathname === '/app/dev/smoke-test'
+                    ? 'bg-slate-900 text-white'
+                    : 'text-slate-700 hover:bg-slate-100'
+                )}
+              >
+                <TestTube className="w-5 h-5 flex-shrink-0" />
+                <span className="truncate">Smoke Test</span>
+              </Link>
+            </>
+          )}
         </nav>
 
         <div className="p-4 border-t border-slate-200">

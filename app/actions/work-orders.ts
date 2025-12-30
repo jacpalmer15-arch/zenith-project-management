@@ -13,6 +13,7 @@ import { withErrorHandling, handleWorkflowError } from '@/lib/errors/handler'
 import { PermissionDeniedError, ValidationError } from '@/lib/errors'
 import { getCurrentUser } from '@/lib/auth/get-user'
 import { hasPermission } from '@/lib/auth/permissions'
+import { validateWorkOrderLocation } from '@/lib/validations/data-consistency'
 
 export async function createWorkOrderAction(formData: FormData) {
   // Parse form data
@@ -36,6 +37,11 @@ export async function createWorkOrderAction(formData: FormData) {
   }
 
   try {
+    // Validate location required
+    await validateWorkOrderLocation({
+      location_id: parsed.data.location_id
+    })
+    
     // Generate work order number
     const workOrderNo = await getNextNumber('work_order')
     
@@ -83,6 +89,13 @@ export async function updateWorkOrderAction(id: string, formData: FormData) {
   const { status, ...updateData } = parsed.data
 
   try {
+    // If changing location, validate not null
+    if ('location_id' in updateData) {
+      await validateWorkOrderLocation({
+        location_id: updateData.location_id
+      })
+    }
+    
     await updateWorkOrder(id, updateData)
     revalidatePath('/app/work-orders')
     revalidatePath(`/app/work-orders/${id}`)

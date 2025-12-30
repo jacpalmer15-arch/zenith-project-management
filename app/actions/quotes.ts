@@ -2,9 +2,10 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createQuote, updateQuote, createQuoteLine, updateQuoteLine, deleteQuoteLine } from '@/lib/data'
+import { createQuote, updateQuote, createQuoteLine, updateQuoteLine, deleteQuoteLine, getQuote } from '@/lib/data'
 import { quoteHeaderSchema, quoteLineSchema } from '@/lib/validations'
 import { getNextNumber, acceptQuote } from '@/lib/data'
+import { validateQuoteParent } from '@/lib/validations/data-consistency'
 
 interface QuoteLineData {
   id?: string
@@ -25,6 +26,12 @@ export async function createQuoteAction(headerData: any, lines: QuoteLineData[])
   }
 
   try {
+    // Validate parent relationship
+    await validateQuoteParent({
+      project_id: parsed.data.project_id,
+      work_order_id: parsed.data.work_order_id
+    })
+    
     // Filter out empty lines (blank lines with no content)
     const validLines = lines.filter(line => {
       // Description must exist and not be empty after trimming
@@ -89,6 +96,15 @@ export async function updateQuoteAction(id: string, headerData: any, lines: Quot
   }
 
   try {
+    // If changing parent, validate
+    if ('project_id' in parsed.data || 'work_order_id' in parsed.data) {
+      const existing = await getQuote(id)
+      await validateQuoteParent({
+        project_id: parsed.data.project_id ?? existing.project_id,
+        work_order_id: parsed.data.work_order_id ?? existing.work_order_id
+      })
+    }
+    
     // Filter out empty lines (blank lines with no content)
     const validLines = lines.filter(line => {
       // Description must exist and not be empty after trimming
