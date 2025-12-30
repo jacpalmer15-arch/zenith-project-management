@@ -28,7 +28,7 @@ export async function calculateProfitPreview(
   ])
   
   // Aggregate costs by bucket
-  const costs = {
+  const costs: Record<string, number> = {
     LABOR: 0,
     MATERIAL: 0,
     EQUIPMENT: 0,
@@ -38,7 +38,10 @@ export async function calculateProfitPreview(
   }
   
   for (const entry of costEntries) {
-    costs[entry.bucket] += entry.total_cost
+    const bucket = entry.bucket as string
+    if (bucket in costs) {
+      costs[bucket] += entry.total_cost
+    }
   }
   
   const totalCost = Object.values(costs).reduce((sum, cost) => sum + cost, 0)
