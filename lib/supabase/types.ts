@@ -708,6 +708,7 @@ export type Database = {
           contract_tax: number
           contract_total: number
           qb_subcustomer_id: string | null
+          qb_subcustomer_name: string | null
           created_at: string
           updated_at: string
         }
@@ -730,6 +731,7 @@ export type Database = {
           contract_tax?: number
           contract_total?: number
           qb_subcustomer_id?: string | null
+          qb_subcustomer_name?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -752,6 +754,7 @@ export type Database = {
           contract_tax?: number
           contract_total?: number
           qb_subcustomer_id?: string | null
+          qb_subcustomer_name?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -1205,6 +1208,135 @@ export type Database = {
           updated_at?: string
           created_by?: string | null
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      qb_connections: {
+        Row: {
+          id: string
+          company_file_id: string | null
+          realm_id: string
+          access_token: string | null
+          refresh_token: string | null
+          token_expires_at: string | null
+          is_connected: boolean
+          last_sync_at: string | null
+          sync_status: string
+          sync_error: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_file_id?: string | null
+          realm_id: string
+          access_token?: string | null
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          is_connected?: boolean
+          last_sync_at?: string | null
+          sync_status?: string
+          sync_error?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_file_id?: string | null
+          realm_id?: string
+          access_token?: string | null
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          is_connected?: boolean
+          last_sync_at?: string | null
+          sync_status?: string
+          sync_error?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      qb_mappings: {
+        Row: {
+          id: string
+          zenith_entity_type: string
+          zenith_entity_id: string
+          qb_entity_type: string
+          qb_list_id: string
+          qb_edit_sequence: string | null
+          qb_full_name: string | null
+          sync_direction: string
+          last_synced_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          zenith_entity_type: string
+          zenith_entity_id: string
+          qb_entity_type: string
+          qb_list_id: string
+          qb_edit_sequence?: string | null
+          qb_full_name?: string | null
+          sync_direction?: string
+          last_synced_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          zenith_entity_type?: string
+          zenith_entity_id?: string
+          qb_entity_type?: string
+          qb_list_id?: string
+          qb_edit_sequence?: string | null
+          qb_full_name?: string | null
+          sync_direction?: string
+          last_synced_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      qb_sync_logs: {
+        Row: {
+          id: string
+          sync_type: string
+          direction: string
+          status: string
+          entity_type: string | null
+          entity_id: string | null
+          qb_request: string | null
+          qb_response: string | null
+          error_message: string | null
+          processed_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          sync_type: string
+          direction: string
+          status: string
+          entity_type?: string | null
+          entity_id?: string | null
+          qb_request?: string | null
+          qb_response?: string | null
+          error_message?: string | null
+          processed_count?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          sync_type?: string
+          direction?: string
+          status?: string
+          entity_type?: string | null
+          entity_id?: string | null
+          qb_request?: string | null
+          qb_response?: string | null
+          error_message?: string | null
+          processed_count?: number
+          created_at?: string
         }
         Relationships: []
       }

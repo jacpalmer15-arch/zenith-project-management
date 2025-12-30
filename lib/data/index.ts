@@ -63,3 +63,8 @@ export * from './rpcs'
 
 // Dashboard
 export * from './dashboard'
+
+// QuickBooks
+export * from './qb-connections'
+export * from './qb-mappings'
+export * from './qb-sync-logs'

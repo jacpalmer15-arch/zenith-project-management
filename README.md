@@ -94,6 +94,92 @@ Key tables include:
 |----------|-------------|----------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL | Yes |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anonymous/public API key | Yes |
+| `QUICKBOOKS_CLIENT_ID` | QuickBooks App Client ID from Intuit Developer Portal | For QB Integration |
+| `QUICKBOOKS_CLIENT_SECRET` | QuickBooks App Client Secret | For QB Integration |
+| `QUICKBOOKS_REDIRECT_URI` | OAuth callback URL (e.g., https://yourapp.com/api/quickbooks/callback) | For QB Integration |
+| `QUICKBOOKS_ENVIRONMENT` | QuickBooks environment: 'sandbox' or 'production' | For QB Integration |
+| `QUICKBOOKS_ENCRYPTION_KEY` | 32-byte hex key for encrypting OAuth tokens (generate with: openssl rand -hex 32) | For QB Integration |
+
+## QuickBooks Desktop Integration
+
+Zenith supports integration with QuickBooks Desktop via OAuth 2.0 for customer synchronization and financial data management.
+
+### Prerequisites
+
+1. **QuickBooks Developer Account**: Sign up at [developer.intuit.com](https://developer.intuit.com)
+2. **QuickBooks App**: Create a new app in the Intuit Developer Portal
+3. **OAuth Credentials**: Get your Client ID and Client Secret from the app settings
+
+### Setup Instructions
+
+1. **Create a QuickBooks App**
+   - Go to [developer.intuit.com](https://developer.intuit.com)
+   - Create a new app and select "QuickBooks Desktop API" or "QuickBooks Online API" (both use OAuth 2.0)
+   - Note your Client ID and Client Secret
+
+2. **Configure OAuth Settings**
+   - In your app settings, add redirect URI: `https://yourapp.com/api/quickbooks/callback`
+   - For local development, also add: `http://localhost:3000/api/quickbooks/callback`
+
+3. **Generate Encryption Key**
+   ```bash
+   openssl rand -hex 32
+   ```
+   Copy the output and add it to your `.env.local` file
+
+4. **Update Environment Variables**
+   ```bash
+   QUICKBOOKS_CLIENT_ID=your_client_id_here
+   QUICKBOOKS_CLIENT_SECRET=your_client_secret_here
+   QUICKBOOKS_REDIRECT_URI=http://localhost:3000/api/quickbooks/callback
+   QUICKBOOKS_ENVIRONMENT=sandbox
+   QUICKBOOKS_ENCRYPTION_KEY=your_generated_32_byte_hex_key
+   ```
+
+5. **Run Database Migration**
+   Execute the QuickBooks migration file in your Supabase project:
+   ```sql
+   -- Run migrations/002_add_quickbooks_tables.sql
+   ```
+
+6. **Connect QuickBooks**
+   - Navigate to Settings in the Zenith application
+   - Click "Connect QuickBooks" button
+   - Complete OAuth flow with your QuickBooks credentials
+   - Click "Sync Customers Now" to perform initial sync
+
+### Features
+
+**Phase 2A (Current)**:
+- OAuth 2.0 connection flow
+- Two-way customer synchronization
+- Work order → QuickBooks subcustomer (Job) mapping
+- Connection management UI
+
+**Phase 2B (Coming Soon)**:
+- Invoice creation from accepted quotes
+- Bill creation from allocated receipts
+- Payment webhook handling
+- Actual vs Estimated cost reports
+
+### Security
+
+- OAuth tokens are encrypted at rest using AES-256-GCM
+- Encryption key is stored in environment variables (never committed to source control)
+- Token refresh happens automatically before expiration
+- All QuickBooks API calls are server-side only
+
+### Troubleshooting
+
+**Connection Issues:**
+- Verify your Client ID and Client Secret are correct
+- Ensure redirect URI matches exactly (including protocol and port)
+- Check that the encryption key is exactly 64 hex characters (32 bytes)
+
+**Sync Errors:**
+- Check the sync error message in the QuickBooks Connection Card
+- Review sync logs in the `qb_sync_logs` table
+- Verify customer data is complete (name, email, etc.)
 
 ## Project Structure
 

@@ -1,7 +1,9 @@
 import { getSettings } from '@/lib/data/settings'
 import { listTaxRules } from '@/lib/data/tax-rules'
+import { getQbConnection } from '@/lib/data/qb-connections'
 import { SettingsForm } from '@/components/settings-form'
 import { TaxRulesSection } from '@/components/tax-rules-section'
+import { QuickBooksConnectionCard } from '@/components/quickbooks-connection-card'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/serverClient'
 import Link from 'next/link'
@@ -15,9 +17,10 @@ export default async function SettingsPage() {
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()
   
-  const [settings, taxRules] = await Promise.all([
+  const [settings, taxRules, qbConnection] = await Promise.all([
     getSettings(),
     listTaxRules(),
+    getQbConnection(),
   ])
 
   return (
@@ -67,6 +70,11 @@ export default async function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* QuickBooks Connection Card */}
+      <div className="mb-6">
+        <QuickBooksConnectionCard connection={qbConnection} />
+      </div>
       
       {/* Main Settings Form */}
       <div className="bg-white rounded-lg border border-slate-200 p-6 mb-6">

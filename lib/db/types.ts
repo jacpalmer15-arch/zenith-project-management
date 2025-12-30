@@ -95,6 +95,17 @@ export type EquipmentUsage = Database['public']['Tables']['equipment_usage']['Ro
 export type EquipmentUsageInsert = Database['public']['Tables']['equipment_usage']['Insert']
 export type EquipmentUsageUpdate = Database['public']['Tables']['equipment_usage']['Update']
 
+export type QbConnection = Database['public']['Tables']['qb_connections']['Row']
+export type QbConnectionInsert = Database['public']['Tables']['qb_connections']['Insert']
+export type QbConnectionUpdate = Database['public']['Tables']['qb_connections']['Update']
+
+export type QbMapping = Database['public']['Tables']['qb_mappings']['Row']
+export type QbMappingInsert = Database['public']['Tables']['qb_mappings']['Insert']
+export type QbMappingUpdate = Database['public']['Tables']['qb_mappings']['Update']
+
+export type QbSyncLog = Database['public']['Tables']['qb_sync_logs']['Row']
+export type QbSyncLogInsert = Database['public']['Tables']['qb_sync_logs']['Insert']
+
 // Join types for convenience
 export type WorkOrderWithCustomerLocation = WorkOrder & {
   customer: Customer
