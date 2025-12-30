@@ -3,7 +3,8 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Pencil, MapPin, User } from 'lucide-react'
-import { WorkOrderStatusBadge } from '@/components/work-order-status-badge'
+import { WorkOrderStatusDropdown } from '@/components/work-order-status-dropdown'
+import { WorkOrderCloseoutDialog } from '@/components/work-order-closeout-dialog'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 
@@ -23,15 +24,23 @@ export default async function WorkOrderDetailPage({ params }: { params: { id: st
           <h1 className="text-3xl font-bold text-slate-900">
             {workOrder.work_order_no}
           </h1>
-          <WorkOrderStatusBadge status={workOrder.status} />
+          <WorkOrderStatusDropdown 
+            workOrderId={params.id}
+            currentStatus={workOrder.status}
+          />
           <Badge variant="outline">Priority {workOrder.priority}</Badge>
         </div>
-        <Link href={`/app/work-orders/${params.id}/edit`}>
-          <Button>
-            <Pencil className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          {workOrder.status === 'COMPLETED' && (
+            <WorkOrderCloseoutDialog workOrderId={params.id} />
+          )}
+          <Link href={`/app/work-orders/${params.id}/edit`}>
+            <Button>
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">

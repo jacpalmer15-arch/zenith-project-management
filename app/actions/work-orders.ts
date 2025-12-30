@@ -7,6 +7,9 @@ import { canTransitionStatus } from '@/lib/utils/work-order-utils'
 import { getNextNumber } from '@/lib/data'
 import { workOrderSchema } from '@/lib/validations/work-orders'
 import { WorkStatus } from '@/lib/db'
+import { transitionWorkOrder } from '@/lib/workflows/work-order-lifecycle'
+import { validateWorkOrderClose } from '@/lib/workflows/work-order-closeout'
+import { InvalidTransitionError, ValidationError } from '@/lib/workflows/errors'
 
 export async function createWorkOrderAction(formData: FormData) {
   // Parse form data
@@ -49,7 +52,7 @@ export async function createWorkOrderAction(formData: FormData) {
 }
 
 export async function updateWorkOrderAction(id: string, formData: FormData) {
-  // Parse form data
+  // Parse form data - exclude status from updates as it should only be changed via workflow
   const data = {
     customer_id: formData.get('customer_id') as string,
     location_id: formData.get('location_id') as string,
@@ -59,18 +62,25 @@ export async function updateWorkOrderAction(id: string, formData: FormData) {
     requested_window_start: (formData.get('requested_window_start') as string) || null,
     requested_window_end: (formData.get('requested_window_end') as string) || null,
     assigned_to: (formData.get('assigned_to') as string) || null,
-    status: (formData.get('status') as WorkStatus) || 'UNSCHEDULED',
   }
 
-  // Validate with zod
-  const parsed = workOrderSchema.safeParse(data)
+  // Validate with zod - add status field temporarily for validation, then remove it
+  const dataWithStatus = {
+    ...data,
+    status: 'UNSCHEDULED' as WorkStatus, // Dummy value for validation
+  }
+  
+  const parsed = workOrderSchema.safeParse(dataWithStatus)
   
   if (!parsed.success) {
     return { error: 'Invalid form data' }
   }
 
+  // Remove status from the data to be updated
+  const { status, ...updateData } = parsed.data
+
   try {
-    await updateWorkOrder(id, parsed.data)
+    await updateWorkOrder(id, updateData)
     revalidatePath('/app/work-orders')
     revalidatePath(`/app/work-orders/${id}`)
     revalidatePath(`/app/work-orders/${id}/edit`)
@@ -82,26 +92,35 @@ export async function updateWorkOrderAction(id: string, formData: FormData) {
   redirect(`/app/work-orders/${id}`)
 }
 
-export async function updateWorkOrderStatusAction(id: string, newStatus: WorkStatus) {
+export async function updateWorkOrderStatusAction(id: string, newStatus: WorkStatus, reason?: string) {
   try {
-    // Get current work order to check current status
-    const { getWorkOrder } = await import('@/lib/data')
-    const workOrder = await getWorkOrder(id)
+    const result = await transitionWorkOrder(id, newStatus, reason)
     
-    // Validate transition
-    const transition = canTransitionStatus(workOrder.status, newStatus)
-    if (!transition.allowed) {
-      return { error: transition.message || 'Invalid status transition' }
-    }
-
-    // Update status
-    await updateWorkOrder(id, { status: newStatus })
     revalidatePath('/app/work-orders')
     revalidatePath(`/app/work-orders/${id}`)
     
-    return { success: true }
+    return { 
+      success: true, 
+      transition: result 
+    }
   } catch (error) {
-    console.error('Error updating work order status:', error)
-    return { error: 'Failed to update work order status' }
+    if (error instanceof InvalidTransitionError || 
+        error instanceof ValidationError) {
+      return { error: error.message }
+    }
+    throw error
   }
+}
+
+export async function closeWorkOrder(id: string, reason: string) {
+  const validation = await validateWorkOrderClose(id)
+  
+  if (!validation.canClose) {
+    return { 
+      error: 'Cannot close work order',
+      issues: validation.issues 
+    }
+  }
+  
+  return updateWorkOrderStatusAction(id, 'CLOSED', reason)
 }

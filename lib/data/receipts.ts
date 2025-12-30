@@ -5,6 +5,7 @@ import { Receipt, ReceiptInsert, ReceiptUpdate } from '@/lib/db'
 
 export interface ListReceiptsOptions {
   is_allocated?: boolean
+  work_order_id?: string
 }
 
 /**
@@ -22,6 +23,10 @@ export async function listReceipts(
   
   if (options?.is_allocated !== undefined) {
     query = query.eq('is_allocated', options.is_allocated)
+  }
+
+  if (options?.work_order_id) {
+    query = query.eq('allocated_to_work_order_id', options.work_order_id)
   }
 
   const { data, error } = await query

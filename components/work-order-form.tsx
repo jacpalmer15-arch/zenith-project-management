@@ -84,7 +84,7 @@ export function WorkOrderForm({ workOrder, customers, employees, initialLocation
       formData.append('requested_window_start', data.requested_window_start || '')
       formData.append('requested_window_end', data.requested_window_end || '')
       formData.append('assigned_to', data.assigned_to || '')
-      formData.append('status', data.status || 'UNSCHEDULED')
+      // Note: status is not included - status changes go through workflow engine
 
       let result
       if (workOrder) {

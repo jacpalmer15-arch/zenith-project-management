@@ -1,8 +1,9 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createScheduleEntry, updateScheduleEntry, deleteScheduleEntry, getWorkOrder, updateWorkOrder } from '@/lib/data'
+import { createScheduleEntry, updateScheduleEntry, deleteScheduleEntry, getWorkOrder } from '@/lib/data'
 import { scheduleEntrySchema } from '@/lib/validations/schedule'
+import { transitionWorkOrder } from '@/lib/workflows/work-order-lifecycle'
 
 export async function createScheduleEntryAction(data: {
   work_order_id: string
@@ -19,14 +20,15 @@ export async function createScheduleEntryAction(data: {
   }
 
   try {
-    // Create schedule entry
-    await createScheduleEntry(parsed.data)
-
-    // Check if work order is UNSCHEDULED and update to SCHEDULED
+    // Check if work order can transition to SCHEDULED before creating schedule entry
     const workOrder = await getWorkOrder(data.work_order_id)
     if (workOrder.status === 'UNSCHEDULED') {
-      await updateWorkOrder(data.work_order_id, { status: 'SCHEDULED' })
+      // Validate transition first
+      await transitionWorkOrder(data.work_order_id, 'SCHEDULED')
     }
+
+    // Create schedule entry after successful transition
+    await createScheduleEntry(parsed.data)
 
     revalidatePath('/app/schedule')
     revalidatePath('/app/work-orders')
@@ -35,7 +37,8 @@ export async function createScheduleEntryAction(data: {
     return { success: true }
   } catch (error) {
     console.error('Error creating schedule entry:', error)
-    return { error: 'Failed to create schedule entry' }
+    const message = error instanceof Error ? error.message : 'Failed to create schedule entry'
+    return { error: message }
   }
 }
 

@@ -8,6 +8,7 @@ export interface ListTimeEntriesOptions {
   work_order_id?: string
   start_date?: string
   end_date?: string
+  clock_out?: null | 'not_null'
 }
 
 /**
@@ -41,6 +42,10 @@ export async function listTimeEntries(
 
   if (options?.end_date) {
     query = query.lte('clock_in_at', options.end_date)
+  }
+
+  if (options?.clock_out === null) {
+    query = query.is('clock_out_at', null)
   }
   
   const { data, error } = await query
