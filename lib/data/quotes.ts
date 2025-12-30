@@ -244,3 +244,31 @@ export async function deleteQuoteLine(id: string): Promise<void> {
     throw new Error(`Failed to delete quote line: ${error.message}`)
   }
 }
+
+/**
+ * Get the accepted quote for a work order
+ */
+export async function getAcceptedQuoteForWorkOrder(
+  workOrderId: string
+): Promise<Quote | null> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('quotes')
+    .select(
+      '*, project:projects(id, project_no, name, customer:customers(id, customer_no, name)), tax_rule:tax_rules(id, name, rate, is_active)'
+    )
+    .eq('work_order_id', workOrderId)
+    .eq('status', 'Accepted')
+    .single()
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      // No rows returned
+      return null
+    }
+    throw new Error(`Failed to fetch accepted quote: ${error.message}`)
+  }
+
+  return data as Quote
+}

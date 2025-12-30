@@ -83,13 +83,13 @@ export async function upsertActualCost(data: QbActualCostInsert): Promise<QbActu
 
   const snapshotDate = data.snapshot_date || new Date().toISOString().split('T')[0]
 
-  const { data: result, error } = await supabase
-    .from('qb_actual_costs')
+  const { data: result, error } = await (supabase
+    .from('qb_actual_costs') as any)
     .upsert(
       {
         ...data,
         snapshot_date: snapshotDate,
-      } as any,
+      },
       {
         onConflict: 'work_order_id,cost_type,snapshot_date',
       }

@@ -64,7 +64,7 @@ async function processInvoiceWebhook(event: QbWebhookEvent) {
         qb_invoice_number: null,
         qb_invoice_status: null,
         qb_invoice_synced_at: null,
-      })
+      } as any)
     }
     return
   }
@@ -100,7 +100,7 @@ async function processInvoiceWebhook(event: QbWebhookEvent) {
   // Update quote status
   await updateQuote(mapping.zenith_entity_id, {
     qb_invoice_status: paymentStatus,
-  })
+  } as any)
 }
 
 /**
@@ -144,7 +144,7 @@ async function processPaymentWebhook(event: QbWebhookEvent) {
             // Update quote status
             await updateQuote(mapping.zenith_entity_id, {
               qb_invoice_status: paymentStatus,
-            })
+            } as any)
 
             // If fully paid, consider closing work order
             const quote = await getQuote(mapping.zenith_entity_id)
@@ -176,7 +176,7 @@ async function processBillWebhook(event: QbWebhookEvent) {
         qb_bill_number: null,
         qb_bill_status: null,
         qb_bill_synced_at: null,
-      })
+      } as any)
     }
     return
   }
@@ -207,7 +207,7 @@ async function processBillWebhook(event: QbWebhookEvent) {
   // Update receipt status
   await updateReceipt(mapping.zenith_entity_id, {
     qb_bill_status: paymentStatus,
-  })
+  } as any)
 }
 
 /**

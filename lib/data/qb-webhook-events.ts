@@ -42,9 +42,9 @@ export async function createWebhookEvent(
 ): Promise<QbWebhookEvent> {
   const supabase = await createClient()
 
-  const { data: event, error } = await supabase
-    .from('qb_webhook_events')
-    .insert(data as any)
+  const { data: event, error } = await (supabase
+    .from('qb_webhook_events') as any)
+    .insert(data)
     .select()
     .single()
 
@@ -100,9 +100,9 @@ export async function updateWebhookEvent(
 ): Promise<QbWebhookEvent> {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('qb_webhook_events')
-    .update(updates as any)
+  const { data, error } = await (supabase
+    .from('qb_webhook_events') as any)
+    .update(updates)
     .eq('id', id)
     .select()
     .single()

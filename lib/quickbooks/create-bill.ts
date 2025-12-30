@@ -37,7 +37,7 @@ async function findOrCreateVendor(vendorName: string) {
 export async function createBillFromReceipt(receiptId: string) {
   try {
     // Get the receipt
-    const receipt = await getReceipt(receiptId)
+    const receipt = await getReceipt(receiptId) as any
 
     if (!receipt || !receipt.is_allocated) {
       throw new Error('Receipt must be allocated before creating bill')
@@ -98,7 +98,7 @@ export async function createBillFromReceipt(receiptId: string) {
       qb_bill_number: bill.DocNumber,
       qb_bill_status: 'unpaid',
       qb_bill_synced_at: new Date().toISOString(),
-    })
+    } as any)
 
     // Create mapping
     await createQbMapping({
@@ -167,5 +167,5 @@ export async function updateBillStatus(billId: string): Promise<void> {
   // Update receipt status
   await updateReceipt(mapping.zenith_entity_id, {
     qb_bill_status: paymentStatus,
-  })
+  } as any)
 }

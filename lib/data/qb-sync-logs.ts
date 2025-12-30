@@ -25,6 +25,9 @@ export async function createSyncLog(data: QbSyncLogInsert): Promise<QbSyncLog> {
   return log as QbSyncLog
 }
 
+// Alias for backwards compatibility
+export const createQbSyncLog = createSyncLog
+
 /**
  * List sync logs with optional filters
  */

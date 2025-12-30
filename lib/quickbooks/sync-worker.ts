@@ -9,7 +9,7 @@ import { listReceipts } from '@/lib/data/receipts'
 import { listWorkOrders } from '@/lib/data/work-orders'
 import { getQbMappingByQbId, getQbMapping } from '@/lib/data/qb-mappings'
 import { upsertActualCost } from '@/lib/data/qb-actual-costs'
-import { updateQbConnection } from '@/lib/data/qb-connections'
+import { getQbConnection, updateQbConnection } from '@/lib/data/qb-connections'
 
 /**
  * Run the full QuickBooks sync worker
@@ -18,8 +18,14 @@ export async function runSyncWorker() {
   console.log('Starting QuickBooks sync worker...')
 
   try {
+    // Get connection to update
+    const connection = await getQbConnection()
+    if (!connection) {
+      throw new Error('QuickBooks connection not found')
+    }
+
     // Update connection status
-    await updateQbConnection({
+    await updateQbConnection(connection.id, {
       sync_status: 'syncing',
       last_sync_at: new Date().toISOString(),
     })
@@ -44,7 +50,7 @@ export async function runSyncWorker() {
     await snapshotActualCosts()
 
     // Update connection status
-    await updateQbConnection({
+    await updateQbConnection(connection.id, {
       sync_status: 'idle',
       sync_error: null,
     })
@@ -53,11 +59,15 @@ export async function runSyncWorker() {
   } catch (error: any) {
     console.error('QuickBooks sync failed:', error)
 
-    // Update connection status
-    await updateQbConnection({
-      sync_status: 'error',
-      sync_error: error.message,
-    })
+    // Get connection to update
+    const connection = await getQbConnection()
+    if (connection) {
+      // Update connection status
+      await updateQbConnection(connection.id, {
+        sync_status: 'error',
+        sync_error: error.message,
+      })
+    }
 
     throw error
   }

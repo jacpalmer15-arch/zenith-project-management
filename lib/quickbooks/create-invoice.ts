@@ -11,7 +11,7 @@ import { createQbSyncLog } from '@/lib/data/qb-sync-logs'
 export async function createInvoiceFromQuote(quoteId: string) {
   try {
     // Get the quote with project and customer details
-    const quote = await getQuote(quoteId)
+    const quote = await getQuote(quoteId) as any
 
     if (!quote || quote.status !== 'Accepted') {
       throw new Error('Quote must be accepted before creating invoice')
@@ -95,7 +95,7 @@ export async function createInvoiceFromQuote(quoteId: string) {
       qb_invoice_number: invoice.DocNumber,
       qb_invoice_status: 'sent',
       qb_invoice_synced_at: new Date().toISOString(),
-    })
+    } as any)
 
     // Create mapping
     await createQbMapping({
@@ -169,5 +169,5 @@ export async function updateInvoiceStatus(invoiceId: string): Promise<void> {
   // Update quote status
   await updateQuote(mapping.zenith_entity_id, {
     qb_invoice_status: paymentStatus,
-  })
+  } as any)
 }
