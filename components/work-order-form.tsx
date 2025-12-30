@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { Loader2 } from 'lucide-react'
 
 interface WorkOrderFormProps {
   workOrder?: WorkOrder
@@ -274,7 +275,14 @@ export function WorkOrderForm({ workOrder, customers, employees, initialLocation
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving...' : workOrder ? 'Update Work Order' : 'Create Work Order'}
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            workOrder ? 'Update Work Order' : 'Create Work Order'
+          )}
         </Button>
       </div>
     </form>

@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { Loader2 } from 'lucide-react'
 
 const PROJECT_STATUSES: ProjectStatus[] = ['Planning', 'Quoted', 'Active', 'Completed', 'Closed']
 
@@ -208,7 +209,14 @@ export function ProjectForm({ project, customers }: ProjectFormProps) {
       {/* Form Actions */}
       <div className="pt-6 border-t border-slate-200 flex gap-4">
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving...' : project ? 'Update Project' : 'Create Project'}
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            project ? 'Update Project' : 'Create Project'
+          )}
         </Button>
         <Button
           type="button"
