@@ -73,17 +73,21 @@ export function CreateEmployeeDialog({ onSuccess }: CreateEmployeeDialogProps) {
       formData.append('role', data.role)
       formData.append('is_active', String(data.is_active))
 
-      // We need to import the action
-      const { createEmployeeAction } = await import('@/app/actions/employees')
-      const result = await createEmployeeAction(formData)
+      const response = await fetch('/api/employees', {
+        method: 'POST',
+        body: formData
+      })
       
-      if (result?.error) {
-        toast.error(result.error)
+      const result = await response.json()
+      
+      if (!response.ok || result?.error) {
+        toast.error(result?.error || 'Failed to create employee')
       } else {
         toast.success('Employee created')
         setOpen(false)
         form.reset()
-        onSuccess?.()
+        // Refresh the page to show the new employee
+        window.location.reload()
       }
     } catch (error) {
       console.error('Create employee error:', error)
