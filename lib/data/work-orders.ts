@@ -147,3 +147,19 @@ export async function updateWorkOrder(
   
   return data
 }
+
+/**
+ * Delete a work order
+ */
+export async function deleteWorkOrder(id: string): Promise<void> {
+  const supabase = await createClient()
+  
+  const { error } = await supabase
+    .from('work_orders')
+    .delete()
+    .eq('id', id)
+  
+  if (error) {
+    throw new Error(`Failed to delete work order: ${error.message}`)
+  }
+}

@@ -69,13 +69,13 @@ export function WorkOrderCloseoutDialog({
     startTransition(async () => {
       const result = await closeWorkOrder(workOrderId, reason)
       
-      if (result.error) {
+      if (!result.success) {
         setError(result.error)
-        // Check if issues are present in the result
-        if ('issues' in result && result.issues) {
+        // Check if issues are present in the result details
+        if (result.details && 'issues' in result.details && Array.isArray(result.details.issues)) {
           setValidation({
             canClose: false,
-            issues: result.issues,
+            issues: result.details.issues.filter((issue): issue is string => typeof issue === 'string'),
           })
         }
       } else {
