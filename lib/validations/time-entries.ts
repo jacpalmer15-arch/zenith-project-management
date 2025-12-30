@@ -49,10 +49,24 @@ export async function validateTimeEntry(
   }
   
   // Check for overlapping entries by same employee
+  const supabase = await createClient()
+  
+  // First check if employee has an active (ongoing) time entry
+  const { data: activeEntries } = await supabase
+    .from('work_order_time_entries')
+    .select('*')
+    .eq('tech_user_id', data.tech_user_id)
+    .not('id', 'eq', data.id || '00000000-0000-0000-0000-000000000000')
+    .is('clock_out_at', null)
+  
+  if (activeEntries && activeEntries.length > 0) {
+    issues.push('Employee has an active time entry that must be closed first')
+  }
+  
+  // If the new entry has a clock_out, check for overlaps with completed entries
   if (data.clock_out_at) {
-    const supabase = await createClient()
     // Check for overlap: two time ranges overlap if start1 < end2 AND start2 < end1
-    const { data: overlapping, error } = await supabase
+    const { data: overlapping } = await supabase
       .from('work_order_time_entries')
       .select('*')
       .eq('tech_user_id', data.tech_user_id)
@@ -61,7 +75,7 @@ export async function validateTimeEntry(
       .lt('clock_in_at', data.clock_out_at)
       .gt('clock_out_at', data.clock_in_at)
     
-    if (!error && overlapping && overlapping.length > 0) {
+    if (overlapping && overlapping.length > 0) {
       issues.push('Time entry overlaps with existing entry for this employee')
     }
   }

@@ -82,8 +82,8 @@ export async function postLaborCosts(
     }
   }
   
-  const employeeMap = new Map(
-    (employees || []).map((e: any) => [e.id, e.display_name])
+  const employeeMap = new Map<string, string>(
+    (employees || []).map((e: { id: string; display_name: string }) => [e.id, e.display_name])
   )
   
   // Create cost entries

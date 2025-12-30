@@ -45,7 +45,6 @@ export async function onScheduleStarted(scheduleId: string) {
  * User must manually confirm completion with notes
  */
 export async function onScheduleEnded(scheduleId: string) {
-  const schedule = await getScheduleEntry(scheduleId)
   await updateScheduleEntry(scheduleId, { status: 'DONE' })
   
   // Note: Does NOT auto-transition to COMPLETED
