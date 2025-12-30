@@ -99,6 +99,8 @@ Key tables include:
 | `QUICKBOOKS_REDIRECT_URI` | OAuth callback URL (e.g., https://yourapp.com/api/quickbooks/callback) | For QB Integration |
 | `QUICKBOOKS_ENVIRONMENT` | QuickBooks environment: 'sandbox' or 'production' | For QB Integration |
 | `QUICKBOOKS_ENCRYPTION_KEY` | 32-byte hex key for encrypting OAuth tokens (generate with: openssl rand -hex 32) | For QB Integration |
+| `QUICKBOOKS_WEBHOOK_VERIFICATION_TOKEN` | Token for verifying webhook signatures from QuickBooks | For QB Webhooks |
+| `CRON_SECRET` | Secret for authenticating cron job requests (generate with: openssl rand -hex 32) | For Scheduled Sync |
 
 ## QuickBooks Desktop Integration
 
@@ -150,17 +152,80 @@ Zenith supports integration with QuickBooks Desktop via OAuth 2.0 for customer s
 
 ### Features
 
-**Phase 2A (Current)**:
+**Phase 2A**:
 - OAuth 2.0 connection flow
 - Two-way customer synchronization
 - Work order → QuickBooks subcustomer (Job) mapping
 - Connection management UI
 
-**Phase 2B (Coming Soon)**:
+**Phase 2B (Implemented)**:
 - Invoice creation from accepted quotes
 - Bill creation from allocated receipts
-- Payment webhook handling
-- Actual vs Estimated cost reports
+- Payment webhook handling with signature verification
+- Actual vs Estimated cost reports with QuickBooks data
+- Background sync worker (runs every 6 hours via cron)
+- Manual sync triggers via API endpoints
+
+### Webhook Setup
+
+To receive real-time updates from QuickBooks:
+
+1. **Generate Webhook Verification Token**:
+   ```bash
+   openssl rand -hex 32
+   ```
+   Add to `.env`:
+   ```
+   QUICKBOOKS_WEBHOOK_VERIFICATION_TOKEN=your_generated_token
+   ```
+
+2. **Configure Webhook in Intuit Developer Portal**:
+   - Navigate to your app settings
+   - Add webhook URL: `https://yourdomain.com/api/quickbooks/webhooks`
+   - Use the verification token from step 1
+   - Subscribe to events: Invoice, Payment, Bill, Customer
+
+3. **Generate Cron Secret** (for scheduled sync):
+   ```bash
+   openssl rand -hex 32
+   ```
+   Add to `.env`:
+   ```
+   CRON_SECRET=your_cron_secret
+   ```
+
+### API Endpoints
+
+**Manual Sync Triggers**:
+- `POST /api/quickbooks/sync-invoices` - Sync accepted quotes to invoices
+- `POST /api/quickbooks/sync-bills` - Sync allocated receipts to bills
+- `POST /api/quickbooks/sync-all` - Run full sync worker
+
+**Webhook Handler**:
+- `POST /api/quickbooks/webhooks` - Receive QB webhook events (with signature verification)
+
+**Scheduled Sync**:
+- `GET /api/cron/quickbooks-sync` - Run sync worker (requires cron secret in Authorization header)
+
+### Data Flow
+
+1. **Invoice Creation**:
+   - Quote status → "Accepted"
+   - Automatic invoice creation in QuickBooks
+   - Invoice ID stored in quote record
+   - Payment status updates via webhooks
+
+2. **Bill Creation**:
+   - Receipt allocated to work order
+   - Automatic bill creation in QuickBooks
+   - Bill ID stored in receipt record
+   - Job costing linked to work order
+
+3. **Actual Cost Tracking**:
+   - Sync worker snapshots costs from QB
+   - Stored in `qb_actual_costs` table
+   - Displayed in Work Order Profitability report
+   - Shows variance between estimated and actual
 
 ### Security
 
@@ -168,6 +233,8 @@ Zenith supports integration with QuickBooks Desktop via OAuth 2.0 for customer s
 - Encryption key is stored in environment variables (never committed to source control)
 - Token refresh happens automatically before expiration
 - All QuickBooks API calls are server-side only
+- Webhook signatures are verified using HMAC-SHA256
+- Cron endpoint requires bearer token authentication
 
 ### Troubleshooting
 
