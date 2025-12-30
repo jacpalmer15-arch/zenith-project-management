@@ -105,13 +105,7 @@ export function ReceiptList({
                             {age} days
                           </Badge>
                         )}
-                        {showDuplicateWarning && (
-                          <Badge variant="outline" className="text-orange-600 border-orange-600">
-                            <AlertTriangle className="h-3 w-3 mr-1" />
-                            Possible duplicate
-                          </Badge>
-                        )}
-                        {!isAged && !showDuplicateWarning && (
+                        {!isAged && (
                           <Badge variant="outline">Unallocated</Badge>
                         )}
                       </div>

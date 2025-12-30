@@ -44,7 +44,11 @@ export async function getCostReconciliation(
   }
   
   for (const entry of costEntries) {
-    breakdown[entry.bucket as keyof Omit<CostBreakdown, 'total'>] += entry.total_cost
+    const bucket = entry.bucket as keyof Omit<CostBreakdown, 'total'>
+    // Validate bucket exists in breakdown
+    if (bucket in breakdown) {
+      breakdown[bucket] += entry.total_cost
+    }
     breakdown.total += entry.total_cost
   }
   
