@@ -2,26 +2,32 @@ import {
   getDashboardMetrics,
   getRecentQuotes,
   getRecentProjects,
-  getEstimatedProfit,
   getCompletedThisWeek,
   getUnscheduledBacklog,
   getTopCustomersByQuotes,
 } from '@/lib/data/dashboard'
+import { calculateProfitSummary } from '@/lib/reporting/profit-preview'
+import { listWorkOrders } from '@/lib/data'
 import { DashboardMetrics } from '@/components/dashboard-metrics'
 import { RecentQuotes } from '@/components/recent-quotes'
 import { RecentProjects } from '@/components/recent-projects'
 import { QuickActions } from '@/components/quick-actions'
-import { ProfitPreviewCard } from '@/components/profit-preview-card'
+import { DashboardProfitCard } from '@/components/dashboard-profit-card'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle, Clock, Users } from 'lucide-react'
 
 export default async function DashboardPage() {
+  // Get active work orders for profit calculation
+  const activeWorkOrders = await listWorkOrders({ 
+    status: 'IN_PROGRESS' as any
+  })
+  
   // Fetch all dashboard data in parallel
   const [
     metrics,
     recentQuotes,
     recentProjects,
-    profitData,
+    profitSummary,
     completedThisWeek,
     unscheduledBacklog,
     topCustomers,
@@ -29,7 +35,7 @@ export default async function DashboardPage() {
     getDashboardMetrics(),
     getRecentQuotes(5),
     getRecentProjects(5),
-    getEstimatedProfit(),
+    calculateProfitSummary(activeWorkOrders.map(wo => wo.id)),
     getCompletedThisWeek(),
     getUnscheduledBacklog(),
     getTopCustomersByQuotes(),
@@ -42,10 +48,11 @@ export default async function DashboardPage() {
       {/* Enhanced Metrics Section - Stack on mobile, grid on desktop */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {/* Profit Preview */}
-        <ProfitPreviewCard
-          totalQuoted={profitData.totalQuoted}
-          totalCosts={profitData.totalCosts}
-          estimatedProfit={profitData.estimatedProfit}
+        <DashboardProfitCard
+          totalRevenue={profitSummary.totalRevenue}
+          totalCosts={profitSummary.totalCosts}
+          totalProfit={profitSummary.totalProfit}
+          averageMarginPct={profitSummary.averageMarginPct}
         />
 
         {/* Completed This Week */}

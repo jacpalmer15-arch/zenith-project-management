@@ -3,23 +3,30 @@
 import { Button } from '@/components/ui/button'
 import { Download } from 'lucide-react'
 import { toast } from 'sonner'
+import { generateCSV, downloadCSV } from '@/lib/utils/csv-export'
 
-interface ExportCsvButtonProps {
-  data: any[]
+interface CSVColumn<T> {
+  key: string
+  label: string
+  format?: (value: any, row: T) => string
+}
+
+interface ExportCsvButtonProps<T = any> {
+  data: T[]
   filename: string
-  columns: { key: string; label: string }[]
+  columns: CSVColumn<T>[]
   disabled?: boolean
 }
 
 /**
  * Reusable CSV export button
  */
-export function ExportCsvButton({
+export function ExportCsvButton<T extends Record<string, any>>({
   data,
   filename,
   columns,
   disabled = false,
-}: ExportCsvButtonProps) {
+}: ExportCsvButtonProps<T>) {
   const handleExport = () => {
     if (data.length === 0) {
       toast.error('No data to export')
@@ -27,39 +34,16 @@ export function ExportCsvButton({
     }
 
     try {
-      // Create CSV header
-      const headers = columns.map((col) => col.label).join(',')
-
-      // Create CSV rows
-      const rows = data.map((row) =>
-        columns
-          .map((col) => {
-            const value = row[col.key]
-            // Escape quotes and wrap in quotes if contains comma or quote
-            const stringValue = value != null ? String(value) : ''
-            if (stringValue.includes(',') || stringValue.includes('"')) {
-              return `"${stringValue.replace(/"/g, '""')}"`
-            }
-            return stringValue
-          })
-          .join(',')
-      )
-
-      // Combine header and rows
-      const csv = [headers, ...rows].join('\n')
-
-      // Create blob and download
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-      const link = document.createElement('a')
-      const url = URL.createObjectURL(blob)
-
-      link.setAttribute('href', url)
-      link.setAttribute('download', `${filename}.csv`)
-      link.style.visibility = 'hidden'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-
+      // Convert columns to CSV format
+      const csvColumns = columns.map(col => ({
+        key: col.key,
+        header: col.label,
+        format: col.format
+      }))
+      
+      const csv = generateCSV(data, csvColumns)
+      downloadCSV(`${filename}.csv`, csv)
+      
       toast.success(`Exported ${data.length} rows to ${filename}.csv`)
     } catch (error) {
       console.error('Export error:', error)

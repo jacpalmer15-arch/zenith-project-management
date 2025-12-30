@@ -2,45 +2,61 @@
 
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ExportCsvButton } from '@/components/export-csv-button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { WorkOrderProfitabilityRow } from '@/lib/data/reports'
+import { Badge } from '@/components/ui/badge'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { generateCSV, downloadCSV } from '@/lib/utils/csv-export'
+import { formatCurrency } from '@/lib/utils/format-currency'
+import type { ProfitPreview } from '@/lib/reporting/profit-preview'
+import type { WorkOrderWithCustomerLocation } from '@/lib/db'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Download } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface WorkOrderProfitabilityClientProps {
-  initialData: WorkOrderProfitabilityRow[]
+  initialData: ProfitPreview[]
+  workOrders: WorkOrderWithCustomerLocation[]
 }
 
-export function WorkOrderProfitabilityClient({ initialData }: WorkOrderProfitabilityClientProps) {
-  const [data] = useState(initialData)
-
+export function WorkOrderProfitabilityClient({ 
+  initialData, 
+  workOrders 
+}: WorkOrderProfitabilityClientProps) {
+  const [profits] = useState(initialData)
+  
+  // Calculate summary
   const summary = {
-    totalQuoted: data.reduce((sum, row) => sum + (row.accepted_quote_total || 0), 0),
-    totalCosts: data.reduce((sum, row) => sum + row.total_costs, 0),
-    totalActualCosts: data.reduce((sum, row) => sum + (row.actual_costs || 0), 0),
-    overallMargin: 0,
-    actualMargin: 0,
-    hasActualData: data.some((row) => row.actual_costs !== null),
+    totalRevenue: profits.reduce((sum, p) => sum + p.contractTotal, 0),
+    totalCosts: profits.reduce((sum, p) => sum + p.totalCost, 0),
+    totalProfit: 0,
+    averageMarginPct: 0,
+    profitableCount: profits.filter(p => p.status === 'profit').length,
+    lossCount: profits.filter(p => p.status === 'loss').length,
   }
-  summary.overallMargin = summary.totalQuoted - summary.totalCosts
-  summary.actualMargin = summary.totalQuoted - summary.totalActualCosts
+  summary.totalProfit = summary.totalRevenue - summary.totalCosts
+  summary.averageMarginPct = summary.totalRevenue > 0 
+    ? (summary.totalProfit / summary.totalRevenue) * 100 
+    : 0
 
-  const csvColumns = [
-    { key: 'work_order_no', label: 'Work Order No' },
-    { key: 'customer_name', label: 'Customer' },
-    { key: 'status', label: 'Status' },
-    { key: 'accepted_quote_total', label: 'Quote Total' },
-    { key: 'total_costs', label: 'Estimated Costs' },
-    { key: 'estimated_margin', label: 'Estimated Margin' },
-    { key: 'margin_percentage', label: 'Estimated Margin %' },
-    { key: 'actual_costs', label: 'Actual Costs (QB)' },
-    { key: 'actual_margin', label: 'Actual Margin (QB)' },
-    { key: 'actual_margin_percentage', label: 'Actual Margin %' },
-    { key: 'variance', label: 'Variance' },
-  ]
+  const handleExportCSV = () => {
+    const csv = generateCSV(profits, [
+      { key: 'workOrderNo', header: 'Work Order #' },
+      { key: 'contractTotal', header: 'Contract Total', format: formatCurrency },
+      { key: 'laborCost', header: 'Labor Cost', format: formatCurrency },
+      { key: 'materialCost', header: 'Material Cost', format: formatCurrency },
+      { key: 'equipmentCost', header: 'Equipment Cost', format: formatCurrency },
+      { key: 'totalCost', header: 'Total Cost', format: formatCurrency },
+      { key: 'estimatedProfit', header: 'Profit', format: formatCurrency },
+      { 
+        key: 'profitMarginPct', 
+        header: 'Margin %', 
+        format: (val) => `${val.toFixed(2)}%` 
+      },
+      { key: 'status', header: 'Status' }
+    ])
+    
+    downloadCSV('work-order-profitability.csv', csv)
+  }
 
   return (
     <div className="space-y-6">
@@ -54,179 +70,132 @@ export function WorkOrderProfitabilityClient({ initialData }: WorkOrderProfitabi
           </Link>
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Work Order Profitability</h1>
-            <p className="text-slate-500 mt-1">
-              Estimated vs Actual Costs {summary.hasActualData && '(with QuickBooks data)'}
-            </p>
+            <p className="text-slate-500 mt-1">Profit analysis across all work orders</p>
           </div>
         </div>
-        <ExportCsvButton
-          data={data}
-          filename="work-order-profitability"
-          columns={csvColumns}
-        />
+        <Button onClick={handleExportCSV}>
+          <Download className="mr-2 h-4 w-4" />
+          Export CSV
+        </Button>
       </div>
 
-      {/* Summary Stats */}
+      {/* Summary cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-slate-500">Total Quoted</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              ${summary.totalQuoted.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-slate-500">Estimated Costs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              ${summary.totalCosts.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-            </div>
-          </CardContent>
-        </Card>
-        {summary.hasActualData && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-slate-500">Actual Costs (QB)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                ${summary.totalActualCosts.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-slate-500">
-              {summary.hasActualData ? 'Actual Margin' : 'Estimated Margin'}
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Revenue
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div
-              className={`text-2xl font-bold ${
-                (summary.hasActualData ? summary.actualMargin : summary.overallMargin) >= 0
-                  ? 'text-green-600'
-                  : 'text-red-600'
-              }`}
-            >
-              ${(summary.hasActualData ? summary.actualMargin : summary.overallMargin).toLocaleString(
-                'en-US',
-                { minimumFractionDigits: 2 }
-              )}
+            <div className="text-2xl font-bold">
+              {formatCurrency(summary.totalRevenue)}
             </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Costs
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatCurrency(summary.totalCosts)}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Profit
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={cn(
+              "text-2xl font-bold",
+              summary.totalProfit >= 0 ? "text-green-600" : "text-red-600"
+            )}>
+              {formatCurrency(summary.totalProfit)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {summary.averageMarginPct.toFixed(1)}% avg margin
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Win Rate
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {summary.profitableCount} / {profits.length}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {summary.lossCount} losses
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Data Table */}
+      {/* Table */}
       <Card>
-        <CardContent className="pt-6">
-          {data.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-slate-500">No work orders with accepted quotes found.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-200">
-                    <th className="text-left py-3 px-4 font-medium text-slate-700">Work Order</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-700">Customer</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-700">Status</th>
-                    <th className="text-right py-3 px-4 font-medium text-slate-700">Quote Total</th>
-                    <th className="text-right py-3 px-4 font-medium text-slate-700">Est. Costs</th>
-                    <th className="text-right py-3 px-4 font-medium text-slate-700">Est. Margin</th>
-                    {summary.hasActualData && (
-                      <>
-                        <th className="text-right py-3 px-4 font-medium text-slate-700">Actual Costs</th>
-                        <th className="text-right py-3 px-4 font-medium text-slate-700">Actual Margin</th>
-                        <th className="text-right py-3 px-4 font-medium text-slate-700">Variance</th>
-                      </>
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.map((row) => (
-                    <tr key={row.work_order_id} className="border-b border-slate-100 hover:bg-slate-50">
-                      <td className="py-3 px-4">
-                        <Link
-                          href={`/app/work-orders/${row.work_order_id}`}
-                          className="text-blue-600 hover:underline font-medium"
-                        >
-                          {row.work_order_no}
-                        </Link>
-                      </td>
-                      <td className="py-3 px-4">{row.customer_name}</td>
-                      <td className="py-3 px-4">
-                        <span className="text-xs px-2 py-1 rounded bg-slate-100">
-                          {row.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        {row.accepted_quote_total !== null
-                          ? `$${row.accepted_quote_total.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
-                          : 'N/A'}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        ${row.total_costs.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td
-                        className={`py-3 px-4 text-right font-medium ${
-                          row.estimated_margin !== null && row.estimated_margin >= 0
-                            ? 'text-green-600'
-                            : 'text-red-600'
-                        }`}
-                      >
-                        {row.estimated_margin !== null
-                          ? `$${row.estimated_margin.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
-                          : 'N/A'}
-                      </td>
-                      {summary.hasActualData && (
-                        <>
-                          <td className="py-3 px-4 text-right font-bold text-blue-600">
-                            {row.actual_costs !== null
-                              ? `$${row.actual_costs.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
-                              : 'N/A'}
-                          </td>
-                          <td
-                            className={`py-3 px-4 text-right font-bold ${
-                              row.actual_margin !== null && row.actual_margin >= 0
-                                ? 'text-green-600'
-                                : 'text-red-600'
-                            }`}
-                          >
-                            {row.actual_margin !== null
-                              ? `$${row.actual_margin.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
-                              : 'N/A'}
-                          </td>
-                          <td
-                            className={`py-3 px-4 text-right ${
-                              row.variance !== null && row.variance > 0
-                                ? 'text-red-600'
-                                : row.variance !== null && row.variance < 0
-                                ? 'text-green-600'
-                                : ''
-                            }`}
-                          >
-                            {row.variance !== null
-                              ? `${row.variance > 0 ? '+' : ''}$${row.variance.toLocaleString('en-US', {
-                                  minimumFractionDigits: 2,
-                                })}`
-                              : 'N/A'}
-                          </td>
-                        </>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Work Order</TableHead>
+                <TableHead className="text-right">Contract</TableHead>
+                <TableHead className="text-right">Costs</TableHead>
+                <TableHead className="text-right">Profit</TableHead>
+                <TableHead className="text-right">Margin %</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {profits.map((profit) => (
+                <TableRow key={profit.workOrderId}>
+                  <TableCell>
+                    <Link 
+                      href={`/app/work-orders/${profit.workOrderId}`}
+                      className="font-medium hover:underline"
+                    >
+                      {profit.workOrderNo}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatCurrency(profit.contractTotal)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatCurrency(profit.totalCost)}
+                  </TableCell>
+                  <TableCell className={cn(
+                    "text-right font-medium",
+                    profit.status === 'profit' && "text-green-600",
+                    profit.status === 'loss' && "text-red-600"
+                  )}>
+                    {formatCurrency(profit.estimatedProfit)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {profit.profitMarginPct.toFixed(1)}%
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={
+                      profit.status === 'profit' ? 'default' :
+                      profit.status === 'loss' ? 'destructive' : 'secondary'
+                    }>
+                      {profit.status}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

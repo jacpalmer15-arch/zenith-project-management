@@ -41,7 +41,11 @@ export function TechHoursClient({ initialData }: TechHoursClientProps) {
     { key: 'date', label: 'Date' },
     { key: 'work_order_no', label: 'Work Order' },
     { key: 'customer_name', label: 'Customer' },
-    { key: 'hours_worked', label: 'Hours Worked' },
+    { 
+      key: 'hours_worked', 
+      label: 'Hours Worked',
+      format: (val: number) => val.toFixed(2)
+    },
     { key: 'break_minutes', label: 'Break Minutes' },
   ]
 
