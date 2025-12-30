@@ -1,45 +1,11 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/serverClient'
+import { Database } from '@/lib/supabase/types'
 
-export interface QbConnection {
-  id: string
-  company_file_id: string | null
-  realm_id: string
-  access_token: string | null
-  refresh_token: string | null
-  token_expires_at: string | null
-  is_connected: boolean
-  last_sync_at: string | null
-  sync_status: string
-  sync_error: string | null
-  created_at: string
-  updated_at: string
-}
-
-export interface QbConnectionInsert {
-  company_file_id?: string | null
-  realm_id: string
-  access_token?: string | null
-  refresh_token?: string | null
-  token_expires_at?: string | null
-  is_connected?: boolean
-  last_sync_at?: string | null
-  sync_status?: string
-  sync_error?: string | null
-}
-
-export interface QbConnectionUpdate {
-  company_file_id?: string | null
-  realm_id?: string
-  access_token?: string | null
-  refresh_token?: string | null
-  token_expires_at?: string | null
-  is_connected?: boolean
-  last_sync_at?: string | null
-  sync_status?: string
-  sync_error?: string | null
-}
+export type QbConnection = Database['public']['Tables']['qb_connections']['Row']
+export type QbConnectionInsert = Database['public']['Tables']['qb_connections']['Insert']
+export type QbConnectionUpdate = Database['public']['Tables']['qb_connections']['Update']
 
 /**
  * Get the QuickBooks connection (singleton)
@@ -76,7 +42,7 @@ export async function saveQbConnection(data: QbConnectionInsert): Promise<QbConn
     // Update existing
     const { data: updated, error } = await supabase
       .from('qb_connections')
-      .update(data)
+      .update(data as never)
       .eq('id', existing.id)
       .select()
       .single()
@@ -90,7 +56,7 @@ export async function saveQbConnection(data: QbConnectionInsert): Promise<QbConn
     // Insert new
     const { data: inserted, error } = await supabase
       .from('qb_connections')
-      .insert(data)
+      .insert(data as never)
       .select()
       .single()
     
@@ -110,7 +76,7 @@ export async function updateQbConnection(id: string, data: QbConnectionUpdate): 
   
   const { data: updated, error } = await supabase
     .from('qb_connections')
-    .update(data)
+    .update(data as never)
     .eq('id', id)
     .select()
     .single()

@@ -1,38 +1,11 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/serverClient'
+import { Database } from '@/lib/supabase/types'
 
-export interface QbMapping {
-  id: string
-  zenith_entity_type: string
-  zenith_entity_id: string
-  qb_entity_type: string
-  qb_list_id: string
-  qb_edit_sequence: string | null
-  qb_full_name: string | null
-  sync_direction: string
-  last_synced_at: string
-  created_at: string
-  updated_at: string
-}
-
-export interface QbMappingInsert {
-  zenith_entity_type: string
-  zenith_entity_id: string
-  qb_entity_type: string
-  qb_list_id: string
-  qb_edit_sequence?: string | null
-  qb_full_name?: string | null
-  sync_direction?: string
-}
-
-export interface QbMappingUpdate {
-  qb_list_id?: string
-  qb_edit_sequence?: string | null
-  qb_full_name?: string | null
-  sync_direction?: string
-  last_synced_at?: string
-}
+export type QbMapping = Database['public']['Tables']['qb_mappings']['Row']
+export type QbMappingInsert = Database['public']['Tables']['qb_mappings']['Insert']
+export type QbMappingUpdate = Database['public']['Tables']['qb_mappings']['Update']
 
 /**
  * Create a new QuickBooks mapping
@@ -42,7 +15,7 @@ export async function createQbMapping(data: QbMappingInsert): Promise<QbMapping>
   
   const { data: mapping, error } = await supabase
     .from('qb_mappings')
-    .insert(data)
+    .insert(data as never)
     .select()
     .single()
   
@@ -146,7 +119,7 @@ export async function updateQbMapping(id: string, data: QbMappingUpdate): Promis
   
   const { data: updated, error } = await supabase
     .from('qb_mappings')
-    .update(data)
+    .update(data as never)
     .eq('id', id)
     .select()
     .single()

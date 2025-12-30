@@ -1,32 +1,10 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/serverClient'
+import { Database } from '@/lib/supabase/types'
 
-export interface QbSyncLog {
-  id: string
-  sync_type: string
-  direction: string
-  status: string
-  entity_type: string | null
-  entity_id: string | null
-  qb_request: string | null
-  qb_response: string | null
-  error_message: string | null
-  processed_count: number
-  created_at: string
-}
-
-export interface QbSyncLogInsert {
-  sync_type: string
-  direction: string
-  status: string
-  entity_type?: string | null
-  entity_id?: string | null
-  qb_request?: string | null
-  qb_response?: string | null
-  error_message?: string | null
-  processed_count?: number
-}
+export type QbSyncLog = Database['public']['Tables']['qb_sync_logs']['Row']
+export type QbSyncLogInsert = Database['public']['Tables']['qb_sync_logs']['Insert']
 
 /**
  * Create a new sync log entry
@@ -36,7 +14,7 @@ export async function createSyncLog(data: QbSyncLogInsert): Promise<QbSyncLog> {
   
   const { data: log, error } = await supabase
     .from('qb_sync_logs')
-    .insert(data)
+    .insert(data as never)
     .select()
     .single()
   
