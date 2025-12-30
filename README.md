@@ -3,7 +3,7 @@
 A single-tenant field service quoting application MVP for managing customers, projects, work orders, and quotes.
 
 ## Overview
-
+1
 Zenith is a modern web application built to streamline field service operations. This MVP provides comprehensive features for managing customers, work orders, scheduling, time tracking, quotes, parts inventory, and equipment - all while preparing for QuickBooks Desktop integration.
 
 ## Tech Stack
