@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { Loader2 } from 'lucide-react'
 
 interface LocationFormProps {
   location?: Location
@@ -212,7 +213,14 @@ export function LocationForm({ location, customers, defaultCustomerId }: Locatio
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving...' : location ? 'Update Location' : 'Create Location'}
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            location ? 'Update Location' : 'Create Location'
+          )}
         </Button>
       </div>
     </form>

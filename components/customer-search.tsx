@@ -35,6 +35,7 @@ export function CustomerSearch() {
         value={searchValue}
         onChange={(e) => setSearchValue(e.target.value)}
         className="pl-9"
+        aria-label="Search customers"
       />
     </div>
   )

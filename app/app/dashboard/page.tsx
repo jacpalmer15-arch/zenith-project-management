@@ -37,10 +37,10 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Dashboard</h1>
 
-      {/* Enhanced Metrics Section */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Enhanced Metrics Section - Stack on mobile, grid on desktop */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {/* Profit Preview */}
         <ProfitPreviewCard
           totalQuoted={profitData.totalQuoted}

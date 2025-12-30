@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { Loader2 } from 'lucide-react'
 
 interface PartFormProps {
   part?: PartWithRelations
@@ -333,7 +334,14 @@ export function PartForm({ part, categories, costTypes, costCodes }: PartFormPro
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving...' : part ? 'Update Part' : 'Create Part'}
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            part ? 'Update Part' : 'Create Part'
+          )}
         </Button>
       </div>
     </form>

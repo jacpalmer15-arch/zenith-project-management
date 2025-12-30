@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { createEquipment, updateEquipment } from '@/lib/data'
+import { Loader2 } from 'lucide-react'
 
 interface EquipmentFormProps {
   equipment?: Equipment
@@ -137,7 +138,14 @@ export function EquipmentForm({ equipment }: EquipmentFormProps) {
 
       <div className="flex gap-4">
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving...' : (isEdit ? 'Update Equipment' : 'Create Equipment')}
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            isEdit ? 'Update Equipment' : 'Create Equipment'
+          )}
         </Button>
         <Button 
           type="button" 

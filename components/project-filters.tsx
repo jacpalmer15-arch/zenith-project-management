@@ -93,12 +93,13 @@ export function ProjectFilters({ customers }: ProjectFiltersProps) {
           value={searchValue}
           onChange={(e) => setSearchValue(e.target.value)}
           className="pl-9"
+          aria-label="Search projects"
         />
       </div>
 
       {/* Customer Filter */}
       <Select value={customerId || ALL_CUSTOMERS_OPTION} onValueChange={handleCustomerChange}>
-        <SelectTrigger className="w-[200px]">
+        <SelectTrigger className="w-full sm:w-[200px]" aria-label="Filter by customer">
           <SelectValue placeholder="All Customers" />
         </SelectTrigger>
         <SelectContent>
@@ -113,7 +114,7 @@ export function ProjectFilters({ customers }: ProjectFiltersProps) {
 
       {/* Status Filter */}
       <Select value={status || ALL_STATUSES_OPTION} onValueChange={handleStatusChange}>
-        <SelectTrigger className="w-[160px]">
+        <SelectTrigger className="w-full sm:w-[160px]" aria-label="Filter by status">
           <SelectValue placeholder="All Statuses" />
         </SelectTrigger>
         <SelectContent>
@@ -133,6 +134,7 @@ export function ProjectFilters({ customers }: ProjectFiltersProps) {
           size="sm"
           onClick={clearFilters}
           className="h-10"
+          aria-label="Clear all filters"
         >
           <X className="h-4 w-4 mr-2" />
           Clear Filters
