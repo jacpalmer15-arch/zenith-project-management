@@ -1,6 +1,6 @@
 'use server'
 
-import { getSettings, getEmployee, listTimeEntries, createCostEntry } from '@/lib/data'
+import { getSettings, listTimeEntries, createCostEntry } from '@/lib/data'
 import { createClient } from '@/lib/supabase/serverClient'
 import { WorkOrderTimeEntry, CostEntry } from '@/lib/db'
 
@@ -68,19 +68,36 @@ export async function postLaborCosts(
     return acc
   }, {} as Record<string, number>)
   
+  // Batch fetch all employees
+  const employeeIds = Object.keys(byEmployee)
+  const { data: employees, error: empError } = await supabase
+    .from('employees')
+    .select('id, display_name')
+    .in('id', employeeIds)
+  
+  if (empError) {
+    return {
+      success: false,
+      error: `Failed to fetch employee data: ${empError.message}`
+    }
+  }
+  
+  const employeeMap = new Map(
+    (employees || []).map((e: any) => [e.id, e.display_name])
+  )
+  
   // Create cost entries
   const costEntries: CostEntry[] = []
   for (const [employeeId, hours] of Object.entries(byEmployee)) {
-    const employee = await getEmployee(employeeId)
+    const employeeName = employeeMap.get(employeeId) || 'Unknown Employee'
     
     const costEntry = await createCostEntry({
       work_order_id: workOrderId,
       bucket: 'LABOR',
       origin: 'ZENITH_CAPTURED',
-      description: `Labor - ${employee.display_name}`,
+      description: `Labor - ${employeeName}`,
       qty: hours,
       unit_cost: laborRate,
-      total_cost: hours * laborRate,
       occurred_at: new Date().toISOString()
     })
     

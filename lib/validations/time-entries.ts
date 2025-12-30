@@ -51,12 +51,15 @@ export async function validateTimeEntry(
   // Check for overlapping entries by same employee
   if (data.clock_out_at) {
     const supabase = await createClient()
+    // Check for overlap: two time ranges overlap if start1 < end2 AND start2 < end1
     const { data: overlapping, error } = await supabase
       .from('work_order_time_entries')
       .select('*')
       .eq('tech_user_id', data.tech_user_id)
       .not('id', 'eq', data.id || '00000000-0000-0000-0000-000000000000')
-      .or(`and(clock_in_at.lte.${data.clock_out_at},clock_out_at.gte.${data.clock_in_at}),and(clock_in_at.lte.${data.clock_in_at},clock_out_at.gte.${data.clock_in_at})`)
+      .not('clock_out_at', 'is', null)
+      .lt('clock_in_at', data.clock_out_at)
+      .gt('clock_out_at', data.clock_in_at)
     
     if (!error && overlapping && overlapping.length > 0) {
       issues.push('Time entry overlaps with existing entry for this employee')
