@@ -7,6 +7,9 @@ import { WorkOrderStatusDropdown } from '@/components/work-order-status-dropdown
 import { WorkOrderCloseoutDialog } from '@/components/work-order-closeout-dialog'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { WorkOrderCostReconciliation } from '@/components/work-order-cost-reconciliation'
+import { CostEntriesList } from '@/components/cost-entries-list'
 
 export default async function WorkOrderDetailPage({ params }: { params: { id: string } }) {
   let workOrder
@@ -43,7 +46,14 @@ export default async function WorkOrderDetailPage({ params }: { params: { id: st
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="costs">Costs</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="overview" className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Customer Card */}
         <div className="bg-white rounded-lg border border-slate-200 p-6">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">Customer</h2>
@@ -170,6 +180,15 @@ export default async function WorkOrderDetailPage({ params }: { params: { id: st
           </div>
         </div>
       )}
+        </TabsContent>
+        
+        <TabsContent value="costs" className="space-y-6">
+          <div className="grid gap-6">
+            <WorkOrderCostReconciliation workOrderId={params.id} />
+            <CostEntriesList workOrderId={params.id} />
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

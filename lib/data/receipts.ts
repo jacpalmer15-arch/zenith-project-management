@@ -143,3 +143,84 @@ export async function deleteReceipt(id: string): Promise<void> {
     throw new Error(`Failed to delete receipt: ${error.message}`)
   }
 }
+
+/**
+ * Receipt with age information
+ */
+export interface ReceiptWithAge extends Receipt {
+  age_days: number
+}
+
+/**
+ * Find potential duplicate receipts
+ */
+export async function findDuplicateReceipts(
+  receiptId?: string
+): Promise<Receipt[]> {
+  const supabase = await createClient()
+  
+  let query = supabase
+    .from('receipts')
+    .select('*')
+    .eq('is_allocated', false)
+  
+  if (receiptId) {
+    const receipt = await getReceipt(receiptId)
+    
+    // Find receipts with same vendor, date, and amount
+    query = supabase
+      .from('receipts')
+      .select('*')
+      .eq('vendor_name', receipt.vendor_name)
+      .eq('receipt_date', receipt.receipt_date)
+      .eq('total_amount', receipt.total_amount)
+      .not('id', 'eq', receiptId)
+  } else {
+    // Find all potential duplicates using SQL
+    const { data, error } = await supabase.rpc('find_duplicate_receipts')
+    if (error) {
+      // If RPC doesn't exist, return empty array
+      console.warn('find_duplicate_receipts RPC not available:', error.message)
+      return []
+    }
+    return data || []
+  }
+  
+  const { data, error } = await query
+  if (error) {
+    throw new Error(`Failed to find duplicate receipts: ${error.message}`)
+  }
+  
+  return data || []
+}
+
+/**
+ * Get aged receipts (unallocated receipts older than specified days)
+ */
+export async function getAgedReceipts(
+  daysOld: number = 7
+): Promise<ReceiptWithAge[]> {
+  const supabase = await createClient()
+  
+  const cutoffDate = new Date()
+  cutoffDate.setDate(cutoffDate.getDate() - daysOld)
+  
+  const { data, error } = await supabase
+    .from('receipts')
+    .select('*')
+    .eq('is_allocated', false)
+    .lt('created_at', cutoffDate.toISOString())
+    .order('created_at', { ascending: true })
+  
+  if (error) {
+    throw new Error(`Failed to get aged receipts: ${error.message}`)
+  }
+  
+  return (data || []).map((receipt: any) => ({
+    ...receipt,
+    age_days: Math.floor(
+      (new Date().getTime() - new Date(receipt.created_at).getTime()) / 
+      (1000 * 60 * 60 * 24)
+    )
+  }))
+}
