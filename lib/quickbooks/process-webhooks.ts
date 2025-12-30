@@ -5,7 +5,9 @@ import { listWebhookEvents, updateWebhookEvent, QbWebhookEvent } from '@/lib/dat
 import { getQbMappingByQbId } from '@/lib/data/qb-mappings'
 import { updateQuote, getQuote } from '@/lib/data/quotes'
 import { updateReceipt } from '@/lib/data/receipts'
-import { updateWorkOrder, getWorkOrder } from '@/lib/data/work-orders'
+import { getWorkOrder } from '@/lib/data/work-orders'
+import { transitionWorkOrder } from '@/lib/workflows/work-order-lifecycle'
+import { validateWorkOrderClose } from '@/lib/workflows/work-order-closeout'
 
 /**
  * Process all unprocessed webhook events
@@ -151,9 +153,22 @@ async function processPaymentWebhook(event: QbWebhookEvent) {
             if (paymentStatus === 'paid' && quote.work_order_id) {
               const workOrder = await getWorkOrder(quote.work_order_id)
               if (workOrder.status === 'COMPLETED') {
-                await updateWorkOrder(quote.work_order_id, {
-                  status: 'CLOSED',
-                })
+                // Validate close-out before attempting
+                const validation = await validateWorkOrderClose(quote.work_order_id)
+                if (validation.canClose) {
+                  try {
+                    await transitionWorkOrder(
+                      quote.work_order_id, 
+                      'CLOSED',
+                      'Automatically closed: Invoice fully paid'
+                    )
+                    console.log(`Work order ${quote.work_order_id} automatically closed after full payment`)
+                  } catch (error) {
+                    console.error(`Failed to auto-close work order ${quote.work_order_id}:`, error)
+                  }
+                } else {
+                  console.log(`Cannot auto-close work order ${quote.work_order_id}: ${validation.issues.join(', ')}`)
+                }
               }
             }
           }

@@ -52,7 +52,7 @@ export async function createWorkOrderAction(formData: FormData) {
 }
 
 export async function updateWorkOrderAction(id: string, formData: FormData) {
-  // Parse form data
+  // Parse form data - exclude status from updates as it should only be changed via workflow
   const data = {
     customer_id: formData.get('customer_id') as string,
     location_id: formData.get('location_id') as string,
@@ -62,18 +62,25 @@ export async function updateWorkOrderAction(id: string, formData: FormData) {
     requested_window_start: (formData.get('requested_window_start') as string) || null,
     requested_window_end: (formData.get('requested_window_end') as string) || null,
     assigned_to: (formData.get('assigned_to') as string) || null,
-    status: (formData.get('status') as WorkStatus) || 'UNSCHEDULED',
   }
 
-  // Validate with zod
-  const parsed = workOrderSchema.safeParse(data)
+  // Validate with zod - add status field temporarily for validation, then remove it
+  const dataWithStatus = {
+    ...data,
+    status: 'UNSCHEDULED' as WorkStatus, // Dummy value for validation
+  }
+  
+  const parsed = workOrderSchema.safeParse(dataWithStatus)
   
   if (!parsed.success) {
     return { error: 'Invalid form data' }
   }
 
+  // Remove status from the data to be updated
+  const { status, ...updateData } = parsed.data
+
   try {
-    await updateWorkOrder(id, parsed.data)
+    await updateWorkOrder(id, updateData)
     revalidatePath('/app/work-orders')
     revalidatePath(`/app/work-orders/${id}`)
     revalidatePath(`/app/work-orders/${id}/edit`)
