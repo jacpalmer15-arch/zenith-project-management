@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
+import { Loader2 } from 'lucide-react'
 
 interface CustomerFormProps {
   customer?: Customer
@@ -305,7 +306,14 @@ export function CustomerForm({ customer }: CustomerFormProps) {
       {/* Form Actions */}
       <div className="pt-6 border-t border-slate-200 flex gap-4">
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving...' : customer ? 'Update Customer' : 'Create Customer'}
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            customer ? 'Update Customer' : 'Create Customer'
+          )}
         </Button>
         <Button
           type="button"
