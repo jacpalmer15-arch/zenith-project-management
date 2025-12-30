@@ -20,10 +20,10 @@ import { globalSearch, type SearchResult } from '@/app/actions/search'
 import { useDebounce } from '@/hooks/use-debounce'
 
 const TYPE_CONFIG = {
-  customer: { icon: Users, label: 'Customer' },
-  work_order: { icon: ClipboardList, label: 'Work Order' },
-  quote: { icon: FileText, label: 'Quote' },
-  project: { icon: FolderKanban, label: 'Project' }
+  customer: { icon: Users, label: 'Customer', plural: 'Customers' },
+  work_order: { icon: ClipboardList, label: 'Work Order', plural: 'Work Orders' },
+  quote: { icon: FileText, label: 'Quote', plural: 'Quotes' },
+  project: { icon: FolderKanban, label: 'Project', plural: 'Projects' }
 }
 
 export function CommandPalette() {
@@ -31,9 +31,15 @@ export function CommandPalette() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
+  const [isMac, setIsMac] = useState(false)
   const router = useRouter()
   
   const debouncedQuery = useDebounce(query, 300)
+  
+  // Detect platform
+  useEffect(() => {
+    setIsMac(navigator.platform.toUpperCase().indexOf('MAC') >= 0)
+  }, [])
   
   // Keyboard shortcut (Cmd+K / Ctrl+K)
   useEffect(() => {
@@ -84,7 +90,7 @@ export function CommandPalette() {
         <Search className="h-4 w-4" />
         <span>Search...</span>
         <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
-          <span className="text-xs">⌘</span>K
+          <span className="text-xs">{isMac ? '⌘' : 'Ctrl+'}</span>K
         </kbd>
       </button>
       
@@ -109,7 +115,7 @@ export function CommandPalette() {
             const config = TYPE_CONFIG[type as keyof typeof TYPE_CONFIG]
             
             return (
-              <CommandGroup key={type} heading={config.label + 's'}>
+              <CommandGroup key={type} heading={config.plural}>
                 {items.map((result) => (
                   <CommandItem
                     key={result.id}
