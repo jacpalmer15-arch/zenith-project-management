@@ -20,8 +20,16 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
     { key: 'sku', label: 'SKU' },
     { key: 'part_name', label: 'Part Name' },
     { key: 'on_hand_quantity', label: 'On-Hand Qty' },
-    { key: 'last_receipt_date', label: 'Last Receipt' },
-    { key: 'last_issue_date', label: 'Last Issue' },
+    { 
+      key: 'last_receipt_date', 
+      label: 'Last Receipt',
+      format: (val: string | null) => val ? format(new Date(val), 'yyyy-MM-dd') : 'N/A'
+    },
+    { 
+      key: 'last_issue_date', 
+      label: 'Last Issue',
+      format: (val: string | null) => val ? format(new Date(val), 'yyyy-MM-dd') : 'N/A'
+    },
     { key: 'total_receipts', label: 'Total Receipts' },
     { key: 'total_issues', label: 'Total Issues' },
   ]
