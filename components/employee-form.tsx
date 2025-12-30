@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { Loader2 } from 'lucide-react'
 
 interface EmployeeFormProps {
   employee?: Employee
@@ -171,7 +172,14 @@ export function EmployeeForm({ employee }: EmployeeFormProps) {
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving...' : employee ? 'Update Employee' : 'Create Employee'}
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            employee ? 'Update Employee' : 'Create Employee'
+          )}
         </Button>
       </div>
     </form>
