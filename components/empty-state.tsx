@@ -22,7 +22,7 @@ export function EmptyState({ icon: Icon, title, description, action }: EmptyStat
       <p className="text-muted-foreground mb-6 max-w-sm">{description}</p>
       {action && (
         <Link href={action.href}>
-          <Button>
+          <Button aria-label={action.label}>
             <Plus className="mr-2 h-4 w-4" />
             {action.label}
           </Button>
