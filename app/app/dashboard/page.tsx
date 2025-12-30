@@ -8,6 +8,7 @@ import {
 } from '@/lib/data/dashboard'
 import { calculateProfitSummary } from '@/lib/reporting/profit-preview'
 import { listWorkOrders } from '@/lib/data'
+import { WorkStatus } from '@/lib/db'
 import { DashboardMetrics } from '@/components/dashboard-metrics'
 import { RecentQuotes } from '@/components/recent-quotes'
 import { RecentProjects } from '@/components/recent-projects'
@@ -19,7 +20,7 @@ import { CheckCircle, Clock, Users } from 'lucide-react'
 export default async function DashboardPage() {
   // Get active work orders for profit calculation
   const activeWorkOrders = await listWorkOrders({ 
-    status: 'IN_PROGRESS' as any
+    status: 'IN_PROGRESS' as WorkStatus
   })
   
   // Fetch all dashboard data in parallel

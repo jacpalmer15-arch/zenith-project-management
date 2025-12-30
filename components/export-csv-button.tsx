@@ -3,13 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { Download } from 'lucide-react'
 import { toast } from 'sonner'
-import { generateCSV, downloadCSV } from '@/lib/utils/csv-export'
-
-interface CSVColumn<T> {
-  key: string
-  label: string
-  format?: (value: any, row: T) => string
-}
+import { CSVColumn, generateCSV, downloadCSV } from '@/lib/utils/csv-export'
 
 interface ExportCsvButtonProps<T = any> {
   data: T[]
@@ -34,14 +28,8 @@ export function ExportCsvButton<T extends Record<string, any>>({
     }
 
     try {
-      // Convert columns to CSV format
-      const csvColumns = columns.map(col => ({
-        key: col.key,
-        header: col.label,
-        format: col.format
-      }))
-      
-      const csv = generateCSV(data, csvColumns)
+      // Convert columns to CSV format and call generateCSV
+      const csv = generateCSV(data, columns)
       downloadCSV(`${filename}.csv`, csv)
       
       toast.success(`Exported ${data.length} rows to ${filename}.csv`)

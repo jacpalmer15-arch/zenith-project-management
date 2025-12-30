@@ -1,5 +1,6 @@
 'use server'
 import { getWorkOrder, listCostEntries } from '@/lib/data'
+import { CostBucket } from '@/lib/db'
 
 export type ProfitPreview = {
   workOrderId: string
@@ -28,7 +29,7 @@ export async function calculateProfitPreview(
   ])
   
   // Aggregate costs by bucket
-  const costs: Record<string, number> = {
+  const costs: Record<CostBucket, number> = {
     LABOR: 0,
     MATERIAL: 0,
     EQUIPMENT: 0,
@@ -38,7 +39,7 @@ export async function calculateProfitPreview(
   }
   
   for (const entry of costEntries) {
-    const bucket = entry.bucket as string
+    const bucket = entry.bucket as CostBucket
     if (bucket in costs) {
       costs[bucket] += entry.total_cost
     }

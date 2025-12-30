@@ -7,7 +7,7 @@ import { InventoryReportRow } from '@/lib/data/reports'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { format } from 'date-fns'
+import { format as formatDate } from 'date-fns'
 
 interface InventoryClientProps {
   initialData: InventoryReportRow[]
@@ -17,21 +17,21 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
   const [data] = useState(initialData)
 
   const csvColumns = [
-    { key: 'sku', label: 'SKU' },
-    { key: 'part_name', label: 'Part Name' },
-    { key: 'on_hand_quantity', label: 'On-Hand Qty' },
+    { key: 'sku', header: 'SKU' },
+    { key: 'part_name', header: 'Part Name' },
+    { key: 'on_hand_quantity', header: 'On-Hand Qty' },
     { 
       key: 'last_receipt_date', 
-      label: 'Last Receipt',
-      format: (val: string | null) => val ? format(new Date(val), 'yyyy-MM-dd') : 'N/A'
+      header: 'Last Receipt',
+      format: (val: string | null) => val ? formatDate(new Date(val), 'yyyy-MM-dd') : 'N/A'
     },
     { 
       key: 'last_issue_date', 
-      label: 'Last Issue',
-      format: (val: string | null) => val ? format(new Date(val), 'yyyy-MM-dd') : 'N/A'
+      header: 'Last Issue',
+      format: (val: string | null) => val ? formatDate(new Date(val), 'yyyy-MM-dd') : 'N/A'
     },
-    { key: 'total_receipts', label: 'Total Receipts' },
-    { key: 'total_issues', label: 'Total Issues' },
+    { key: 'total_receipts', header: 'Total Receipts' },
+    { key: 'total_issues', header: 'Total Issues' },
   ]
 
   return (
@@ -93,12 +93,12 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
                       </td>
                       <td className="py-3 px-4 text-sm">
                         {row.last_receipt_date
-                          ? format(new Date(row.last_receipt_date), 'MMM dd, yyyy')
+                          ? formatDate(new Date(row.last_receipt_date), 'MMM dd, yyyy')
                           : '—'}
                       </td>
                       <td className="py-3 px-4 text-sm">
                         {row.last_issue_date
-                          ? format(new Date(row.last_issue_date), 'MMM dd, yyyy')
+                          ? formatDate(new Date(row.last_issue_date), 'MMM dd, yyyy')
                           : '—'}
                       </td>
                       <td className="py-3 px-4 text-right">{row.total_receipts}</td>
