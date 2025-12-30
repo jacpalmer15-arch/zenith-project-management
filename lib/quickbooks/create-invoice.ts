@@ -13,7 +13,7 @@ export async function createInvoiceFromQuote(quoteId: string) {
     // Get the quote with project and customer details
     const quote = await getQuote(quoteId) as any
 
-    if (!quote || quote.status !== 'Accepted') {
+    if (!quote || quote.status !== 'ACCEPTED') {
       throw new Error('Quote must be accepted before creating invoice')
     }
 

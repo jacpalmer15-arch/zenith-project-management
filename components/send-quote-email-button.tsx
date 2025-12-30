@@ -102,7 +102,7 @@ export function SendQuoteEmailButton({
               <p className="text-sm font-medium text-slate-700">Quote Number:</p>
               <p className="text-sm text-slate-600">#{quoteNo}</p>
             </div>
-            {status === 'Draft' && (
+            {status === 'DRAFT' && (
               <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
                 <p className="text-sm text-blue-800">
                   <strong>Note:</strong> The quote status will automatically change from Draft to Sent after sending.

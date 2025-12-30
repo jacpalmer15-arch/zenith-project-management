@@ -78,7 +78,7 @@ export async function runSyncWorker() {
  */
 async function syncAcceptedQuotesToInvoices() {
   // Find accepted quotes without QB invoice
-  const quotes = await listQuotes({ status: 'Accepted' })
+  const quotes = await listQuotes({ status: 'ACCEPTED' })
 
   let syncedCount = 0
   let errorCount = 0

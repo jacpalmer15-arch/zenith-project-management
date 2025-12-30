@@ -113,8 +113,8 @@ export async function sendQuoteEmail(quoteId: string) {
     }
 
     // Update quote status from Draft to Sent
-    if (quote.status === 'Draft') {
-      await updateQuoteStatusAction(quoteId, 'Sent')
+    if (quote.status === 'DRAFT') {
+      await updateQuoteStatusAction(quoteId, 'SENT')
     }
 
     return { 

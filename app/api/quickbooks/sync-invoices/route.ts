@@ -8,7 +8,7 @@ import { createInvoiceFromQuote } from '@/lib/quickbooks/create-invoice'
 export async function POST() {
   try {
     // Find accepted quotes without QB invoice
-    const quotes = await listQuotes({ status: 'Accepted' })
+    const quotes = await listQuotes({ status: 'ACCEPTED' })
 
     const results = []
     let syncedCount = 0

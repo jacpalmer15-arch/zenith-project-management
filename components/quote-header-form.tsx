@@ -40,7 +40,7 @@ interface QuoteHeaderFormProps {
   isEdit?: boolean
 }
 
-const QUOTE_STATUSES: QuoteStatus[] = ['Draft', 'Sent', 'Accepted', 'Rejected']
+const QUOTE_STATUSES: QuoteStatus[] = ['DRAFT', 'SENT', 'ACCEPTED', 'REJECTED']
 
 export function QuoteHeaderForm({
   projects,
@@ -68,7 +68,7 @@ export function QuoteHeaderForm({
       tax_rule_id: defaultValues?.tax_rule_id || '',
       quote_date: defaultValues?.quote_date || new Date().toISOString().split('T')[0],
       valid_until: defaultValues?.valid_until || null,
-      status: defaultValues?.status || 'Draft',
+      status: defaultValues?.status || 'DRAFT',
     },
   })
 

@@ -71,8 +71,8 @@ export function QuoteDetails({
     },
   })
 
-  const canEdit = quote.status === 'Draft'
-  const canAccept = quote.status === 'Sent'
+  const canEdit = quote.status === 'DRAFT'
+  const canAccept = quote.status === 'SENT'
   const taxRate = quote.tax_rule?.rate || 0
 
   const handleAcceptQuote = async () => {
