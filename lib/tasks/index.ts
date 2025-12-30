@@ -18,7 +18,7 @@ export async function enqueueTask<T extends TaskPayload>(
   name: string,
   payload: T
 ): Promise<{ taskId: string; status: 'completed' | 'failed' }> {
-  const taskId = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  const taskId = `task_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
   
   console.log(`[Task] Enqueuing: ${name}`, { taskId, payload })
   

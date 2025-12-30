@@ -4,8 +4,7 @@ import { getWorkOrder, updateWorkOrder } from '@/lib/data/work-orders'
 import { 
   InvalidTransitionError, 
   ValidationError,
-  MissingDataError,
-  NotFoundError
+  MissingDataError
 } from '@/lib/errors'
 import { 
   WorkOrderStatus, 
@@ -22,10 +21,6 @@ export async function transitionWorkOrder(
   reason?: string
 ): Promise<TransitionResult> {
   const wo = await getWorkOrder(id)
-  
-  if (!wo) {
-    throw new NotFoundError('Work Order', id)
-  }
   
   const transition = ALLOWED_TRANSITIONS.find(
     t => t.from === wo.status && t.to === to

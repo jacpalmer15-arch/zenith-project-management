@@ -10,7 +10,7 @@ import { WorkStatus } from '@/lib/db'
 import { transitionWorkOrder } from '@/lib/workflows/work-order-lifecycle'
 import { validateWorkOrderClose } from '@/lib/workflows/work-order-closeout'
 import { withErrorHandling, handleWorkflowError } from '@/lib/errors/handler'
-import { PermissionDeniedError } from '@/lib/errors'
+import { PermissionDeniedError, ValidationError } from '@/lib/errors'
 import { getCurrentUser } from '@/lib/auth/get-user'
 import { hasPermission } from '@/lib/auth/permissions'
 
@@ -143,10 +143,7 @@ export async function closeWorkOrder(id: string, reason: string) {
     const validation = await validateWorkOrderClose(id)
     
     if (!validation.canClose) {
-      return { 
-        error: 'Cannot close work order',
-        issues: validation.issues 
-      }
+      throw new ValidationError(validation.issues)
     }
     
     const result = await transitionWorkOrder(id, 'CLOSED', reason)

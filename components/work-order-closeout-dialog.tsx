@@ -72,10 +72,10 @@ export function WorkOrderCloseoutDialog({
       if (!result.success) {
         setError(result.error)
         // Check if issues are present in the result details
-        if (result.details && 'issues' in result.details) {
+        if (result.details && 'issues' in result.details && Array.isArray(result.details.issues)) {
           setValidation({
             canClose: false,
-            issues: result.details.issues as string[],
+            issues: result.details.issues.filter((issue): issue is string => typeof issue === 'string'),
           })
         }
       } else {
