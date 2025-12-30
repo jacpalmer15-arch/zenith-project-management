@@ -1,8 +1,8 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createTimeEntry, updateTimeEntry, deleteTimeEntry } from '@/lib/data'
-import { timeEntrySchema } from '@/lib/validations/time-entries'
+import { createTimeEntry, updateTimeEntry, deleteTimeEntry, getTimeEntry, getWorkOrder } from '@/lib/data'
+import { timeEntrySchema, validateTimeEntry } from '@/lib/validations/time-entries'
 
 export async function createTimeEntryAction(data: {
   work_order_id: string
@@ -20,13 +20,25 @@ export async function createTimeEntryAction(data: {
   }
 
   try {
+    const validation = await validateTimeEntry(parsed.data)
+    
+    if (!validation.valid) {
+      return { 
+        error: validation.issues.join(', '),
+        warnings: validation.warnings 
+      }
+    }
+    
     await createTimeEntry(parsed.data)
 
     revalidatePath('/app/time')
     revalidatePath('/app/work-orders')
     revalidatePath(`/app/work-orders/${data.work_order_id}`)
     
-    return { success: true }
+    return { 
+      success: true,
+      warnings: validation.warnings 
+    }
   } catch (error) {
     console.error('Error creating time entry:', error)
     return { error: 'Failed to create time entry' }
@@ -42,15 +54,44 @@ export async function updateTimeEntryAction(id: string, data: {
   notes?: string | null
 }) {
   try {
+    // Check work order status
+    const existing = await getTimeEntry(id)
+    const wo = await getWorkOrder(existing.work_order_id)
+    
+    if (wo.status === 'CLOSED') {
+      return { error: 'Cannot edit time entries for closed work orders' }
+    }
+    
+    // Merge existing data with updates for validation
+    const mergedData = {
+      work_order_id: data.work_order_id || existing.work_order_id,
+      tech_user_id: data.tech_user_id || existing.tech_user_id,
+      clock_in_at: data.clock_in_at || existing.clock_in_at,
+      clock_out_at: data.clock_out_at !== undefined ? data.clock_out_at : existing.clock_out_at,
+      break_minutes: data.break_minutes !== undefined ? data.break_minutes : existing.break_minutes,
+      notes: data.notes !== undefined ? data.notes : existing.notes,
+      id
+    }
+    
+    const validation = await validateTimeEntry(mergedData)
+    
+    if (!validation.valid) {
+      return { 
+        error: validation.issues.join(', '),
+        warnings: validation.warnings 
+      }
+    }
+    
     await updateTimeEntry(id, data)
     
     revalidatePath('/app/time')
     revalidatePath('/app/work-orders')
-    if (data.work_order_id) {
-      revalidatePath(`/app/work-orders/${data.work_order_id}`)
-    }
+    revalidatePath(`/app/work-orders/${existing.work_order_id}`)
     
-    return { success: true }
+    return { 
+      success: true,
+      warnings: validation.warnings 
+    }
   } catch (error) {
     console.error('Error updating time entry:', error)
     return { error: 'Failed to update time entry' }

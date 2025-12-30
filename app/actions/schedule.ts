@@ -1,9 +1,9 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createScheduleEntry, updateScheduleEntry, deleteScheduleEntry, getWorkOrder } from '@/lib/data'
+import { createScheduleEntry, updateScheduleEntry, deleteScheduleEntry } from '@/lib/data'
 import { scheduleEntrySchema } from '@/lib/validations/schedule'
-import { transitionWorkOrder } from '@/lib/workflows/work-order-lifecycle'
+import { onScheduleCreated, onScheduleStarted, onScheduleEnded } from '@/lib/workflows/schedule-sync'
 
 export async function createScheduleEntryAction(data: {
   work_order_id: string
@@ -20,15 +20,11 @@ export async function createScheduleEntryAction(data: {
   }
 
   try {
-    // Check if work order can transition to SCHEDULED before creating schedule entry
-    const workOrder = await getWorkOrder(data.work_order_id)
-    if (workOrder.status === 'UNSCHEDULED') {
-      // Validate transition first
-      await transitionWorkOrder(data.work_order_id, 'SCHEDULED')
-    }
-
-    // Create schedule entry after successful transition
-    await createScheduleEntry(parsed.data)
+    // Create schedule entry
+    const schedule = await createScheduleEntry(parsed.data)
+    
+    // Trigger auto-transition
+    await onScheduleCreated(schedule)
 
     revalidatePath('/app/schedule')
     revalidatePath('/app/work-orders')
@@ -77,5 +73,29 @@ export async function deleteScheduleEntryAction(id: string, workOrderId: string)
   } catch (error) {
     console.error('Error deleting schedule entry:', error)
     return { error: 'Failed to delete schedule entry' }
+  }
+}
+
+export async function startScheduleAction(scheduleId: string) {
+  try {
+    await onScheduleStarted(scheduleId)
+    
+    revalidatePath('/app/schedule')
+    return { success: true }
+  } catch (error) {
+    console.error('Error starting schedule:', error)
+    return { error: 'Failed to start schedule' }
+  }
+}
+
+export async function endScheduleAction(scheduleId: string) {
+  try {
+    await onScheduleEnded(scheduleId)
+    
+    revalidatePath('/app/schedule')
+    return { success: true }
+  } catch (error) {
+    console.error('Error ending schedule:', error)
+    return { error: 'Failed to end schedule' }
   }
 }
