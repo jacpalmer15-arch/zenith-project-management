@@ -62,7 +62,7 @@ export async function createQuoteAction(headerData: any, lines: QuoteLineData[])
     const quote = await createQuote({
       ...parsed.data,
       quote_no: quoteNo,
-      status: 'Draft',
+      status: 'DRAFT',
     })
 
     // Create quote lines
@@ -202,7 +202,7 @@ export async function deleteQuoteLineAction(lineId: string, quoteId: string) {
   }
 }
 
-export async function updateQuoteStatusAction(id: string, status: 'Draft' | 'Sent' | 'Accepted' | 'Rejected') {
+export async function updateQuoteStatusAction(id: string, status: 'DRAFT' | 'SENT' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED') {
   try {
     await updateQuote(id, { status })
     revalidatePath('/app/quotes')

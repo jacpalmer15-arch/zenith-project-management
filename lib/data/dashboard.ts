@@ -15,7 +15,7 @@ export async function getDashboardMetrics() {
   ] = await Promise.all([
     supabase.from('customers').select('*', { count: 'exact', head: true }),
     supabase.from('projects').select('*', { count: 'exact', head: true }).eq('status', 'Active'),
-    supabase.from('quotes').select('*', { count: 'exact', head: true }).eq('status', 'Draft'),
+    supabase.from('quotes').select('*', { count: 'exact', head: true }).eq('status', 'DRAFT'),
     supabase.from('parts').select('*', { count: 'exact', head: true }).eq('is_active', true),
   ])
   

@@ -1365,7 +1365,7 @@ export type Database = {
       file_kind: "photo" | "pdf" | "logo" | "other"
       inventory_txn_type: "RECEIPT" | "ADJUSTMENT" | "USAGE" | "RETURN"
       project_status: "Planning" | "Quoted" | "Active" | "Completed" | "Closed"
-      quote_status: "Draft" | "Sent" | "Accepted" | "Rejected"
+      quote_status: "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED" | "EXPIRED"
       quote_type: "BASE" | "CHANGE_ORDER"
       work_status: "UNSCHEDULED" | "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CLOSED" | "CANCELED"
       schedule_status: "PLANNED" | "DISPATCHED" | "ARRIVED" | "DONE" | "CANCELED"

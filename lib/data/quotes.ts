@@ -264,7 +264,7 @@ export async function getAcceptedQuoteForWorkOrder(
       '*, project:projects(id, project_no, name, customer:customers(id, customer_no, name)), tax_rule:tax_rules(id, name, rate, is_active)'
     )
     .eq('work_order_id', workOrderId)
-    .eq('status', 'Accepted')
+    .eq('status', 'ACCEPTED')
     .single()
 
   if (error) {

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getQbConnection } from '@/lib/data/qb-connections'
 
+// Force dynamic rendering since this route uses cookies
+export const dynamic = 'force-dynamic'
+
 /**
  * Get QuickBooks connection status
  */

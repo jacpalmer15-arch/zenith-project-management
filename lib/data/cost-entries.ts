@@ -222,7 +222,7 @@ export async function getWorkOrderCostSummary(
       .from('quotes')
       .select('total, status')
       .eq('work_order_id', workOrderId)
-      .eq('status', 'Accepted')
+      .eq('status', 'ACCEPTED')
       .single()
 
     if (quote) {

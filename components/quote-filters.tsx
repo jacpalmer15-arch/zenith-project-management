@@ -19,7 +19,7 @@ interface QuoteFiltersProps {
   projects: Project[]
 }
 
-const QUOTE_STATUSES: QuoteStatus[] = ['Draft', 'Sent', 'Accepted', 'Rejected']
+const QUOTE_STATUSES: QuoteStatus[] = ['DRAFT', 'SENT', 'ACCEPTED', 'REJECTED']
 const QUOTE_TYPES: (QuoteType | 'All')[] = ['All', 'BASE', 'CHANGE_ORDER']
 
 export function QuoteFilters({ projects }: QuoteFiltersProps) {
