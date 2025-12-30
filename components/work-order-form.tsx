@@ -207,12 +207,15 @@ export function WorkOrderForm({ workOrder, customers, employees, initialLocation
               name="assigned_to"
               control={control}
               render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value || ''}>
+                <Select 
+                  onValueChange={(value) => field.onChange(value === 'UNASSIGNED' ? null : value)} 
+                  value={field.value || 'UNASSIGNED'}
+                >
                   <SelectTrigger id="assigned_to">
                     <SelectValue placeholder="Select an employee" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Unassigned</SelectItem>
+                    <SelectItem value="UNASSIGNED">Unassigned</SelectItem>
                     {employees.filter(e => e.is_active).map((employee) => (
                       <SelectItem key={employee.id} value={employee.id}>
                         {employee.display_name}

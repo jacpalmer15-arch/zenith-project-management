@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createEmployee, updateEmployee } from '@/lib/data'
+import { createEmployee, updateEmployee, getEmployee } from '@/lib/data'
 import { employeeInsertSchema, employeeUpdateSchema } from '@/lib/validations/employees'
 import { getCurrentUser } from '@/lib/auth/get-user'
 import { requirePermission } from '@/lib/auth/permissions'
@@ -12,7 +12,7 @@ export async function createEmployeeAction(formData: FormData) {
   
   // Only ADMIN can create employees
   try {
-    requirePermission(user?.role, 'edit_settings')
+    requirePermission(user?.role, 'edit_employees')
   } catch (error) {
     return { error: 'Permission denied: Only admins can create employees' }
   }
@@ -50,7 +50,7 @@ export async function updateEmployeeAction(id: string, formData: FormData) {
   
   // Only ADMIN can update employees
   try {
-    requirePermission(user?.role, 'edit_settings')
+    requirePermission(user?.role, 'edit_employees')
   } catch (error) {
     return { error: 'Permission denied: Only admins can update employees' }
   }
@@ -81,4 +81,25 @@ export async function updateEmployeeAction(id: string, formData: FormData) {
   }
 
   redirect('/app/employees')
+}
+
+export async function toggleEmployeeStatusAction(id: string) {
+  const user = await getCurrentUser()
+  
+  // Only ADMIN can update employees
+  try {
+    requirePermission(user?.role, 'edit_employees')
+  } catch (error) {
+    return { error: 'Permission denied: Only admins can update employees' }
+  }
+
+  try {
+    const employee = await getEmployee(id)
+    await updateEmployee(id, { is_active: !employee.is_active })
+    revalidatePath('/app/employees')
+    return { success: true, is_active: !employee.is_active }
+  } catch (error) {
+    console.error('Error toggling employee status:', error)
+    return { error: 'Failed to update employee status' }
+  }
 }

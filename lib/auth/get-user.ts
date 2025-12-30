@@ -1,6 +1,6 @@
 'use server'
 import { createClient } from '@/lib/supabase/serverClient'
-import { UserRole } from './permissions'
+import { UserRole, normalizeRole } from './permissions'
 import { Employee } from '@/lib/db'
 
 export type CurrentUser = {
@@ -28,7 +28,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   return {
     id: user.id,
     email: user.email,
-    role: (employee?.role as UserRole) || 'TECH',
+    role: normalizeRole(employee?.role) || 'TECH',
     employee: employee || undefined
   }
 }

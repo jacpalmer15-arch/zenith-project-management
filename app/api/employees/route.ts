@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     
     // Only ADMIN can create employees
     try {
-      requirePermission(user?.role, 'edit_settings')
+      requirePermission(user?.role, 'edit_employees')
     } catch (error) {
       return NextResponse.json(
         { error: 'Permission denied: Only admins can create employees' },

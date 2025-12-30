@@ -62,7 +62,7 @@ const navigation: Array<{
   { name: 'Parts & Inventory', href: '/app/parts', icon: Package, permission: 'view_parts' },
   { name: 'Costs', href: '/app/receipts', icon: DollarSign, permission: 'view_costs' },
   { name: 'Reports', href: '/app/reports', icon: BarChart3, permission: 'view_reports' },
-  { name: 'Employees', href: '/app/employees', icon: UserCircle, permission: 'view_settings' },
+  { name: 'Employees', href: '/app/employees', icon: UserCircle, permission: 'view_employees' },
   { name: 'Settings', href: '/app/settings', icon: Settings, permission: 'view_settings' },
 ];
 

@@ -9,27 +9,41 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Edit, MoreHorizontal, Plus, Users } from 'lucide-react'
+import { Users } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/empty-state'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { RoleBadge } from '@/components/role-badge'
 import { formatDate } from '@/lib/utils/format-date'
 import { CreateEmployeeDialog } from '@/components/create-employee-dialog'
+import { EmployeeActionsDropdown } from '@/components/employee-actions-dropdown'
+import { EmployeeFilters } from '@/components/employee-filters'
 
-export default async function EmployeesPage() {
-  const employees = await listEmployees()
+interface EmployeesPageProps {
+  searchParams: {
+    search?: string
+    role?: string
+    status?: string
+  }
+}
+
+export default async function EmployeesPage({ searchParams }: EmployeesPageProps) {
+  const { search, role, status } = searchParams
+  
+  const employees = await listEmployees({
+    search: search || undefined,
+    role: role && role !== 'all' ? role : undefined,
+    is_active: status === 'active' ? true : status === 'inactive' ? false : undefined,
+  })
+
+  const totalEmployees = employees.length
+  const activeCount = employees.filter(e => e.is_active).length
+  const inactiveCount = employees.filter(e => !e.is_active).length
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Employees</h1>
           <p className="text-muted-foreground">
@@ -40,17 +54,50 @@ export default async function EmployeesPage() {
         <CreateEmployeeDialog />
       </div>
 
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-2xl font-bold">{totalEmployees}</div>
+            <p className="text-sm text-muted-foreground">Total Employees</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-2xl font-bold text-green-600">{activeCount}</div>
+            <p className="text-sm text-muted-foreground">Active</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-2xl font-bold text-gray-500">{inactiveCount}</div>
+            <p className="text-sm text-muted-foreground">Inactive</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <EmployeeFilters />
+
       {employees.length === 0 ? (
         <Card>
           <CardContent className="p-6">
             <EmptyState
               icon={Users}
-              title="No employees yet"
-              description="Add your first employee to get started."
-              action={{
-                label: 'Add Employee',
-                href: '/app/employees/new',
-              }}
+              title={search || role || status ? "No employees found" : "No employees yet"}
+              description={
+                search || role || status 
+                  ? "Try adjusting your filters to find what you're looking for."
+                  : "Add your first employee to get started."
+              }
+              action={
+                !(search || role || status)
+                  ? {
+                      label: 'Add Employee',
+                      href: '/app/employees/new',
+                    }
+                  : undefined
+              }
             />
           </CardContent>
         </Card>
@@ -61,6 +108,7 @@ export default async function EmployeesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  <TableHead>Phone</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
@@ -78,7 +126,12 @@ export default async function EmployeesPage() {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-medium">{employee.display_name}</div>
+                          <Link 
+                            href={`/app/employees/${employee.id}/edit`}
+                            className="font-medium hover:underline"
+                          >
+                            {employee.display_name}
+                          </Link>
                           {employee.email && (
                             <div className="text-sm text-muted-foreground">
                               {employee.email}
@@ -86,6 +139,9 @@ export default async function EmployeesPage() {
                           )}
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {employee.phone || '—'}
                     </TableCell>
                     <TableCell>
                       <RoleBadge role={employee.role as 'ADMIN' | 'OFFICE' | 'TECH'} />
@@ -99,24 +155,7 @@ export default async function EmployeesPage() {
                       {formatDate(employee.created_at)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/app/employees/${employee.id}/edit`}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            {employee.is_active ? 'Deactivate' : 'Activate'}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <EmployeeActionsDropdown employee={employee} />
                     </TableCell>
                   </TableRow>
                 ))}

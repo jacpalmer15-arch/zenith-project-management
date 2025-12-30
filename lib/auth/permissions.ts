@@ -21,6 +21,8 @@ export type Permission =
   | 'view_parts'
   | 'edit_parts'
   | 'view_reports'
+  | 'view_employees'
+  | 'edit_employees'
   | 'view_settings'
   | 'edit_settings'
   | 'delete_records'
@@ -47,6 +49,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'view_parts',
     'edit_parts',
     'view_reports',
+    'view_employees',
+    'edit_employees',
     'view_settings',
     'edit_settings',
     'delete_records'
@@ -69,7 +73,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'edit_receipts',
     'view_parts',
     'edit_parts',
-    'view_reports'
+    'view_reports',
+    'view_employees'
   ],
   TECH: [
     'view_dashboard',
@@ -81,16 +86,26 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ]
 }
 
+export function normalizeRole(role: string | undefined): UserRole | undefined {
+  if (!role) return undefined
+  const upper = role.toUpperCase()
+  if (upper === 'ADMIN' || upper === 'OFFICE' || upper === 'TECH') {
+    return upper as UserRole
+  }
+  return undefined
+}
+
 export function hasPermission(
-  role: UserRole | undefined,
+  role: UserRole | string | undefined,
   permission: Permission
 ): boolean {
-  if (!role) return false
-  return ROLE_PERMISSIONS[role].includes(permission)
+  const normalizedRole = normalizeRole(role)
+  if (!normalizedRole) return false
+  return ROLE_PERMISSIONS[normalizedRole].includes(permission)
 }
 
 export function requirePermission(
-  role: UserRole | undefined,
+  role: UserRole | string | undefined,
   permission: Permission
 ): void {
   if (!hasPermission(role, permission)) {
