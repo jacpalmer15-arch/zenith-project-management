@@ -38,7 +38,7 @@ This implementation completes Phase 2B of the QuickBooks Desktop integration, ad
 - `app/app/reports/work-order-profitability/client.tsx` - Updated to show actual vs estimated costs
 
 ### Configuration
-- `vercel.json` - Cron job configuration (runs every 6 hours)
+- `vercel.json` - Cron job configuration (runs daily at midnight UTC)
 - `.env.example` - Added webhook token and cron secret
 - `README.md` - Comprehensive Phase 2B documentation
 
@@ -64,7 +64,7 @@ This implementation completes Phase 2B of the QuickBooks Desktop integration, ad
 - Can auto-close work orders when fully paid
 
 ### 4. Background Sync Worker
-- Runs every 6 hours via Vercel Cron
+- Runs daily at midnight UTC via Vercel Cron
 - Syncs customers bidirectionally
 - Creates missing invoices for accepted quotes
 - Creates missing bills for allocated receipts
