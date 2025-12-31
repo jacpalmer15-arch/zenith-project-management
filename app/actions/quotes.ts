@@ -63,7 +63,7 @@ export async function createQuoteAction(headerData: any, lines: QuoteLineData[])
       ...parsed.data,
       quote_no: quoteNo,
       status: 'DRAFT',
-    })
+    } as any)
 
     // Create quote lines
     for (let i = 0; i < validLines.length; i++) {
@@ -129,7 +129,7 @@ export async function updateQuoteAction(id: string, headerData: any, lines: Quot
     }
 
     // Update quote header
-    await updateQuote(id, parsed.data)
+    await updateQuote(id, parsed.data as any)
 
     // Track which existing lines are still present
     const updatedLineIds = new Set(validLines.filter(l => l.id).map(l => l.id!))
