@@ -10,11 +10,10 @@ import { toast } from 'sonner'
 interface QbConnection {
   id: string
   realm_id: string
-  company_file_id: string | null
-  is_connected: boolean
-  last_sync_at: string | null
-  sync_status: string
-  sync_error: string | null
+  expires_at: string
+  scope: string | null
+  created_at: string
+  updated_at: string
 }
 
 interface QuickBooksConnectionCardProps {
@@ -94,13 +93,13 @@ export function QuickBooksConnectionCard({ connection }: QuickBooksConnectionCar
   return (
     <Card>
       <CardHeader>
-        <CardTitle>QuickBooks Desktop Integration</CardTitle>
+        <CardTitle>QuickBooks Online Integration</CardTitle>
         <CardDescription>
-          Connect your QuickBooks Desktop account to sync customers and financial data
+          Connect your QuickBooks Online account to sync customers and financial data
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {connection?.is_connected ? (
+        {connection ? (
           <>
             <div className="flex items-center gap-2">
               <Badge variant="default" className="bg-green-500">Connected</Badge>
@@ -108,26 +107,16 @@ export function QuickBooksConnectionCard({ connection }: QuickBooksConnectionCar
                 Realm ID: {connection.realm_id}
               </span>
             </div>
-            {connection.last_sync_at && (
-              <p className="text-sm text-muted-foreground">
-                Last synced: {new Date(connection.last_sync_at).toLocaleString()}
-              </p>
-            )}
-            {connection.sync_status === 'syncing' && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Syncing...</span>
-              </div>
-            )}
-            {connection.sync_error && (
-              <div className="text-sm text-red-500 bg-red-50 p-3 rounded">
-                <strong>Sync Error:</strong> {connection.sync_error}
-              </div>
-            )}
+            <p className="text-sm text-muted-foreground">
+              Connected: {new Date(connection.created_at).toLocaleString()}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Token expires: {new Date(connection.expires_at).toLocaleString()}
+            </p>
             <div className="flex gap-2">
               <Button 
                 onClick={handleSyncNow} 
-                disabled={isLoading || isSyncing || connection.sync_status === 'syncing'}
+                disabled={isLoading || isSyncing}
               >
                 {isSyncing ? (
                   <>
