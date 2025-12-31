@@ -9,6 +9,7 @@ import { formatCurrency } from '@/lib/utils/format-currency'
 import { format } from 'date-fns'
 import { DeleteReceiptButton } from '@/components/delete-receipt-button'
 import { DeleteLineItemButton } from '@/components/receipts/delete-line-item-button'
+import { ReceiptLineItem } from '@/lib/db'
 
 interface ReceiptDetailPageProps {
   params: {
@@ -18,7 +19,7 @@ interface ReceiptDetailPageProps {
 
 export default async function ReceiptDetailPage({ params }: ReceiptDetailPageProps) {
   let receipt
-  let lineItems: any[] = []
+  let lineItems: ReceiptLineItem[] = []
   
   try {
     receipt = await getReceipt(params.id)

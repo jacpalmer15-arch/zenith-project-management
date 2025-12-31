@@ -1,7 +1,14 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/serverClient'
-import { Receipt, ReceiptInsert, ReceiptUpdate } from '@/lib/db'
+import { 
+  Receipt, 
+  ReceiptInsert, 
+  ReceiptUpdate,
+  ReceiptLineItem,
+  ReceiptLineItemInsert,
+  ReceiptLineItemUpdate
+} from '@/lib/db'
 
 export interface ListReceiptsOptions {
   is_allocated?: boolean
@@ -228,7 +235,7 @@ export async function getAgedReceipts(
 /**
  * List line items for a receipt
  */
-export async function listReceiptLineItems(receiptId: string): Promise<any[]> {
+export async function listReceiptLineItems(receiptId: string): Promise<ReceiptLineItem[]> {
   const supabase = await createClient()
   
   const { data, error } = await supabase
@@ -241,13 +248,13 @@ export async function listReceiptLineItems(receiptId: string): Promise<any[]> {
     throw new Error(`Failed to list receipt line items: ${error.message}`)
   }
   
-  return (data || []) as any[]
+  return (data || []) as ReceiptLineItem[]
 }
 
 /**
  * Get a single line item by ID
  */
-export async function getReceiptLineItem(id: string): Promise<any> {
+export async function getReceiptLineItem(id: string): Promise<ReceiptLineItem> {
   const supabase = await createClient()
   
   const { data, error } = await supabase
@@ -260,13 +267,13 @@ export async function getReceiptLineItem(id: string): Promise<any> {
     throw new Error(`Failed to get receipt line item: ${error.message}`)
   }
   
-  return data as any
+  return data as ReceiptLineItem
 }
 
 /**
  * Create a receipt line item
  */
-export async function createReceiptLineItem(lineItem: any): Promise<any> {
+export async function createReceiptLineItem(lineItem: ReceiptLineItemInsert): Promise<ReceiptLineItem> {
   const supabase = await createClient()
   
   // Calculate amount
@@ -285,7 +292,7 @@ export async function createReceiptLineItem(lineItem: any): Promise<any> {
     throw new Error(`Failed to create receipt line item: ${error.message}`)
   }
   
-  return data as any
+  return data as ReceiptLineItem
 }
 
 /**
@@ -293,8 +300,8 @@ export async function createReceiptLineItem(lineItem: any): Promise<any> {
  */
 export async function updateReceiptLineItem(
   id: string, 
-  updates: any
-): Promise<any> {
+  updates: ReceiptLineItemUpdate
+): Promise<ReceiptLineItem> {
   const supabase = await createClient()
   
   // Recalculate amount if qty or unit_cost changed
@@ -317,7 +324,7 @@ export async function updateReceiptLineItem(
     throw new Error(`Failed to update receipt line item: ${error.message}`)
   }
   
-  return data as any
+  return data as ReceiptLineItem
 }
 
 /**
