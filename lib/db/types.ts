@@ -8,9 +8,6 @@ export type InventoryTxnType = Database['public']['Enums']['inventory_txn_type']
 export type FileEntityType = Database['public']['Enums']['file_entity_type']
 export type FileKind = Database['public']['Enums']['file_kind']
 export type WorkStatus = Database['public']['Enums']['work_status']
-export type ScheduleStatus = Database['public']['Enums']['schedule_status']
-export type CostBucket = Database['public']['Enums']['cost_bucket']
-export type CostOrigin = Database['public']['Enums']['cost_origin']
 
 // Table types
 export type Settings = Database['public']['Tables']['settings']['Row']
@@ -83,9 +80,9 @@ export type Receipt = Database['public']['Tables']['receipts']['Row']
 export type ReceiptInsert = Database['public']['Tables']['receipts']['Insert']
 export type ReceiptUpdate = Database['public']['Tables']['receipts']['Update']
 
-export type CostEntry = Database['public']['Tables']['cost_entries']['Row']
-export type CostEntryInsert = Database['public']['Tables']['cost_entries']['Insert']
-export type CostEntryUpdate = Database['public']['Tables']['cost_entries']['Update']
+export type JobCostEntry = Database['public']['Tables']['job_cost_entries']['Row']
+export type JobCostEntryInsert = Database['public']['Tables']['job_cost_entries']['Insert']
+export type JobCostEntryUpdate = Database['public']['Tables']['job_cost_entries']['Update']
 
 export type Equipment = Database['public']['Tables']['equipment']['Row']
 export type EquipmentInsert = Database['public']['Tables']['equipment']['Insert']
@@ -95,16 +92,32 @@ export type EquipmentUsage = Database['public']['Tables']['equipment_usage']['Ro
 export type EquipmentUsageInsert = Database['public']['Tables']['equipment_usage']['Insert']
 export type EquipmentUsageUpdate = Database['public']['Tables']['equipment_usage']['Update']
 
-export type QbConnection = Database['public']['Tables']['qb_connections']['Row']
-export type QbConnectionInsert = Database['public']['Tables']['qb_connections']['Insert']
-export type QbConnectionUpdate = Database['public']['Tables']['qb_connections']['Update']
+export type QboConnection = Database['public']['Tables']['qbo_connections']['Row']
+export type QboConnectionInsert = Database['public']['Tables']['qbo_connections']['Insert']
+export type QboConnectionUpdate = Database['public']['Tables']['qbo_connections']['Update']
 
-export type QbMapping = Database['public']['Tables']['qb_mappings']['Row']
-export type QbMappingInsert = Database['public']['Tables']['qb_mappings']['Insert']
-export type QbMappingUpdate = Database['public']['Tables']['qb_mappings']['Update']
+export type QboEntityMap = Database['public']['Tables']['qbo_entity_map']['Row']
+export type QboEntityMapInsert = Database['public']['Tables']['qbo_entity_map']['Insert']
+export type QboEntityMapUpdate = Database['public']['Tables']['qbo_entity_map']['Update']
 
 export type QbSyncLog = Database['public']['Tables']['qb_sync_logs']['Row']
 export type QbSyncLogInsert = Database['public']['Tables']['qb_sync_logs']['Insert']
+
+export type ReceiptLineItem = Database['public']['Tables']['receipt_line_items']['Row']
+export type ReceiptLineItemInsert = Database['public']['Tables']['receipt_line_items']['Insert']
+export type ReceiptLineItemUpdate = Database['public']['Tables']['receipt_line_items']['Update']
+
+export type JobQueue = Database['public']['Tables']['job_queue']['Row']
+export type JobQueueInsert = Database['public']['Tables']['job_queue']['Insert']
+export type JobQueueUpdate = Database['public']['Tables']['job_queue']['Update']
+
+export type AuditLog = Database['public']['Tables']['audit_logs']['Row']
+export type AuditLogInsert = Database['public']['Tables']['audit_logs']['Insert']
+export type AuditLogUpdate = Database['public']['Tables']['audit_logs']['Update']
+
+export type QboWebhookEvent = Database['public']['Tables']['qbo_webhook_events']['Row']
+export type QboWebhookEventInsert = Database['public']['Tables']['qbo_webhook_events']['Insert']
+export type QboWebhookEventUpdate = Database['public']['Tables']['qbo_webhook_events']['Update']
 
 // Join types for convenience
 export type WorkOrderWithCustomerLocation = WorkOrder & {
@@ -131,11 +144,16 @@ export type LocationWithCustomer = Location & {
   customer: Customer
 }
 
-export type CostEntryWithRelations = CostEntry & {
+export type JobCostEntryWithRelations = JobCostEntry & {
+  project?: Project & {
+    customer: Customer
+  }
   work_order?: WorkOrder & {
     customer: Customer
   }
   part?: Part
+  cost_type?: CostType
+  cost_code?: CostCode
 }
 
 export type EquipmentUsageWithEquipment = EquipmentUsage & {
