@@ -30,8 +30,8 @@ export function ReceiptForm({ receipt }: ReceiptFormProps) {
     resolver: zodResolver(receiptSchema),
     defaultValues: {
       vendor_name: receipt?.vendor_name ?? null,
-      receipt_date: receipt?.receipt_date || new Date().toISOString().split('T')[0],
-      total_amount: receipt?.total_amount || 0,
+      receipt_date: receipt?.receipt_date ?? new Date().toISOString().split('T')[0],
+      total_amount: receipt?.total_amount ?? 0,
       notes: receipt?.notes ?? null,
       storage_path: receipt?.storage_path ?? null,
     },
@@ -41,11 +41,20 @@ export function ReceiptForm({ receipt }: ReceiptFormProps) {
     setIsSubmitting(true)
     try {
       const formData = new FormData()
-      formData.append('vendor_name', data.vendor_name || '')
-      formData.append('receipt_date', data.receipt_date || '')
+      // Preserve null values for nullable fields
+      if (data.vendor_name !== null) {
+        formData.append('vendor_name', data.vendor_name)
+      }
+      if (data.receipt_date) {
+        formData.append('receipt_date', data.receipt_date)
+      }
       formData.append('total_amount', String(data.total_amount))
-      formData.append('notes', data.notes || '')
-      formData.append('storage_path', data.storage_path || '')
+      if (data.notes !== null) {
+        formData.append('notes', data.notes)
+      }
+      if (data.storage_path !== null) {
+        formData.append('storage_path', data.storage_path)
+      }
 
       let result
       if (receipt) {

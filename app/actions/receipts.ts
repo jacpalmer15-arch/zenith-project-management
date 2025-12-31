@@ -8,13 +8,13 @@ import { receiptSchema } from '@/lib/validations'
 import { ReceiptInsert, ReceiptUpdate } from '@/lib/db'
 
 export async function createReceiptAction(formData: FormData) {
-  // Parse form data
+  // Parse form data - preserve null for missing fields
   const data = {
-    vendor_name: (formData.get('vendor_name') as string) || null,
-    receipt_date: (formData.get('receipt_date') as string) || null,
+    vendor_name: formData.has('vendor_name') ? (formData.get('vendor_name') as string) : null,
+    receipt_date: formData.has('receipt_date') ? (formData.get('receipt_date') as string) : null,
     total_amount: formData.get('total_amount') as string,
-    storage_path: (formData.get('storage_path') as string) || null,
-    notes: (formData.get('notes') as string) || null,
+    storage_path: formData.has('storage_path') ? (formData.get('storage_path') as string) : null,
+    notes: formData.has('notes') ? (formData.get('notes') as string) : null,
   }
 
   // Validate with zod
@@ -45,13 +45,13 @@ export async function createReceiptAction(formData: FormData) {
 }
 
 export async function updateReceiptAction(id: string, formData: FormData) {
-  // Parse form data
+  // Parse form data - preserve null for missing fields
   const data = {
-    vendor_name: (formData.get('vendor_name') as string) || null,
-    receipt_date: (formData.get('receipt_date') as string) || null,
+    vendor_name: formData.has('vendor_name') ? (formData.get('vendor_name') as string) : null,
+    receipt_date: formData.has('receipt_date') ? (formData.get('receipt_date') as string) : null,
     total_amount: formData.get('total_amount') as string,
-    storage_path: (formData.get('storage_path') as string) || null,
-    notes: (formData.get('notes') as string) || null,
+    storage_path: formData.has('storage_path') ? (formData.get('storage_path') as string) : null,
+    notes: formData.has('notes') ? (formData.get('notes') as string) : null,
   }
 
   // Validate with zod
@@ -62,8 +62,8 @@ export async function updateReceiptAction(id: string, formData: FormData) {
   }
 
   try {
-    // Update receipt with proper typing
-    const receiptData: Partial<ReceiptUpdate> = {
+    // Update receipt - only include fields that are present
+    const receiptData: ReceiptUpdate = {
       vendor_name: parsed.data.vendor_name,
       receipt_date: parsed.data.receipt_date,
       total_amount: parsed.data.total_amount,
