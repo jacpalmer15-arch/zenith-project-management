@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getQbConnection, updateQbConnection } from '@/lib/data/qb-connections'
+import { getQboConnection, deleteQboConnection } from '@/lib/data/qb-connections'
 import { decrypt } from '@/lib/quickbooks/encryption'
 import { revokeToken } from '@/lib/quickbooks/client'
 
@@ -8,7 +8,7 @@ import { revokeToken } from '@/lib/quickbooks/client'
  */
 export async function POST() {
   try {
-    const connection = await getQbConnection()
+    const connection = await getQboConnection()
     
     if (!connection) {
       return NextResponse.json(
@@ -18,9 +18,9 @@ export async function POST() {
     }
     
     // Revoke refresh token if it exists
-    if (connection.refresh_token) {
+    if (connection.refresh_token_enc) {
       try {
-        const refreshToken = decrypt(connection.refresh_token)
+        const refreshToken = decrypt(connection.refresh_token_enc)
         await revokeToken(refreshToken)
       } catch (error) {
         console.error('Failed to revoke token:', error)
@@ -28,14 +28,8 @@ export async function POST() {
       }
     }
     
-    // Mark connection as disconnected and clear tokens
-    await updateQbConnection(connection.id, {
-      is_connected: false,
-      access_token: null,
-      refresh_token: null,
-      token_expires_at: null,
-      sync_status: 'idle',
-    })
+    // Delete the connection
+    await deleteQboConnection(connection.id)
     
     return NextResponse.json({ success: true })
   } catch (error) {

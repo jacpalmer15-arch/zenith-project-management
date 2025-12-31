@@ -1,13 +1,11 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/serverClient'
-import { File, FileInsert, FileWithEntity } from '@/lib/db'
+import { File, FileInsert, FileEntityType, FileKind } from '@/lib/db'
 
 export interface ListFilesOptions {
-  customer_id?: string
-  project_id?: string
-  quote_id?: string
-  work_order_id?: string
+  entity_type?: FileEntityType
+  entity_id?: string
 }
 
 /**
@@ -15,34 +13,20 @@ export interface ListFilesOptions {
  */
 export async function listFiles(
   options?: ListFilesOptions
-): Promise<FileWithEntity[]> {
+): Promise<File[]> {
   const supabase = await createClient()
   
   let query = supabase
     .from('files')
-    .select(`
-      *,
-      customer:customers(*),
-      project:projects(*),
-      quote:quotes(*),
-      work_order:work_orders(*, customer:customers(*))
-    `)
+    .select('*')
     .order('created_at', { ascending: false })
   
-  if (options?.customer_id) {
-    query = query.eq('customer_id', options.customer_id)
+  if (options?.entity_type) {
+    query = query.eq('entity_type', options.entity_type)
   }
 
-  if (options?.project_id) {
-    query = query.eq('project_id', options.project_id)
-  }
-
-  if (options?.quote_id) {
-    query = query.eq('quote_id', options.quote_id)
-  }
-
-  if (options?.work_order_id) {
-    query = query.eq('work_order_id', options.work_order_id)
+  if (options?.entity_id) {
+    query = query.eq('entity_id', options.entity_id)
   }
 
   const { data, error } = await query
@@ -57,18 +41,12 @@ export async function listFiles(
 /**
  * Get a single file by ID
  */
-export async function getFile(id: string): Promise<FileWithEntity> {
+export async function getFile(id: string): Promise<File> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
     .from('files')
-    .select(`
-      *,
-      customer:customers(*),
-      project:projects(*),
-      quote:quotes(*),
-      work_order:work_orders(*, customer:customers(*))
-    `)
+    .select('*')
     .eq('id', id)
     .single()
 
@@ -82,12 +60,12 @@ export async function getFile(id: string): Promise<FileWithEntity> {
 /**
  * Create a new file record
  */
-export async function createFile(file: FileInsert): Promise<any> {
+export async function createFile(file: FileInsert): Promise<File> {
   const supabase = await createClient()
 
-  const { data, error } = await (supabase
-    .from('files') as any)
-    .insert(file)
+  const { data, error } = await supabase
+    .from('files')
+    .insert(file as any)
     .select()
     .single()
 
@@ -95,7 +73,7 @@ export async function createFile(file: FileInsert): Promise<any> {
     throw new Error(`Failed to create file: ${error.message}`)
   }
 
-  return data
+  return data as File
 }
 
 /**
@@ -105,8 +83,8 @@ export async function deleteFile(id: string): Promise<void> {
   const supabase = await createClient()
 
   // Get file to get storage path
-  const { data: file, error: fetchError } = await (supabase
-    .from('files') as any)
+  const { data: file, error: fetchError } = await supabase
+    .from('files')
     .select('storage_path')
     .eq('id', id)
     .single()
@@ -142,16 +120,17 @@ export async function deleteFile(id: string): Promise<void> {
 export async function uploadFile(
   fileData: {
     file: globalThis.File
-    entity_type: 'customer' | 'project' | 'quote' | 'work_order'
+    entity_type: FileEntityType
     entity_id: string
+    file_kind: FileKind
   }
-): Promise<any> {
+): Promise<File> {
   const supabase = await createClient()
 
   // Generate storage path
   const timestamp = Date.now()
   const sanitizedFilename = fileData.file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
-  const storagePath = `${fileData.entity_type}s/${fileData.entity_id}/${timestamp}_${sanitizedFilename}`
+  const storagePath = `${fileData.entity_type}/${fileData.entity_id}/${timestamp}_${sanitizedFilename}`
 
   // Upload to storage
   const { error: uploadError } = await supabase.storage
@@ -164,14 +143,11 @@ export async function uploadFile(
 
   // Create database record
   const fileInsert: FileInsert = {
+    entity_type: fileData.entity_type,
+    entity_id: fileData.entity_id,
+    file_kind: fileData.file_kind,
     storage_path: storagePath,
-    filename: fileData.file.name,
     mime_type: fileData.file.type,
-    size_bytes: fileData.file.size,
-    customer_id: fileData.entity_type === 'customer' ? fileData.entity_id : null,
-    project_id: fileData.entity_type === 'project' ? fileData.entity_id : null,
-    quote_id: fileData.entity_type === 'quote' ? fileData.entity_id : null,
-    work_order_id: fileData.entity_type === 'work_order' ? fileData.entity_id : null,
   }
 
   return createFile(fileInsert)

@@ -74,88 +74,136 @@ export type Database = {
         }
         Relationships: []
       }
-      cost_entries: {
+      job_cost_entries: {
         Row: {
           id: string
+          project_id: string | null
           work_order_id: string | null
-          bucket: Database["public"]["Enums"]["cost_bucket"]
-          origin: Database["public"]["Enums"]["cost_origin"]
-          description: string
+          cost_type_id: string
+          cost_code_id: string
+          part_id: string | null
+          txn_date: string
           qty: number
           unit_cost: number
-          total_cost: number
-          occurred_at: string
-          time_entry_id: string | null
+          amount: number
+          description: string | null
           receipt_id: string | null
-          part_id: string | null
-          qb_entity_type: string | null
-          qb_entity_id: string | null
+          receipt_line_item_id: string | null
+          source_type: string
+          source_id: string | null
+          idempotency_key: string | null
+          external_source: string | null
+          external_txn_id: string | null
+          external_line_id: string | null
+          sync_status: string
+          synced_at: string | null
+          sync_error: string | null
+          created_by: string | null
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
+          project_id?: string | null
           work_order_id?: string | null
-          bucket: Database["public"]["Enums"]["cost_bucket"]
-          origin: Database["public"]["Enums"]["cost_origin"]
-          description?: string
+          cost_type_id: string
+          cost_code_id: string
+          part_id?: string | null
+          txn_date?: string
           qty?: number
           unit_cost?: number
-          total_cost?: number
-          occurred_at?: string
-          time_entry_id?: string | null
+          amount?: number
+          description?: string | null
           receipt_id?: string | null
-          part_id?: string | null
-          qb_entity_type?: string | null
-          qb_entity_id?: string | null
+          receipt_line_item_id?: string | null
+          source_type?: string
+          source_id?: string | null
+          idempotency_key?: string | null
+          external_source?: string | null
+          external_txn_id?: string | null
+          external_line_id?: string | null
+          sync_status?: string
+          synced_at?: string | null
+          sync_error?: string | null
+          created_by?: string | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
+          project_id?: string | null
           work_order_id?: string | null
-          bucket?: Database["public"]["Enums"]["cost_bucket"]
-          origin?: Database["public"]["Enums"]["cost_origin"]
-          description?: string
+          cost_type_id?: string
+          cost_code_id?: string
+          part_id?: string | null
+          txn_date?: string
           qty?: number
           unit_cost?: number
-          total_cost?: number
-          occurred_at?: string
-          time_entry_id?: string | null
+          amount?: number
+          description?: string | null
           receipt_id?: string | null
-          part_id?: string | null
-          qb_entity_type?: string | null
-          qb_entity_id?: string | null
+          receipt_line_item_id?: string | null
+          source_type?: string
+          source_id?: string | null
+          idempotency_key?: string | null
+          external_source?: string | null
+          external_txn_id?: string | null
+          external_line_id?: string | null
+          sync_status?: string
+          synced_at?: string | null
+          sync_error?: string | null
+          created_by?: string | null
           created_at?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "cost_entries_work_order_id_fkey"
+            foreignKeyName: "fk_job_cost_entries_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_job_cost_entries_work_order"
             columns: ["work_order_id"]
             isOneToOne: false
             referencedRelation: "work_orders"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "cost_entries_time_entry_id_fkey"
-            columns: ["time_entry_id"]
+            foreignKeyName: "fk_job_cost_entries_cost_type"
+            columns: ["cost_type_id"]
             isOneToOne: false
-            referencedRelation: "work_order_time_entries"
+            referencedRelation: "cost_types"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "cost_entries_receipt_id_fkey"
+            foreignKeyName: "fk_job_cost_entries_cost_code"
+            columns: ["cost_code_id"]
+            isOneToOne: false
+            referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_job_cost_entries_part"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_job_cost_entries_receipt"
             columns: ["receipt_id"]
             isOneToOne: false
             referencedRelation: "receipts"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "cost_entries_part_id_fkey"
-            columns: ["part_id"]
+            foreignKeyName: "fk_job_cost_entries_receipt_line_item"
+            columns: ["receipt_line_item_id"]
             isOneToOne: false
-            referencedRelation: "parts"
+            referencedRelation: "receipt_line_items"
             referencedColumns: ["id"]
           }
         ]
@@ -181,6 +229,8 @@ export type Database = {
           updated_at: string
           created_by: string | null
           updated_by: string | null
+          qbo_customer_ref: string | null
+          qbo_last_synced_at: string | null
         }
         Insert: {
           id?: string
@@ -202,6 +252,8 @@ export type Database = {
           updated_at?: string
           created_by?: string | null
           updated_by?: string | null
+          qbo_customer_ref?: string | null
+          qbo_last_synced_at?: string | null
         }
         Update: {
           id?: string
@@ -223,6 +275,8 @@ export type Database = {
           updated_at?: string
           created_by?: string | null
           updated_by?: string | null
+          qbo_customer_ref?: string | null
+          qbo_last_synced_at?: string | null
         }
         Relationships: []
       }
@@ -313,76 +367,35 @@ export type Database = {
       files: {
         Row: {
           id: string
-          customer_id: string | null
-          project_id: string | null
-          quote_id: string | null
-          work_order_id: string | null
+          entity_type: Database["public"]["Enums"]["file_entity_type"]
+          entity_id: string
+          file_kind: Database["public"]["Enums"]["file_kind"]
           storage_path: string
-          filename: string | null
           mime_type: string | null
-          size_bytes: number | null
-          created_at: string
-          updated_at: string
           created_by: string | null
+          created_at: string
         }
         Insert: {
           id?: string
-          customer_id?: string | null
-          project_id?: string | null
-          quote_id?: string | null
-          work_order_id?: string | null
+          entity_type: Database["public"]["Enums"]["file_entity_type"]
+          entity_id: string
+          file_kind: Database["public"]["Enums"]["file_kind"]
           storage_path: string
-          filename?: string | null
           mime_type?: string | null
-          size_bytes?: number | null
-          created_at?: string
-          updated_at?: string
           created_by?: string | null
+          created_at?: string
         }
         Update: {
           id?: string
-          customer_id?: string | null
-          project_id?: string | null
-          quote_id?: string | null
-          work_order_id?: string | null
+          entity_type?: Database["public"]["Enums"]["file_entity_type"]
+          entity_id?: string
+          file_kind?: Database["public"]["Enums"]["file_kind"]
           storage_path?: string
-          filename?: string | null
           mime_type?: string | null
-          size_bytes?: number | null
-          created_at?: string
-          updated_at?: string
           created_by?: string | null
+          created_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "files_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "files_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "files_quote_id_fkey"
-            columns: ["quote_id"]
-            isOneToOne: false
-            referencedRelation: "quotes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "files_work_order_id_fkey"
-            columns: ["work_order_id"]
-            isOneToOne: false
-            referencedRelation: "work_orders"
-            referencedColumns: ["id"]
-          }
-        ]
+        Relationships: []
       }
       inventory_ledger: {
         Row: {
@@ -550,6 +563,8 @@ export type Database = {
           updated_at: string
           created_by: string | null
           updated_by: string | null
+          qbo_job_ref: string | null
+          qbo_last_synced_at: string | null
         }
         Insert: {
           id?: string
@@ -572,6 +587,8 @@ export type Database = {
           updated_at?: string
           created_by?: string | null
           updated_by?: string | null
+          qbo_job_ref?: string | null
+          qbo_last_synced_at?: string | null
         }
         Update: {
           id?: string
@@ -594,6 +611,8 @@ export type Database = {
           updated_at?: string
           created_by?: string | null
           updated_by?: string | null
+          qbo_job_ref?: string | null
+          qbo_last_synced_at?: string | null
         }
         Relationships: [
           {
@@ -789,7 +808,6 @@ export type Database = {
           tech_user_id: string
           start_at: string
           end_at: string
-          status: Database["public"]["Enums"]["schedule_status"]
           created_at: string
           updated_at: string
         }
@@ -799,7 +817,6 @@ export type Database = {
           tech_user_id: string
           start_at: string
           end_at: string
-          status?: Database["public"]["Enums"]["schedule_status"]
           created_at?: string
           updated_at?: string
         }
@@ -809,7 +826,6 @@ export type Database = {
           tech_user_id?: string
           start_at?: string
           end_at?: string
-          status?: Database["public"]["Enums"]["schedule_status"]
           created_at?: string
           updated_at?: string
         }
@@ -954,7 +970,7 @@ export type Database = {
         Row: {
           id: string
           quote_no: string
-          project_id: string | null
+          project_id: string
           work_order_id: string | null
           quote_type: Database["public"]["Enums"]["quote_type"]
           parent_quote_id: string | null
@@ -965,18 +981,21 @@ export type Database = {
           tax_rate_snapshot: number | null
           subtotal: number
           tax_total: number
-          total: number
+          total_amount: number
           accepted_at: string | null
           pdf_file_id: string | null
           created_at: string
           updated_at: string
           created_by: string | null
           updated_by: string | null
+          qbo_estimate_ref: string | null
+          qbo_last_synced_at: string | null
+          qbo_push_status: string | null
         }
         Insert: {
           id?: string
           quote_no: string
-          project_id?: string | null
+          project_id: string
           work_order_id?: string | null
           quote_type?: Database["public"]["Enums"]["quote_type"]
           parent_quote_id?: string | null
@@ -987,18 +1006,21 @@ export type Database = {
           tax_rate_snapshot?: number | null
           subtotal?: number
           tax_total?: number
-          total?: number
+          total_amount?: number
           accepted_at?: string | null
           pdf_file_id?: string | null
           created_at?: string
           updated_at?: string
           created_by?: string | null
           updated_by?: string | null
+          qbo_estimate_ref?: string | null
+          qbo_last_synced_at?: string | null
+          qbo_push_status?: string | null
         }
         Update: {
           id?: string
           quote_no?: string
-          project_id?: string | null
+          project_id?: string
           work_order_id?: string | null
           quote_type?: Database["public"]["Enums"]["quote_type"]
           parent_quote_id?: string | null
@@ -1009,13 +1031,16 @@ export type Database = {
           tax_rate_snapshot?: number | null
           subtotal?: number
           tax_total?: number
-          total?: number
+          total_amount?: number
           accepted_at?: string | null
           pdf_file_id?: string | null
           created_at?: string
           updated_at?: string
           created_by?: string | null
           updated_by?: string | null
+          qbo_estimate_ref?: string | null
+          qbo_last_synced_at?: string | null
+          qbo_push_status?: string | null
         }
         Relationships: [
           {
@@ -1211,88 +1236,70 @@ export type Database = {
         }
         Relationships: []
       }
-      qb_connections: {
+      qbo_connections: {
         Row: {
           id: string
-          company_file_id: string | null
           realm_id: string
-          access_token: string | null
-          refresh_token: string | null
-          token_expires_at: string | null
-          is_connected: boolean
-          last_sync_at: string | null
-          sync_status: string
-          sync_error: string | null
+          access_token_enc: string
+          refresh_token_enc: string
+          expires_at: string
+          scope: string | null
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
-          company_file_id?: string | null
           realm_id: string
-          access_token?: string | null
-          refresh_token?: string | null
-          token_expires_at?: string | null
-          is_connected?: boolean
-          last_sync_at?: string | null
-          sync_status?: string
-          sync_error?: string | null
+          access_token_enc: string
+          refresh_token_enc: string
+          expires_at: string
+          scope?: string | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
-          company_file_id?: string | null
           realm_id?: string
-          access_token?: string | null
-          refresh_token?: string | null
-          token_expires_at?: string | null
-          is_connected?: boolean
-          last_sync_at?: string | null
-          sync_status?: string
-          sync_error?: string | null
+          access_token_enc?: string
+          refresh_token_enc?: string
+          expires_at?: string
+          scope?: string | null
           created_at?: string
           updated_at?: string
         }
         Relationships: []
       }
-      qb_mappings: {
+      qbo_entity_map: {
         Row: {
           id: string
-          zenith_entity_type: string
-          zenith_entity_id: string
-          qb_entity_type: string
-          qb_list_id: string
-          qb_edit_sequence: string | null
-          qb_full_name: string | null
-          sync_direction: string
-          last_synced_at: string
+          entity_type: string
+          local_table: string | null
+          local_id: string
+          qbo_id: string
+          qbo_sync_token: string | null
+          last_synced_at: string | null
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
-          zenith_entity_type: string
-          zenith_entity_id: string
-          qb_entity_type: string
-          qb_list_id: string
-          qb_edit_sequence?: string | null
-          qb_full_name?: string | null
-          sync_direction?: string
-          last_synced_at?: string
+          entity_type: string
+          local_table?: string | null
+          local_id: string
+          qbo_id: string
+          qbo_sync_token?: string | null
+          last_synced_at?: string | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
-          zenith_entity_type?: string
-          zenith_entity_id?: string
-          qb_entity_type?: string
-          qb_list_id?: string
-          qb_edit_sequence?: string | null
-          qb_full_name?: string | null
-          sync_direction?: string
-          last_synced_at?: string
+          entity_type?: string
+          local_table?: string | null
+          local_id?: string
+          qbo_id?: string
+          qbo_sync_token?: string | null
+          last_synced_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -1340,6 +1347,180 @@ export type Database = {
         }
         Relationships: []
       }
+      receipt_line_items: {
+        Row: {
+          id: string
+          receipt_id: string
+          line_no: number
+          part_id: string | null
+          description: string
+          uom: string | null
+          qty: number
+          unit_cost: number
+          amount: number
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          receipt_id: string
+          line_no?: number
+          part_id?: string | null
+          description: string
+          uom?: string | null
+          qty?: number
+          unit_cost?: number
+          amount?: number
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          receipt_id?: string
+          line_no?: number
+          part_id?: string | null
+          description?: string
+          uom?: string | null
+          qty?: number
+          unit_cost?: number
+          amount?: number
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_receipt_line_items_receipt"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "receipts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_receipt_line_items_part"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      job_queue: {
+        Row: {
+          id: string
+          job_type: string
+          payload: Json
+          status: string
+          attempts: number
+          run_after: string
+          locked_at: string | null
+          locked_by: string | null
+          last_error: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          job_type: string
+          payload: Json
+          status?: string
+          attempts?: number
+          run_after?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          last_error?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          job_type?: string
+          payload?: Json
+          status?: string
+          attempts?: number
+          run_after?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          last_error?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      audit_logs: {
+        Row: {
+          id: string
+          entity_type: string
+          entity_id: string | null
+          action: string
+          actor_user_id: string | null
+          before_data: Json | null
+          after_data: Json | null
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          entity_type: string
+          entity_id?: string | null
+          action: string
+          actor_user_id?: string | null
+          before_data?: Json | null
+          after_data?: Json | null
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          entity_type?: string
+          entity_id?: string | null
+          action?: string
+          actor_user_id?: string | null
+          before_data?: Json | null
+          after_data?: Json | null
+          notes?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      qbo_webhook_events: {
+        Row: {
+          id: string
+          realm_id: string
+          idempotency_key: string
+          payload: Json
+          status: string
+          attempts: number
+          last_error: string | null
+          received_at: string
+          processed_at: string | null
+        }
+        Insert: {
+          id?: string
+          realm_id: string
+          idempotency_key: string
+          payload: Json
+          status?: string
+          attempts?: number
+          last_error?: string | null
+          received_at?: string
+          processed_at?: string | null
+        }
+        Update: {
+          id?: string
+          realm_id?: string
+          idempotency_key?: string
+          payload?: Json
+          status?: string
+          attempts?: number
+          last_error?: string | null
+          received_at?: string
+          processed_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1359,8 +1540,6 @@ export type Database = {
       }
     }
     Enums: {
-      cost_bucket: "LABOR" | "MATERIAL" | "EQUIPMENT" | "SUB" | "OVERHEAD" | "OTHER"
-      cost_origin: "ZENITH_ESTIMATE" | "ZENITH_CAPTURED" | "QB_SYNCED"
       file_entity_type: "settings" | "customer" | "project" | "quote"
       file_kind: "photo" | "pdf" | "logo" | "other"
       inventory_txn_type: "RECEIPT" | "ADJUSTMENT" | "USAGE" | "RETURN"
@@ -1368,7 +1547,6 @@ export type Database = {
       quote_status: "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED" | "EXPIRED"
       quote_type: "BASE" | "CHANGE_ORDER"
       work_status: "UNSCHEDULED" | "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CLOSED" | "CANCELED"
-      schedule_status: "PLANNED" | "DISPATCHED" | "ARRIVED" | "DONE" | "CANCELED"
     }
     CompositeTypes: {
       [_ in never]: never

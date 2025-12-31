@@ -1,7 +1,7 @@
 'use server'
 
 import { getReceipt, updateReceipt } from '@/lib/data/receipts'
-import { createCostEntry } from '@/lib/data/cost-entries'
+import { createJobCostEntry } from '@/lib/data/cost-entries'
 import { revalidatePath } from 'next/cache'
 
 /**
@@ -25,16 +25,15 @@ export async function bulkAllocateReceipts(
       })
       
       // Create cost entry
-      await createCostEntry({
+      await createJobCostEntry({
         work_order_id: workOrderId,
-        bucket: 'MATERIAL',
-        origin: 'ZENITH_CAPTURED',
+        cost_type_id: '00000000-0000-0000-0000-000000000000', // TODO: Map to appropriate cost type
+        cost_code_id: '00000000-0000-0000-0000-000000000000', // TODO: Map to appropriate cost code
         description: `Receipt - ${receipt.vendor_name}`,
         qty: 1,
         unit_cost: receipt.total_amount,
-        total_cost: receipt.total_amount,
         receipt_id: receiptId,
-        occurred_at: receipt.receipt_date
+        txn_date: receipt.receipt_date
       })
       
       results.push({ receiptId, success: true })

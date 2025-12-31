@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Plus } from 'lucide-react'
-import { createCostEntryAction } from '@/app/actions/cost-entries'
+import { createJobCostEntryAction } from '@/app/actions/cost-entries'
 import { useRouter } from 'next/navigation'
 import { showActionResult } from '@/components/action-error-toast'
 
@@ -58,7 +58,7 @@ export function CostEntryDialog({ workOrderId }: CostEntryDialogProps) {
     e.preventDefault()
     setLoading(true)
 
-    const result = await createCostEntryAction({
+    const result = await createJobCostEntryAction({
       work_order_id: workOrderId,
       bucket,
       origin: 'ZENITH_CAPTURED',

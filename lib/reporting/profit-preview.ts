@@ -1,5 +1,5 @@
 'use server'
-import { getWorkOrder, listCostEntries } from '@/lib/data'
+import { getWorkOrder, listJobCostEntries } from '@/lib/data'
 import { CostBucket } from '@/lib/db'
 
 export type ProfitPreview = {
@@ -25,7 +25,7 @@ export async function calculateProfitPreview(
 ): Promise<ProfitPreview> {
   const [workOrder, costEntries] = await Promise.all([
     getWorkOrder(workOrderId),
-    listCostEntries({ work_order_id: workOrderId })
+    listJobCostEntries({ work_order_id: workOrderId })
   ])
   
   // Aggregate costs by bucket

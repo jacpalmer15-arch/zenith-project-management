@@ -1,6 +1,6 @@
 'use server'
 import { getWorkOrder } from '@/lib/data/work-orders'
-import { listCostEntries } from '@/lib/data/cost-entries'
+import { listJobCostEntries } from '@/lib/data/cost-entries'
 import { formatCurrency } from '@/lib/utils/format-currency'
 import { WorkOrderWithCustomerLocation } from '@/lib/db'
 
@@ -29,7 +29,7 @@ export async function getCostReconciliation(
 ): Promise<CostReconciliation> {
   const [wo, costEntries] = await Promise.all([
     getWorkOrder(workOrderId),
-    listCostEntries({ work_order_id: workOrderId })
+    listJobCostEntries({ work_order_id: workOrderId })
   ])
   
   // Group costs by bucket

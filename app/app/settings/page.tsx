@@ -1,6 +1,6 @@
 import { getSettings } from '@/lib/data/settings'
 import { listTaxRules } from '@/lib/data/tax-rules'
-import { getQbConnection } from '@/lib/data/qb-connections'
+import { getQboConnection } from '@/lib/data/qb-connections'
 import { SettingsForm } from '@/components/settings-form'
 import { TaxRulesSection } from '@/components/tax-rules-section'
 import { QuickBooksConnectionCard } from '@/components/quickbooks-connection-card'
@@ -20,7 +20,7 @@ export default async function SettingsPage() {
   const [settings, taxRules, qbConnection] = await Promise.all([
     getSettings(),
     listTaxRules(),
-    getQbConnection(),
+    getQboConnection(),
   ])
 
   return (

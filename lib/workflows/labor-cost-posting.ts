@@ -1,6 +1,6 @@
 'use server'
 
-import { getSettings, listTimeEntries, createCostEntry } from '@/lib/data'
+import { getSettings, listTimeEntries, createJobCostEntry } from '@/lib/data'
 import { createClient } from '@/lib/supabase/serverClient'
 import { WorkOrderTimeEntry, CostEntry } from '@/lib/db'
 
@@ -91,7 +91,7 @@ export async function postLaborCosts(
   for (const [employeeId, hours] of Object.entries(byEmployee)) {
     const employeeName = employeeMap.get(employeeId) || 'Unknown Employee'
     
-    const costEntry = await createCostEntry({
+    const costEntry = await createJobCostEntry({
       work_order_id: workOrderId,
       bucket: 'LABOR',
       origin: 'ZENITH_CAPTURED',

@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { redirect } from 'next/navigation'
 import { exchangeCodeForTokens } from '@/lib/quickbooks/client'
 import { encrypt } from '@/lib/quickbooks/encryption'
-import { saveQbConnection } from '@/lib/data/qb-connections'
+import { saveQboConnection } from '@/lib/data/qb-connections'
 
 /**
  * Handle OAuth 2.0 callback from QuickBooks
@@ -32,13 +32,11 @@ export async function GET(request: NextRequest) {
     expiresAt.setSeconds(expiresAt.getSeconds() + tokens.expires_in)
     
     // Encrypt and store tokens
-    await saveQbConnection({
+    await saveQboConnection({
       realm_id: realmId,
-      access_token: encrypt(tokens.access_token),
-      refresh_token: encrypt(tokens.refresh_token),
-      token_expires_at: expiresAt.toISOString(),
-      is_connected: true,
-      sync_status: 'idle',
+      access_token_enc: encrypt(tokens.access_token),
+      refresh_token_enc: encrypt(tokens.refresh_token),
+      expires_at: expiresAt.toISOString(),
     })
     
     redirect('/app/settings?qb_connected=true')

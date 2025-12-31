@@ -1,137 +1,147 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/serverClient'
-import { CostEntry, CostEntryInsert, CostEntryUpdate, CostEntryWithRelations, CostBucket } from '@/lib/db'
+import { JobCostEntry, JobCostEntryInsert, JobCostEntryUpdate, JobCostEntryWithRelations } from '@/lib/db'
 
-export interface ListCostEntriesOptions {
+export interface ListJobCostEntriesOptions {
+  project_id?: string
   work_order_id?: string
-  bucket?: CostBucket
-  origin?: 'ZENITH_ESTIMATE' | 'ZENITH_CAPTURED' | 'QB_SYNCED'
+  cost_type_id?: string
+  cost_code_id?: string
   start_date?: string
   end_date?: string
 }
 
 export interface CostRollup {
-  bucket: CostBucket
+  cost_type_id: string
+  cost_type_name: string
   total: number
 }
 
-export interface WorkOrderCostSummary {
+export interface JobCostSummary {
   rollup: CostRollup[]
   grand_total: number
-  contract_total?: number
-  estimated_margin?: number
 }
 
 /**
- * List all cost entries with optional filters
+ * List all job cost entries with optional filters
  */
-export async function listCostEntries(
-  options?: ListCostEntriesOptions
+export async function listJobCostEntries(
+  options?: ListJobCostEntriesOptions
 ): Promise<any[]> {
   const supabase = await createClient()
   
   let query = supabase
-    .from('cost_entries')
+    .from('job_cost_entries')
     .select(`
       *,
+      project:projects(*, customer:customers(*)),
       work_order:work_orders(*, customer:customers(*)),
-      part:parts(*)
+      part:parts(*),
+      cost_type:cost_types(*),
+      cost_code:cost_codes(*)
     `)
-    .order('occurred_at', { ascending: false })
+    .order('txn_date', { ascending: false })
   
+  if (options?.project_id) {
+    query = query.eq('project_id', options.project_id)
+  }
+
   if (options?.work_order_id) {
     query = query.eq('work_order_id', options.work_order_id)
   }
 
-  if (options?.bucket) {
-    query = query.eq('bucket', options.bucket)
+  if (options?.cost_type_id) {
+    query = query.eq('cost_type_id', options.cost_type_id)
   }
 
-  if (options?.origin) {
-    query = query.eq('origin', options.origin)
+  if (options?.cost_code_id) {
+    query = query.eq('cost_code_id', options.cost_code_id)
   }
 
   if (options?.start_date) {
-    query = query.gte('occurred_at', options.start_date)
+    query = query.gte('txn_date', options.start_date)
   }
 
   if (options?.end_date) {
-    query = query.lte('occurred_at', options.end_date)
+    query = query.lte('txn_date', options.end_date)
   }
 
   const { data, error } = await query
 
   if (error) {
-    throw new Error(`Failed to list cost entries: ${error.message}`)
+    throw new Error(`Failed to list job cost entries: ${error.message}`)
   }
 
   return data || []
 }
 
 /**
- * Get a single cost entry by ID
+ * Get a single job cost entry by ID
  */
-export async function getCostEntry(id: string): Promise<any> {
+export async function getJobCostEntry(id: string): Promise<any> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
-    .from('cost_entries')
+    .from('job_cost_entries')
     .select(`
       *,
+      project:projects(*, customer:customers(*)),
       work_order:work_orders(*, customer:customers(*)),
-      part:parts(*)
+      part:parts(*),
+      cost_type:cost_types(*),
+      cost_code:cost_codes(*)
     `)
     .eq('id', id)
     .single()
 
   if (error) {
-    throw new Error(`Failed to get cost entry: ${error.message}`)
+    throw new Error(`Failed to get job cost entry: ${error.message}`)
   }
 
   return data
 }
 
 /**
- * Create a new cost entry
+ * Create a new job cost entry
  */
-export async function createCostEntry(costEntry: CostEntryInsert): Promise<any> {
+export async function createJobCostEntry(costEntry: JobCostEntryInsert): Promise<any> {
   const supabase = await createClient()
 
-  // Calculate total_cost from qty and unit_cost
-  const total_cost = (costEntry.qty || 1) * (costEntry.unit_cost || 0)
+  // Calculate amount from qty and unit_cost
+  const amount = Math.round((costEntry.qty || 0) * (costEntry.unit_cost || 0) * 100) / 100
 
   const { data, error } = await supabase
-    .from('cost_entries')
+    .from('job_cost_entries')
     .insert({
       ...costEntry,
-      total_cost,
+      amount,
     } as any)
     .select()
     .single()
 
   if (error) {
-    throw new Error(`Failed to create cost entry: ${error.message}`)
+    throw new Error(`Failed to create job cost entry: ${error.message}`)
   }
 
   return data
 }
 
 /**
- * Update an existing cost entry
+ * Update an existing job cost entry
  */
-export async function updateCostEntry(
+export async function updateJobCostEntry(
   id: string,
-  costEntry: CostEntryUpdate
+  costEntry: JobCostEntryUpdate
 ): Promise<any> {
   const supabase = await createClient()
 
-  // Recalculate total_cost if qty or unit_cost changed
+  // Recalculate amount if qty or unit_cost changed
   const updates: any = { ...costEntry }
   if (costEntry.qty !== undefined || costEntry.unit_cost !== undefined) {
     // Fetch current values if not provided
     const { data: current } = await supabase
-      .from('cost_entries')
+      .from('job_cost_entries')
       .select('qty, unit_cost')
       .eq('id', id)
       .single()
@@ -139,104 +149,90 @@ export async function updateCostEntry(
     if (current) {
       const qty = costEntry.qty !== undefined ? costEntry.qty : (current as any).qty
       const unit_cost = costEntry.unit_cost !== undefined ? costEntry.unit_cost : (current as any).unit_cost
-      updates.total_cost = qty * unit_cost
+      updates.amount = Math.round(qty * unit_cost * 100) / 100
     }
   }
 
   const { data, error } = await (supabase
-    .from('cost_entries') as any)
+    .from('job_cost_entries') as any)
     .update(updates)
     .eq('id', id)
     .select()
     .single()
 
   if (error) {
-    throw new Error(`Failed to update cost entry: ${error.message}`)
+    throw new Error(`Failed to update job cost entry: ${error.message}`)
   }
 
   return data
 }
 
 /**
- * Delete a cost entry
+ * Delete a job cost entry
  */
-export async function deleteCostEntry(id: string): Promise<void> {
+export async function deleteJobCostEntry(id: string): Promise<void> {
   const supabase = await createClient()
 
   const { error } = await supabase
-    .from('cost_entries')
+    .from('job_cost_entries')
     .delete()
     .eq('id', id)
 
   if (error) {
-    throw new Error(`Failed to delete cost entry: ${error.message}`)
+    throw new Error(`Failed to delete job cost entry: ${error.message}`)
   }
 }
 
 /**
- * Get cost rollup for a work order
+ * Get cost summary for a project or work order
  */
-export async function getWorkOrderCostSummary(
-  workOrderId: string
-): Promise<WorkOrderCostSummary> {
+export async function getJobCostSummary(
+  params: { project_id?: string; work_order_id?: string }
+): Promise<JobCostSummary> {
   const supabase = await createClient()
 
-  // Get all cost entries for this work order
-  const { data: costEntries, error: costError } = await supabase
-    .from('cost_entries')
-    .select('bucket, total_cost')
-    .eq('work_order_id', workOrderId)
+  // Build query based on params
+  let query = supabase
+    .from('job_cost_entries')
+    .select('cost_type_id, amount, cost_type:cost_types(name)')
+
+  if (params.project_id) {
+    query = query.eq('project_id', params.project_id)
+  } else if (params.work_order_id) {
+    query = query.eq('work_order_id', params.work_order_id)
+  } else {
+    throw new Error('Must provide either project_id or work_order_id')
+  }
+
+  const { data: costEntries, error: costError } = await query
 
   if (costError) {
     throw new Error(`Failed to get cost entries: ${costError.message}`)
   }
 
-  // Group by bucket
-  const rollupMap = new Map<CostBucket, number>()
+  // Group by cost type
+  const rollupMap = new Map<string, { cost_type_id: string; cost_type_name: string; total: number }>()
   let grand_total = 0
 
   for (const entry of costEntries || []) {
-    const current = rollupMap.get((entry as any).bucket) || 0
-    rollupMap.set((entry as any).bucket, current + (entry as any).total_cost)
-    grand_total += (entry as any).total_cost
+    const cost_type_id = (entry as any).cost_type_id
+    const cost_type_name = (entry as any).cost_type?.name || 'Unknown'
+    const amount = (entry as any).amount
+
+    const current = rollupMap.get(cost_type_id) || { cost_type_id, cost_type_name, total: 0 }
+    current.total += amount
+    rollupMap.set(cost_type_id, current)
+    grand_total += amount
   }
 
-  const rollup: CostRollup[] = Array.from(rollupMap.entries()).map(([bucket, total]) => ({
-    bucket,
+  const rollup: CostRollup[] = Array.from(rollupMap.values()).map(({ cost_type_id, cost_type_name, total }) => ({
+    cost_type_id,
+    cost_type_name,
     total,
   }))
-
-  // Get work order to check for contract_total
-  const { data: workOrder } = await supabase
-    .from('work_orders')
-    .select('id')
-    .eq('id', workOrderId)
-    .single()
-
-  let contract_total: number | undefined
-  let estimated_margin: number | undefined
-
-  if (workOrder) {
-    // Get accepted quote for this work order
-    const { data: quote } = await supabase
-      .from('quotes')
-      .select('total, status')
-      .eq('work_order_id', workOrderId)
-      .eq('status', 'ACCEPTED')
-      .single()
-
-    if (quote) {
-      contract_total = (quote as any).total
-      if (contract_total !== undefined) {
-        estimated_margin = contract_total - grand_total
-      }
-    }
-  }
 
   return {
     rollup,
     grand_total,
-    contract_total,
-    estimated_margin,
   }
 }

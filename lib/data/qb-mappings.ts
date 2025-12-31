@@ -1,45 +1,41 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/serverClient'
-import { Database } from '@/lib/supabase/types'
-
-export type QbMapping = Database['public']['Tables']['qb_mappings']['Row']
-export type QbMappingInsert = Database['public']['Tables']['qb_mappings']['Insert']
-export type QbMappingUpdate = Database['public']['Tables']['qb_mappings']['Update']
+import { QboEntityMap, QboEntityMapInsert, QboEntityMapUpdate } from '@/lib/db'
 
 /**
- * Create a new QuickBooks mapping
+ * Create a new QuickBooks entity mapping
  */
-export async function createQbMapping(data: QbMappingInsert): Promise<QbMapping> {
+export async function createQboEntityMap(data: QboEntityMapInsert): Promise<QboEntityMap> {
   const supabase = await createClient()
   
   const { data: mapping, error } = await supabase
-    .from('qb_mappings')
+    .from('qbo_entity_map')
     .insert(data as never)
     .select()
     .single()
   
   if (error) {
-    throw new Error(`Failed to create QB mapping: ${error.message}`)
+    throw new Error(`Failed to create QBO entity map: ${error.message}`)
   }
   
-  return mapping as QbMapping
+  return mapping as QboEntityMap
 }
 
 /**
- * Get a mapping by Zenith entity
+ * Get a mapping by local entity
  */
-export async function getQbMapping(
-  zenithEntityType: string,
-  zenithEntityId: string
-): Promise<QbMapping | null> {
+export async function getQboEntityMap(
+  entityType: string,
+  localId: string
+): Promise<QboEntityMap | null> {
   const supabase = await createClient()
   
   const { data, error } = await supabase
-    .from('qb_mappings')
+    .from('qbo_entity_map')
     .select('*')
-    .eq('zenith_entity_type', zenithEntityType)
-    .eq('zenith_entity_id', zenithEntityId)
+    .eq('entity_type', entityType)
+    .eq('local_id', localId)
     .single()
   
   if (error) {
@@ -47,26 +43,26 @@ export async function getQbMapping(
       // No rows returned
       return null
     }
-    throw new Error(`Failed to fetch QB mapping: ${error.message}`)
+    throw new Error(`Failed to fetch QBO entity map: ${error.message}`)
   }
   
-  return data as QbMapping
+  return data as QboEntityMap
 }
 
 /**
  * Get a mapping by QuickBooks entity
  */
-export async function getQbMappingByQbId(
-  qbEntityType: string,
-  qbListId: string
-): Promise<QbMapping | null> {
+export async function getQboEntityMapByQboId(
+  entityType: string,
+  qboId: string
+): Promise<QboEntityMap | null> {
   const supabase = await createClient()
   
   const { data, error } = await supabase
-    .from('qb_mappings')
+    .from('qbo_entity_map')
     .select('*')
-    .eq('qb_entity_type', qbEntityType)
-    .eq('qb_list_id', qbListId)
+    .eq('entity_type', entityType)
+    .eq('qbo_id', qboId)
     .single()
   
   if (error) {
@@ -74,75 +70,75 @@ export async function getQbMappingByQbId(
       // No rows returned
       return null
     }
-    throw new Error(`Failed to fetch QB mapping by QB ID: ${error.message}`)
+    throw new Error(`Failed to fetch QBO entity map by QBO ID: ${error.message}`)
   }
   
-  return data as QbMapping
+  return data as QboEntityMap
 }
 
 /**
  * List all mappings with optional filters
  */
-export async function listQbMappings(filters?: {
-  zenith_entity_type?: string
-  qb_entity_type?: string
-}): Promise<QbMapping[]> {
+export async function listQboEntityMaps(filters?: {
+  entity_type?: string
+  local_table?: string
+}): Promise<QboEntityMap[]> {
   const supabase = await createClient()
   
   let query = supabase
-    .from('qb_mappings')
+    .from('qbo_entity_map')
     .select('*')
     .order('created_at', { ascending: false })
   
-  if (filters?.zenith_entity_type) {
-    query = query.eq('zenith_entity_type', filters.zenith_entity_type)
+  if (filters?.entity_type) {
+    query = query.eq('entity_type', filters.entity_type)
   }
   
-  if (filters?.qb_entity_type) {
-    query = query.eq('qb_entity_type', filters.qb_entity_type)
+  if (filters?.local_table) {
+    query = query.eq('local_table', filters.local_table)
   }
   
   const { data, error } = await query
   
   if (error) {
-    throw new Error(`Failed to list QB mappings: ${error.message}`)
+    throw new Error(`Failed to list QBO entity maps: ${error.message}`)
   }
   
-  return (data || []) as QbMapping[]
+  return (data || []) as QboEntityMap[]
 }
 
 /**
- * Update a QuickBooks mapping
+ * Update a QuickBooks entity mapping
  */
-export async function updateQbMapping(id: string, data: QbMappingUpdate): Promise<QbMapping> {
+export async function updateQboEntityMap(id: string, data: QboEntityMapUpdate): Promise<QboEntityMap> {
   const supabase = await createClient()
   
   const { data: updated, error } = await supabase
-    .from('qb_mappings')
+    .from('qbo_entity_map')
     .update(data as never)
     .eq('id', id)
     .select()
     .single()
   
   if (error) {
-    throw new Error(`Failed to update QB mapping: ${error.message}`)
+    throw new Error(`Failed to update QBO entity map: ${error.message}`)
   }
   
-  return updated as QbMapping
+  return updated as QboEntityMap
 }
 
 /**
- * Delete a QuickBooks mapping
+ * Delete a QuickBooks entity mapping
  */
-export async function deleteQbMapping(id: string): Promise<void> {
+export async function deleteQboEntityMap(id: string): Promise<void> {
   const supabase = await createClient()
   
   const { error } = await supabase
-    .from('qb_mappings')
+    .from('qbo_entity_map')
     .delete()
     .eq('id', id)
   
   if (error) {
-    throw new Error(`Failed to delete QB mapping: ${error.message}`)
+    throw new Error(`Failed to delete QBO entity map: ${error.message}`)
   }
 }

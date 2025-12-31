@@ -1,8 +1,9 @@
 'use server'
 
 import { getAuthenticatedQbClient } from './auth'
-import { listWebhookEvents, updateWebhookEvent, QbWebhookEvent } from '@/lib/data/qb-webhook-events'
-import { getQbMappingByQbId } from '@/lib/data/qb-mappings'
+import { listWebhookEvents, updateWebhookEvent } from '@/lib/data/qb-webhook-events'
+import { QboWebhookEvent } from '@/lib/db'
+import { getQboEntityMapByQboId } from '@/lib/data/qb-mappings'
 import { updateQuote, getQuote } from '@/lib/data/quotes'
 import { updateReceipt } from '@/lib/data/receipts'
 import { getWorkOrder } from '@/lib/data/work-orders'
@@ -13,41 +14,53 @@ import { validateWorkOrderClose } from '@/lib/workflows/work-order-closeout'
  * Process all unprocessed webhook events
  */
 export async function processWebhookEvents() {
-  const unprocessedEvents = await listWebhookEvents({ processed: false, limit: 100 })
+  const unprocessedEvents = await listWebhookEvents({ status: 'PENDING', limit: 100 })
 
   console.log(`Processing ${unprocessedEvents.length} unprocessed webhook events...`)
 
   for (const event of unprocessedEvents) {
     try {
-      switch (event.event_name) {
-        case 'Invoice':
-          await processInvoiceWebhook(event)
-          break
-        case 'Payment':
-          await processPaymentWebhook(event)
-          break
-        case 'Bill':
-          await processBillWebhook(event)
-          break
-        case 'Customer':
-          await processCustomerWebhook(event)
-          break
-        default:
-          console.log(`Skipping unsupported event type: ${event.event_name}`)
+      // Extract event data from payload
+      const payload = event.payload as any
+      const entities = payload.dataChangeEvent?.entities || []
+      
+      for (const entity of entities) {
+        const eventName = entity.name
+        const eventOperation = entity.operation
+        const entityId = entity.id
+        
+        switch (eventName) {
+          case 'Invoice':
+            await processInvoiceWebhook(entityId, eventOperation)
+            break
+          case 'Payment':
+            await processPaymentWebhook(entityId, eventOperation)
+            break
+          case 'Bill':
+            await processBillWebhook(entityId, eventOperation)
+            break
+          case 'Customer':
+            await processCustomerWebhook(entityId, eventOperation)
+            break
+          default:
+            console.log(`Skipping unsupported event type: ${eventName}`)
+        }
       }
 
       // Mark as processed
       await updateWebhookEvent(event.id, {
-        processed: true,
+        status: 'COMPLETED',
         processed_at: new Date().toISOString(),
       })
 
-      console.log(`Processed webhook event ${event.id} (${event.event_name})`)
+      console.log(`Processed webhook event ${event.id}`)
     } catch (error: any) {
       console.error(`Failed to process webhook event ${event.id}:`, error)
       
       await updateWebhookEvent(event.id, {
-        error_message: error.message,
+        status: 'FAILED',
+        last_error: error.message,
+        attempts: event.attempts + 1,
       })
     }
   }
@@ -56,12 +69,12 @@ export async function processWebhookEvents() {
 /**
  * Process invoice webhook event
  */
-async function processInvoiceWebhook(event: QbWebhookEvent) {
-  if (event.event_operation === 'Delete') {
+async function processInvoiceWebhook(entityId: string, operation: string) {
+  if (operation === 'Delete') {
     // Handle invoice deletion - mark quote as unsynced
-    const mapping = await getQbMappingByQbId('Invoice', event.entity_id)
+    const mapping = await getQboEntityMapByQboId('Invoice', entityId)
     if (mapping) {
-      await updateQuote(mapping.zenith_entity_id, {
+      await updateQuote(mapping.local_id, {
         qb_invoice_id: null,
         qb_invoice_number: null,
         qb_invoice_status: null,
@@ -73,13 +86,13 @@ async function processInvoiceWebhook(event: QbWebhookEvent) {
 
   // Fetch updated invoice from QuickBooks
   const qbClient = await getAuthenticatedQbClient()
-  const response = await qbClient.read('Invoice', event.entity_id)
+  const response = await qbClient.read('Invoice', entityId)
   const invoice = response.Invoice
 
   // Find the quote linked to this invoice
-  const mapping = await getQbMappingByQbId('Invoice', event.entity_id)
+  const mapping = await getQboEntityMapByQboId('Invoice', entityId)
   if (!mapping) {
-    console.log(`No mapping found for invoice ${event.entity_id}`)
+    console.log(`No mapping found for invoice ${entityId}`)
     return
   }
 
@@ -100,7 +113,7 @@ async function processInvoiceWebhook(event: QbWebhookEvent) {
   }
 
   // Update quote status
-  await updateQuote(mapping.zenith_entity_id, {
+  await updateQuote(mapping.local_id, {
     qb_invoice_status: paymentStatus,
   } as any)
 }
@@ -108,15 +121,15 @@ async function processInvoiceWebhook(event: QbWebhookEvent) {
 /**
  * Process payment webhook event
  */
-async function processPaymentWebhook(event: QbWebhookEvent) {
+async function processPaymentWebhook(entityId: string, operation: string) {
   const qbClient = await getAuthenticatedQbClient()
 
   // Fetch payment details from QB
-  const response = await qbClient.read('Payment', event.entity_id)
+  const response = await qbClient.read('Payment', entityId)
   const payment = response.Payment
 
   if (!payment) {
-    console.log(`Payment ${event.entity_id} not found`)
+    console.log(`Payment ${entityId} not found`)
     return
   }
 
@@ -130,7 +143,7 @@ async function processPaymentWebhook(event: QbWebhookEvent) {
           const invoiceId = linkedTxn.TxnId
 
           // Find Zenith quote linked to this invoice
-          const mapping = await getQbMappingByQbId('Invoice', invoiceId)
+          const mapping = await getQboEntityMapByQboId('Invoice', invoiceId)
 
           if (mapping) {
             // Fetch updated invoice status
@@ -144,12 +157,12 @@ async function processPaymentWebhook(event: QbWebhookEvent) {
             const paymentStatus = balance === 0 ? 'paid' : balance < totalAmt ? 'partial' : 'sent'
 
             // Update quote status
-            await updateQuote(mapping.zenith_entity_id, {
+            await updateQuote(mapping.local_id, {
               qb_invoice_status: paymentStatus,
             } as any)
 
             // If fully paid, consider closing work order
-            const quote = await getQuote(mapping.zenith_entity_id)
+            const quote = await getQuote(mapping.local_id)
             if (paymentStatus === 'paid' && quote.work_order_id) {
               const workOrder = await getWorkOrder(quote.work_order_id)
               if (workOrder.status === 'COMPLETED') {
@@ -181,12 +194,12 @@ async function processPaymentWebhook(event: QbWebhookEvent) {
 /**
  * Process bill webhook event
  */
-async function processBillWebhook(event: QbWebhookEvent) {
-  if (event.event_operation === 'Delete') {
+async function processBillWebhook(entityId: string, operation: string) {
+  if (operation === 'Delete') {
     // Handle bill deletion - mark receipt as unsynced
-    const mapping = await getQbMappingByQbId('Bill', event.entity_id)
+    const mapping = await getQboEntityMapByQboId('Bill', entityId)
     if (mapping) {
-      await updateReceipt(mapping.zenith_entity_id, {
+      await updateReceipt(mapping.local_id, {
         qb_bill_id: null,
         qb_bill_number: null,
         qb_bill_status: null,
@@ -198,13 +211,13 @@ async function processBillWebhook(event: QbWebhookEvent) {
 
   // Fetch updated bill from QuickBooks
   const qbClient = await getAuthenticatedQbClient()
-  const response = await qbClient.read('Bill', event.entity_id)
+  const response = await qbClient.read('Bill', entityId)
   const bill = response.Bill
 
   // Find the receipt linked to this bill
-  const mapping = await getQbMappingByQbId('Bill', event.entity_id)
+  const mapping = await getQboEntityMapByQboId('Bill', entityId)
   if (!mapping) {
-    console.log(`No mapping found for bill ${event.entity_id}`)
+    console.log(`No mapping found for bill ${entityId}`)
     return
   }
 
@@ -220,7 +233,7 @@ async function processBillWebhook(event: QbWebhookEvent) {
   }
 
   // Update receipt status
-  await updateReceipt(mapping.zenith_entity_id, {
+  await updateReceipt(mapping.local_id, {
     qb_bill_status: paymentStatus,
   } as any)
 }
@@ -228,8 +241,8 @@ async function processBillWebhook(event: QbWebhookEvent) {
 /**
  * Process customer webhook event
  */
-async function processCustomerWebhook(event: QbWebhookEvent) {
+async function processCustomerWebhook(entityId: string, operation: string) {
   // Customer webhooks could trigger re-sync if needed
   // For now, we'll just log them
-  console.log(`Customer webhook received for ${event.entity_id}`)
+  console.log(`Customer webhook received for ${entityId}`)
 }

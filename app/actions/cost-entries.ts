@@ -1,67 +1,88 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createCostEntry, updateCostEntry, deleteCostEntry, getCostEntry } from '@/lib/data'
+import { createJobCostEntry, updateJobCostEntry, deleteJobCostEntry, getJobCostEntry } from '@/lib/data'
 import { validateCostEntryMutable } from '@/lib/validations/data-consistency'
 import { withErrorHandling } from '@/lib/errors/handler'
 import { getCurrentUser } from '@/lib/auth/get-user'
 
-export async function createCostEntryAction(data: any) {
+export async function createJobCostEntryAction(data: any) {
   return withErrorHandling(async () => {
     const user = await getCurrentUser()
     
     // Check if work order is closed
-    await validateCostEntryMutable(
-      { work_order_id: data.work_order_id },
-      user?.role || 'TECH'
-    )
+    if (data.work_order_id) {
+      await validateCostEntryMutable(
+        { work_order_id: data.work_order_id },
+        user?.role || 'TECH'
+      )
+    }
     
-    const costEntry = await createCostEntry(data)
+    const costEntry = await createJobCostEntry(data)
     
-    revalidatePath(`/app/work-orders/${data.work_order_id}`)
+    if (data.work_order_id) {
+      revalidatePath(`/app/work-orders/${data.work_order_id}`)
+    }
+    if (data.project_id) {
+      revalidatePath(`/app/projects/${data.project_id}`)
+    }
     revalidatePath('/app/receipts')
     return costEntry
   })
 }
 
-export async function updateCostEntryAction(
+export async function updateJobCostEntryAction(
   id: string, 
   data: any,
   adminReason?: string
 ) {
   return withErrorHandling(async () => {
     const user = await getCurrentUser()
-    const existing = await getCostEntry(id)
+    const existing = await getJobCostEntry(id)
     
     // Check if work order is closed
-    await validateCostEntryMutable(
-      { work_order_id: existing.work_order_id },
-      user?.role || 'TECH',
-      adminReason
-    )
+    if (existing.work_order_id) {
+      await validateCostEntryMutable(
+        { work_order_id: existing.work_order_id },
+        user?.role || 'TECH',
+        adminReason
+      )
+    }
     
-    await updateCostEntry(id, data)
+    await updateJobCostEntry(id, data)
     
-    revalidatePath(`/app/work-orders/${existing.work_order_id}`)
+    if (existing.work_order_id) {
+      revalidatePath(`/app/work-orders/${existing.work_order_id}`)
+    }
+    if (existing.project_id) {
+      revalidatePath(`/app/projects/${existing.project_id}`)
+    }
     revalidatePath('/app/receipts')
   })
 }
 
-export async function deleteCostEntryAction(id: string, adminReason?: string) {
+export async function deleteJobCostEntryAction(id: string, adminReason?: string) {
   return withErrorHandling(async () => {
     const user = await getCurrentUser()
-    const existing = await getCostEntry(id)
+    const existing = await getJobCostEntry(id)
     
     // Check if work order is closed
-    await validateCostEntryMutable(
-      { work_order_id: existing.work_order_id },
-      user?.role || 'TECH',
-      adminReason
-    )
+    if (existing.work_order_id) {
+      await validateCostEntryMutable(
+        { work_order_id: existing.work_order_id },
+        user?.role || 'TECH',
+        adminReason
+      )
+    }
     
-    await deleteCostEntry(id)
+    await deleteJobCostEntry(id)
     
-    revalidatePath(`/app/work-orders/${existing.work_order_id}`)
+    if (existing.work_order_id) {
+      revalidatePath(`/app/work-orders/${existing.work_order_id}`)
+    }
+    if (existing.project_id) {
+      revalidatePath(`/app/projects/${existing.project_id}`)
+    }
     revalidatePath('/app/receipts')
   })
 }
