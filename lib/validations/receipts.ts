@@ -23,5 +23,16 @@ export const receiptAllocationSchema = z.object({
   }
 )
 
+export const receiptLineItemSchema = z.object({
+  receipt_id: z.string().uuid('Receipt is required'),
+  line_no: z.number().int().min(1, 'Line number must be positive'),
+  description: z.string().min(1, 'Description is required'),
+  qty: z.coerce.number().positive('Quantity must be positive'),
+  unit_cost: z.coerce.number().min(0, 'Unit cost must be non-negative'),
+  uom: z.string().optional().nullable(),
+  part_id: z.string().uuid().optional().nullable(),
+})
+
 export type ReceiptFormData = z.infer<typeof receiptSchema>
 export type ReceiptAllocationFormData = z.infer<typeof receiptAllocationSchema>
+export type ReceiptLineItemFormData = z.infer<typeof receiptLineItemSchema>

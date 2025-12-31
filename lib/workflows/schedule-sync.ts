@@ -26,7 +26,8 @@ export async function onScheduleCreated(scheduleEntry: WorkOrderSchedule) {
  */
 export async function onScheduleStarted(scheduleId: string) {
   const schedule = await getScheduleEntry(scheduleId)
-  await updateScheduleEntry(scheduleId, { status: 'ARRIVED' })
+  // TODO: Add status field to work_order_schedule if needed
+  // await updateScheduleEntry(scheduleId, { status: 'ARRIVED' })
   
   const wo = await getWorkOrder(schedule.work_order_id)
   if (wo.status === 'SCHEDULED') {
@@ -45,7 +46,8 @@ export async function onScheduleStarted(scheduleId: string) {
  * User must manually confirm completion with notes
  */
 export async function onScheduleEnded(scheduleId: string) {
-  await updateScheduleEntry(scheduleId, { status: 'DONE' })
+  // TODO: Add status field to work_order_schedule if needed
+  // await updateScheduleEntry(scheduleId, { status: 'DONE' })
   
   // Note: Does NOT auto-transition to COMPLETED
   // User must manually confirm completion with notes

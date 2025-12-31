@@ -2,9 +2,18 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createReceipt, updateReceipt, deleteReceipt, getReceipt } from '@/lib/data/receipts'
+import { 
+  createReceipt, 
+  updateReceipt, 
+  deleteReceipt, 
+  getReceipt,
+  createReceiptLineItem,
+  updateReceiptLineItem,
+  deleteReceiptLineItem,
+  getNextLineNumber
+} from '@/lib/data/receipts'
 import { createJobCostEntry } from '@/lib/data/cost-entries'
-import { receiptSchema } from '@/lib/validations'
+import { receiptSchema, receiptLineItemSchema } from '@/lib/validations'
 import { ReceiptInsert, ReceiptUpdate } from '@/lib/db'
 
 export async function createReceiptAction(formData: FormData) {
@@ -26,11 +35,11 @@ export async function createReceiptAction(formData: FormData) {
 
   try {
     // Create receipt with proper typing
-    const receiptData: Partial<ReceiptInsert> = {
+    const receiptData: ReceiptInsert = {
       vendor_name: parsed.data.vendor_name,
       receipt_date: parsed.data.receipt_date,
       total_amount: parsed.data.total_amount,
-      storage_path: parsed.data.storage_path,
+      storage_path: parsed.data.storage_path || '',
       notes: parsed.data.notes,
     }
     
@@ -67,7 +76,7 @@ export async function updateReceiptAction(id: string, formData: FormData) {
       vendor_name: parsed.data.vendor_name,
       receipt_date: parsed.data.receipt_date,
       total_amount: parsed.data.total_amount,
-      storage_path: parsed.data.storage_path,
+      storage_path: parsed.data.storage_path || undefined,
       notes: parsed.data.notes,
     }
     
@@ -139,5 +148,77 @@ export async function bulkAllocateReceipts(
   } catch (error) {
     console.error('Bulk allocation error:', error)
     return { error: 'Failed to allocate receipts' }
+  }
+}
+
+export async function createLineItemAction(formData: FormData) {
+  const receiptId = formData.get('receipt_id') as string
+  
+  // Get next line number
+  const lineNo = await getNextLineNumber(receiptId)
+  
+  const data = {
+    receipt_id: receiptId,
+    line_no: lineNo,
+    description: formData.get('description') as string,
+    qty: parseFloat(formData.get('qty') as string),
+    unit_cost: parseFloat(formData.get('unit_cost') as string),
+    uom: (formData.get('uom') as string) || null,
+    part_id: (formData.get('part_id') as string) || null,
+  }
+  
+  const parsed = receiptLineItemSchema.safeParse(data)
+  
+  if (!parsed.success) {
+    return { error: 'Invalid form data', details: parsed.error.issues }
+  }
+  
+  try {
+    await createReceiptLineItem(parsed.data)
+    revalidatePath(`/app/receipts/${receiptId}`)
+    return { success: true }
+  } catch (error) {
+    console.error('Error creating line item:', error)
+    return { error: 'Failed to create line item' }
+  }
+}
+
+export async function updateLineItemAction(id: string, formData: FormData) {
+  const receiptId = formData.get('receipt_id') as string
+  
+  const data = {
+    description: formData.get('description') as string,
+    qty: parseFloat(formData.get('qty') as string),
+    unit_cost: parseFloat(formData.get('unit_cost') as string),
+    uom: (formData.get('uom') as string) || null,
+    part_id: (formData.get('part_id') as string) || null,
+  }
+  
+  // Don't validate line_no and receipt_id for updates
+  const updateSchema = receiptLineItemSchema.omit({ line_no: true, receipt_id: true })
+  const parsed = updateSchema.safeParse(data)
+  
+  if (!parsed.success) {
+    return { error: 'Invalid form data', details: parsed.error.issues }
+  }
+  
+  try {
+    await updateReceiptLineItem(id, parsed.data)
+    revalidatePath(`/app/receipts/${receiptId}`)
+    return { success: true }
+  } catch (error) {
+    console.error('Error updating line item:', error)
+    return { error: 'Failed to update line item' }
+  }
+}
+
+export async function deleteLineItemAction(id: string, receiptId: string) {
+  try {
+    await deleteReceiptLineItem(id)
+    revalidatePath(`/app/receipts/${receiptId}`)
+    return { success: true }
+  } catch (error) {
+    console.error('Error deleting line item:', error)
+    return { error: 'Failed to delete line item' }
   }
 }

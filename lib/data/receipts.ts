@@ -224,3 +224,134 @@ export async function getAgedReceipts(
     )
   }))
 }
+
+/**
+ * List line items for a receipt
+ */
+export async function listReceiptLineItems(receiptId: string): Promise<any[]> {
+  const supabase = await createClient()
+  
+  const { data, error } = await supabase
+    .from('receipt_line_items')
+    .select('*, part:parts(id, sku, name)')
+    .eq('receipt_id', receiptId)
+    .order('line_no', { ascending: true })
+  
+  if (error) {
+    throw new Error(`Failed to list receipt line items: ${error.message}`)
+  }
+  
+  return (data || []) as any[]
+}
+
+/**
+ * Get a single line item by ID
+ */
+export async function getReceiptLineItem(id: string): Promise<any> {
+  const supabase = await createClient()
+  
+  const { data, error } = await supabase
+    .from('receipt_line_items')
+    .select('*, part:parts(id, sku, name)')
+    .eq('id', id)
+    .single()
+  
+  if (error) {
+    throw new Error(`Failed to get receipt line item: ${error.message}`)
+  }
+  
+  return data as any
+}
+
+/**
+ * Create a receipt line item
+ */
+export async function createReceiptLineItem(lineItem: any): Promise<any> {
+  const supabase = await createClient()
+  
+  // Calculate amount
+  const amount = (lineItem.qty || 0) * (lineItem.unit_cost || 0)
+  
+  const { data, error } = await supabase
+    .from('receipt_line_items')
+    .insert({
+      ...lineItem,
+      amount,
+    } as any)
+    .select()
+    .single()
+  
+  if (error) {
+    throw new Error(`Failed to create receipt line item: ${error.message}`)
+  }
+  
+  return data as any
+}
+
+/**
+ * Update a receipt line item
+ */
+export async function updateReceiptLineItem(
+  id: string, 
+  updates: any
+): Promise<any> {
+  const supabase = await createClient()
+  
+  // Recalculate amount if qty or unit_cost changed
+  let updateData: any = { ...updates }
+  if (updates.qty !== undefined || updates.unit_cost !== undefined) {
+    const current = await getReceiptLineItem(id)
+    const qty = updates.qty !== undefined ? updates.qty : current.qty
+    const unit_cost = updates.unit_cost !== undefined ? updates.unit_cost : current.unit_cost
+    updateData.amount = qty * unit_cost
+  }
+  
+  const { data, error } = await (supabase
+    .from('receipt_line_items') as any)
+    .update(updateData)
+    .eq('id', id)
+    .select()
+    .single()
+  
+  if (error) {
+    throw new Error(`Failed to update receipt line item: ${error.message}`)
+  }
+  
+  return data as any
+}
+
+/**
+ * Delete a receipt line item
+ */
+export async function deleteReceiptLineItem(id: string): Promise<void> {
+  const supabase = await createClient()
+  
+  const { error } = await supabase
+    .from('receipt_line_items')
+    .delete()
+    .eq('id', id)
+  
+  if (error) {
+    throw new Error(`Failed to delete receipt line item: ${error.message}`)
+  }
+}
+
+/**
+ * Get next line number for a receipt
+ */
+export async function getNextLineNumber(receiptId: string): Promise<number> {
+  const supabase = await createClient()
+  
+  const { data, error } = await supabase
+    .from('receipt_line_items')
+    .select('line_no')
+    .eq('receipt_id', receiptId)
+    .order('line_no', { ascending: false })
+    .limit(1)
+  
+  if (error) {
+    throw new Error(`Failed to get next line number: ${error.message}`)
+  }
+  
+  return data && data.length > 0 ? (data[0] as any).line_no + 1 : 1
+}
