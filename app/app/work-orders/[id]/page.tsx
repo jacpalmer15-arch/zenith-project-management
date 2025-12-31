@@ -63,7 +63,7 @@ export default async function WorkOrderDetailPage({ params }: { params: { id: st
         id: quote.id,
         label: quote.quote_no,
         href: `/app/quotes/${quote.id}`,
-        metadata: `${quote.status || 'Unknown'} - $${quote.total?.toFixed(2) || '0.00'}`
+        metadata: `${quote.status || 'Unknown'} - $${quote.total_amount?.toFixed(2) || '0.00'}`
       })
     }
   })

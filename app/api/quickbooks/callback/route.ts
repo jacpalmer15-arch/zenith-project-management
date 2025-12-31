@@ -37,7 +37,6 @@ export async function GET(request: NextRequest) {
       access_token_enc: encrypt(tokens.access_token),
       refresh_token_enc: encrypt(tokens.refresh_token),
       expires_at: expiresAt.toISOString(),
-      scope: tokens.scope || null,
     })
     
     redirect('/app/settings?qb_connected=true')

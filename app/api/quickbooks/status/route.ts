@@ -18,17 +18,19 @@ export async function GET() {
       })
     }
     
+    // Check if connection is still valid (not expired)
+    const now = new Date()
+    const expiresAt = new Date(connection.expires_at)
+    const isExpired = expiresAt.getTime() < now.getTime()
+    
     // Return connection status without sensitive data
     return NextResponse.json({
-      connected: connection.is_connected,
+      connected: !isExpired,
       connection: {
         id: connection.id,
         realm_id: connection.realm_id,
-        company_file_id: connection.company_file_id,
-        is_connected: connection.is_connected,
-        last_sync_at: connection.last_sync_at,
-        sync_status: connection.sync_status,
-        sync_error: connection.sync_error,
+        expires_at: connection.expires_at,
+        is_expired: isExpired,
         created_at: connection.created_at,
         updated_at: connection.updated_at,
         // Omit tokens for security

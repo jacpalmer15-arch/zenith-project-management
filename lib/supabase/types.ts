@@ -970,7 +970,7 @@ export type Database = {
         Row: {
           id: string
           quote_no: string
-          project_id: string | null
+          project_id: string
           work_order_id: string | null
           quote_type: Database["public"]["Enums"]["quote_type"]
           parent_quote_id: string | null
@@ -981,7 +981,7 @@ export type Database = {
           tax_rate_snapshot: number | null
           subtotal: number
           tax_total: number
-          total: number
+          total_amount: number
           accepted_at: string | null
           pdf_file_id: string | null
           created_at: string
@@ -995,7 +995,7 @@ export type Database = {
         Insert: {
           id?: string
           quote_no: string
-          project_id?: string | null
+          project_id: string
           work_order_id?: string | null
           quote_type?: Database["public"]["Enums"]["quote_type"]
           parent_quote_id?: string | null
@@ -1006,7 +1006,7 @@ export type Database = {
           tax_rate_snapshot?: number | null
           subtotal?: number
           tax_total?: number
-          total?: number
+          total_amount?: number
           accepted_at?: string | null
           pdf_file_id?: string | null
           created_at?: string
@@ -1020,7 +1020,7 @@ export type Database = {
         Update: {
           id?: string
           quote_no?: string
-          project_id?: string | null
+          project_id?: string
           work_order_id?: string | null
           quote_type?: Database["public"]["Enums"]["quote_type"]
           parent_quote_id?: string | null
@@ -1031,7 +1031,7 @@ export type Database = {
           tax_rate_snapshot?: number | null
           subtotal?: number
           tax_total?: number
-          total?: number
+          total_amount?: number
           accepted_at?: string | null
           pdf_file_id?: string | null
           created_at?: string
@@ -1244,7 +1244,6 @@ export type Database = {
           refresh_token_enc: string
           expires_at: string
           scope: string | null
-          company_name: string | null
           created_at: string
           updated_at: string
         }
@@ -1255,7 +1254,6 @@ export type Database = {
           refresh_token_enc: string
           expires_at: string
           scope?: string | null
-          company_name?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -1266,7 +1264,6 @@ export type Database = {
           refresh_token_enc?: string
           expires_at?: string
           scope?: string | null
-          company_name?: string | null
           created_at?: string
           updated_at?: string
         }

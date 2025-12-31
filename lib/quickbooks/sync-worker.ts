@@ -18,17 +18,11 @@ export async function runSyncWorker() {
   console.log('Starting QuickBooks sync worker...')
 
   try {
-    // Get connection to update
+    // Get connection to verify it exists
     const connection = await getQboConnection()
     if (!connection) {
       throw new Error('QuickBooks connection not found')
     }
-
-    // Update connection status
-    await updateQboConnection(connection.id, {
-      sync_status: 'syncing',
-      last_sync_at: new Date().toISOString(),
-    })
 
     // 1. Sync customers (bidirectional)
     console.log('Syncing customers to QuickBooks...')
@@ -49,26 +43,9 @@ export async function runSyncWorker() {
     console.log('Snapshotting actual costs...')
     await snapshotActualCosts()
 
-    // Update connection status
-    await updateQboConnection(connection.id, {
-      sync_status: 'idle',
-      sync_error: null,
-    })
-
     console.log('QuickBooks sync completed successfully')
   } catch (error: any) {
     console.error('QuickBooks sync failed:', error)
-
-    // Get connection to update
-    const connection = await getQboConnection()
-    if (connection) {
-      // Update connection status
-      await updateQboConnection(connection.id, {
-        sync_status: 'error',
-        sync_error: error.message,
-      })
-    }
-
     throw error
   }
 }
