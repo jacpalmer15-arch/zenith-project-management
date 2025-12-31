@@ -1,8 +1,80 @@
 'use server'
 
-import { getReceipt, updateReceipt } from '@/lib/data/receipts'
-import { createJobCostEntry } from '@/lib/data/cost-entries'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
+import { createReceipt, updateReceipt, deleteReceipt, getReceipt } from '@/lib/data/receipts'
+import { createJobCostEntry } from '@/lib/data/cost-entries'
+import { receiptSchema } from '@/lib/validations'
+
+export async function createReceiptAction(formData: FormData) {
+  // Parse form data
+  const data = {
+    vendor_name: (formData.get('vendor_name') as string) || null,
+    receipt_date: (formData.get('receipt_date') as string) || null,
+    total_amount: formData.get('total_amount') as string,
+    storage_path: (formData.get('storage_path') as string) || null,
+    notes: (formData.get('notes') as string) || null,
+  }
+
+  // Validate with zod
+  const parsed = receiptSchema.safeParse(data)
+  
+  if (!parsed.success) {
+    return { error: 'Invalid form data' }
+  }
+
+  try {
+    // Create receipt
+    const receipt = await createReceipt(parsed.data as any)
+
+    revalidatePath('/app/receipts')
+    redirect(`/app/receipts/${receipt.id}`)
+  } catch (error) {
+    console.error('Error creating receipt:', error)
+    return { error: 'Failed to create receipt' }
+  }
+}
+
+export async function updateReceiptAction(id: string, formData: FormData) {
+  // Parse form data
+  const data = {
+    vendor_name: (formData.get('vendor_name') as string) || null,
+    receipt_date: (formData.get('receipt_date') as string) || null,
+    total_amount: formData.get('total_amount') as string,
+    storage_path: (formData.get('storage_path') as string) || null,
+    notes: (formData.get('notes') as string) || null,
+  }
+
+  // Validate with zod
+  const parsed = receiptSchema.safeParse(data)
+  
+  if (!parsed.success) {
+    return { error: 'Invalid form data' }
+  }
+
+  try {
+    await updateReceipt(id, parsed.data as any)
+    revalidatePath('/app/receipts')
+    revalidatePath(`/app/receipts/${id}`)
+  } catch (error) {
+    console.error('Error updating receipt:', error)
+    return { error: 'Failed to update receipt' }
+  }
+
+  redirect(`/app/receipts/${id}`)
+}
+
+export async function deleteReceiptAction(id: string) {
+  try {
+    await deleteReceipt(id)
+    revalidatePath('/app/receipts')
+  } catch (error) {
+    console.error('Error deleting receipt:', error)
+    return { error: 'Failed to delete receipt' }
+  }
+
+  redirect('/app/receipts')
+}
 
 /**
  * Bulk allocate multiple receipts to a work order

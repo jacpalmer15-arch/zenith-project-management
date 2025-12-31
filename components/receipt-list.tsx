@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { Receipt } from '@/lib/db'
 import { ReceiptWithAge } from '@/lib/data/receipts'
 import { formatCurrency } from '@/lib/utils/format-currency'
@@ -80,35 +81,49 @@ export function ReceiptList({
                 return (
                   <tr 
                     key={receipt.id} 
-                    className="border-b border-slate-100 hover:bg-slate-50"
+                    className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer"
                   >
-                    <td className="px-4 py-3">
+                    <td 
+                      className="px-4 py-3"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                      }}
+                    >
                       <Checkbox
                         checked={selectedIds.includes(receipt.id)}
                         onCheckedChange={() => toggleSelection(receipt.id)}
                       />
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-900">
-                      {receipt.receipt_date ? format(new Date(receipt.receipt_date), 'MMM d, yyyy') : '-'}
+                      <Link href={`/app/receipts/${receipt.id}`} className="block">
+                        {receipt.receipt_date ? format(new Date(receipt.receipt_date), 'MMM d, yyyy') : '-'}
+                      </Link>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-900">
-                      {receipt.vendor_name}
+                      <Link href={`/app/receipts/${receipt.id}`} className="block">
+                        {receipt.vendor_name || '-'}
+                      </Link>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-900">
-                      {formatCurrency(receipt.total_amount)}
+                      <Link href={`/app/receipts/${receipt.id}`} className="block">
+                        {formatCurrency(receipt.total_amount)}
+                      </Link>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        {isAged && (
-                          <Badge variant="outline" className="text-yellow-600 border-yellow-600">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {age} days
-                          </Badge>
-                        )}
-                        {!isAged && (
-                          <Badge variant="outline">Unallocated</Badge>
-                        )}
-                      </div>
+                      <Link href={`/app/receipts/${receipt.id}`} className="block">
+                        <div className="flex items-center gap-2">
+                          {isAged && (
+                            <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {age} days
+                            </Badge>
+                          )}
+                          {!isAged && (
+                            <Badge variant="outline">Unallocated</Badge>
+                          )}
+                        </div>
+                      </Link>
                     </td>
                   </tr>
                 )
