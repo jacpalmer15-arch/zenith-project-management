@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getQbConnection } from '@/lib/data/qb-connections'
+import { getQboConnection } from '@/lib/data/qb-connections'
 
 // Force dynamic rendering since this route uses cookies
 export const dynamic = 'force-dynamic'
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET() {
   try {
-    const connection = await getQbConnection()
+    const connection = await getQboConnection()
     
     if (!connection) {
       return NextResponse.json({

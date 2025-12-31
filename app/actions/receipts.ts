@@ -1,7 +1,7 @@
 'use server'
 
 import { getReceipt, updateReceipt } from '@/lib/data/receipts'
-import { createCostEntry } from '@/lib/data/cost-entries'
+import { createJobCostEntry } from '@/lib/data/cost-entries'
 import { revalidatePath } from 'next/cache'
 
 /**
@@ -25,7 +25,7 @@ export async function bulkAllocateReceipts(
       })
       
       // Create cost entry
-      await createCostEntry({
+      await createJobCostEntry({
         work_order_id: workOrderId,
         bucket: 'MATERIAL',
         origin: 'ZENITH_CAPTURED',

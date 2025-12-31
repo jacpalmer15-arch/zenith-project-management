@@ -808,7 +808,6 @@ export type Database = {
           tech_user_id: string
           start_at: string
           end_at: string
-          status: Database["public"]["Enums"]["schedule_status"]
           created_at: string
           updated_at: string
         }
@@ -818,7 +817,6 @@ export type Database = {
           tech_user_id: string
           start_at: string
           end_at: string
-          status?: Database["public"]["Enums"]["schedule_status"]
           created_at?: string
           updated_at?: string
         }
@@ -828,7 +826,6 @@ export type Database = {
           tech_user_id?: string
           start_at?: string
           end_at?: string
-          status?: Database["public"]["Enums"]["schedule_status"]
           created_at?: string
           updated_at?: string
         }

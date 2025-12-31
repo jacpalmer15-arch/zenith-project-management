@@ -49,19 +49,18 @@ export async function POST(request: NextRequest) {
 
     for (const notification of webhookData.eventNotifications || []) {
       const realmId = notification.realmId
-
-      for (const entity of notification.dataChangeEvent?.entities || []) {
-        eventPromises.push(
-          createWebhookEvent({
-            realm_id: realmId,
-            event_name: entity.name,
-            event_operation: entity.operation,
-            entity_id: entity.id,
-            event_time: new Date(notification.dataChangeEvent.eventTime || Date.now()),
-            webhook_payload: notification,
-          })
-        )
-      }
+      // Create idempotency key from realm_id and timestamp
+      const idempotencyKey = `${realmId}_${notification.dataChangeEvent?.eventTime || Date.now()}`
+      
+      eventPromises.push(
+        createWebhookEvent({
+          realm_id: realmId,
+          idempotency_key: idempotencyKey,
+          payload: notification,
+          status: 'PENDING',
+          attempts: 0,
+        })
+      )
     }
 
     await Promise.all(eventPromises)

@@ -2,7 +2,7 @@
 
 import { getAuthenticatedQbClient } from './auth'
 import { getReceipt, updateReceipt } from '@/lib/data/receipts'
-import { getQbMapping, createQbMapping } from '@/lib/data/qb-mappings'
+import { getQboEntityMap, createQboEntityMap } from '@/lib/data/qb-mappings'
 import { createQbSyncLog } from '@/lib/data/qb-sync-logs'
 
 /**
@@ -55,7 +55,7 @@ export async function createBillFromReceipt(receiptId: string) {
     // Link to work order job if allocated to work order
     let customerRef = null
     if (receipt.allocated_to_work_order_id) {
-      const workOrderMapping = await getQbMapping('work_order', receipt.allocated_to_work_order_id)
+      const workOrderMapping = await getQboEntityMap('work_order', receipt.allocated_to_work_order_id)
       if (workOrderMapping) {
         customerRef = { value: workOrderMapping.qb_list_id }
       }
@@ -101,7 +101,7 @@ export async function createBillFromReceipt(receiptId: string) {
     } as any)
 
     // Create mapping
-    await createQbMapping({
+    await createQboEntityMap({
       zenith_entity_type: 'receipt',
       zenith_entity_id: receipt.id,
       qb_entity_type: 'Bill',
@@ -148,7 +148,7 @@ export async function updateBillStatus(billId: string): Promise<void> {
   const bill = response.Bill
 
   // Find the receipt linked to this bill
-  const mapping = await getQbMapping('receipt', billId)
+  const mapping = await getQboEntityMap('receipt', billId)
   if (!mapping) {
     return
   }

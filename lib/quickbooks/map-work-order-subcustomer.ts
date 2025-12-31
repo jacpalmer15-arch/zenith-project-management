@@ -1,6 +1,6 @@
 import { getAuthenticatedQbClient } from './auth'
 import { getWorkOrder, updateWorkOrder } from '@/lib/data/work-orders'
-import { createQbMapping, getQbMapping } from '@/lib/data/qb-mappings'
+import { createQboEntityMap, getQboEntityMap } from '@/lib/data/qb-mappings'
 import { createSyncLog } from '@/lib/data/qb-sync-logs'
 
 /**
@@ -16,7 +16,7 @@ export async function createSubcustomerForWorkOrder(workOrderId: string) {
     }
     
     // Get customer mapping
-    const customerMapping = await getQbMapping('customer', workOrder.customer_id)
+    const customerMapping = await getQboEntityMap('customer', workOrder.customer_id)
     
     if (!customerMapping) {
       throw new Error('Customer not synced to QuickBooks. Please sync customers first.')
@@ -41,7 +41,7 @@ export async function createSubcustomerForWorkOrder(workOrderId: string) {
     })
     
     // Create mapping
-    await createQbMapping({
+    await createQboEntityMap({
       zenith_entity_type: 'work_order',
       zenith_entity_id: workOrderId,
       qb_entity_type: 'Job',

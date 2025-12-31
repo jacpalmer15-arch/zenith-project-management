@@ -1,13 +1,13 @@
 import { QuickBooksClient, refreshAccessToken } from './client'
 import { decrypt, encrypt } from './encryption'
-import { getQbConnection, updateQbConnection } from '@/lib/data/qb-connections'
+import { getQboConnection, updateQboConnection } from '@/lib/data/qb-connections'
 
 /**
  * Get an authenticated QuickBooks client
  * Automatically refreshes token if expired
  */
 export async function getAuthenticatedQbClient(): Promise<QuickBooksClient> {
-  const connection = await getQbConnection()
+  const connection = await getQboConnection()
   
   if (!connection || !connection.is_connected) {
     throw new Error('QuickBooks is not connected')
@@ -33,7 +33,7 @@ export async function getAuthenticatedQbClient(): Promise<QuickBooksClient> {
     const expiresAt = new Date()
     expiresAt.setSeconds(expiresAt.getSeconds() + tokens.expires_in)
     
-    await updateQbConnection(connection.id, {
+    await updateQboConnection(connection.id, {
       access_token: encrypt(tokens.access_token),
       refresh_token: encrypt(tokens.refresh_token),
       token_expires_at: expiresAt.toISOString(),

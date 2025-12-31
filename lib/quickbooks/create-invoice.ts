@@ -2,7 +2,7 @@
 
 import { getAuthenticatedQbClient } from './auth'
 import { getQuote, listQuoteLines, updateQuote } from '@/lib/data/quotes'
-import { getQbMapping, createQbMapping } from '@/lib/data/qb-mappings'
+import { getQboEntityMap, createQboEntityMap } from '@/lib/data/qb-mappings'
 import { createQbSyncLog } from '@/lib/data/qb-sync-logs'
 
 /**
@@ -23,7 +23,7 @@ export async function createInvoiceFromQuote(quoteId: string) {
     }
 
     // Get customer mapping
-    const customerMapping = await getQbMapping('customer', quote.project.customer.id)
+    const customerMapping = await getQboEntityMap('customer', quote.project.customer.id)
     if (!customerMapping) {
       throw new Error('Customer not synced to QuickBooks. Sync customers first.')
     }
@@ -31,7 +31,7 @@ export async function createInvoiceFromQuote(quoteId: string) {
     // Get work order subcustomer mapping (if linked)
     let customerRef = { value: customerMapping.qb_list_id }
     if (quote.work_order_id) {
-      const workOrderMapping = await getQbMapping('work_order', quote.work_order_id)
+      const workOrderMapping = await getQboEntityMap('work_order', quote.work_order_id)
       if (workOrderMapping) {
         // Use subcustomer (job) as the customer reference
         customerRef = { value: workOrderMapping.qb_list_id }
@@ -98,7 +98,7 @@ export async function createInvoiceFromQuote(quoteId: string) {
     } as any)
 
     // Create mapping
-    await createQbMapping({
+    await createQboEntityMap({
       zenith_entity_type: 'quote',
       zenith_entity_id: quote.id,
       qb_entity_type: 'Invoice',
@@ -145,7 +145,7 @@ export async function updateInvoiceStatus(invoiceId: string): Promise<void> {
   const invoice = response.Invoice
 
   // Find the quote linked to this invoice
-  const mapping = await getQbMapping('quote', invoiceId)
+  const mapping = await getQboEntityMap('quote', invoiceId)
   if (!mapping) {
     return
   }

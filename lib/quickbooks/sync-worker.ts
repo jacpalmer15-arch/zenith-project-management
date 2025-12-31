@@ -7,9 +7,9 @@ import { syncCustomersToQuickBooks, syncCustomersFromQuickBooks } from './sync-c
 import { listQuotes } from '@/lib/data/quotes'
 import { listReceipts } from '@/lib/data/receipts'
 import { listWorkOrders } from '@/lib/data/work-orders'
-import { getQbMappingByQbId, getQbMapping } from '@/lib/data/qb-mappings'
+import { getQboEntityMapByQbId, getQboEntityMap } from '@/lib/data/qb-mappings'
 import { upsertActualCost } from '@/lib/data/qb-actual-costs'
-import { getQbConnection, updateQbConnection } from '@/lib/data/qb-connections'
+import { getQboConnection, updateQboConnection } from '@/lib/data/qb-connections'
 
 /**
  * Run the full QuickBooks sync worker
@@ -19,13 +19,13 @@ export async function runSyncWorker() {
 
   try {
     // Get connection to update
-    const connection = await getQbConnection()
+    const connection = await getQboConnection()
     if (!connection) {
       throw new Error('QuickBooks connection not found')
     }
 
     // Update connection status
-    await updateQbConnection(connection.id, {
+    await updateQboConnection(connection.id, {
       sync_status: 'syncing',
       last_sync_at: new Date().toISOString(),
     })
@@ -50,7 +50,7 @@ export async function runSyncWorker() {
     await snapshotActualCosts()
 
     // Update connection status
-    await updateQbConnection(connection.id, {
+    await updateQboConnection(connection.id, {
       sync_status: 'idle',
       sync_error: null,
     })
@@ -60,10 +60,10 @@ export async function runSyncWorker() {
     console.error('QuickBooks sync failed:', error)
 
     // Get connection to update
-    const connection = await getQbConnection()
+    const connection = await getQboConnection()
     if (connection) {
       // Update connection status
-      await updateQbConnection(connection.id, {
+      await updateQboConnection(connection.id, {
         sync_status: 'error',
         sync_error: error.message,
       })
@@ -146,7 +146,7 @@ async function snapshotActualCosts() {
   for (const job of jobs) {
     try {
       // Find linked work order
-      const mapping = await getQbMappingByQbId('Job', job.Id)
+      const mapping = await getQboEntityMapByQbId('Job', job.Id)
       if (!mapping) {
         continue
       }

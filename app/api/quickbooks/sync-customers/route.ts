@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { syncCustomersToQuickBooks, syncCustomersFromQuickBooks } from '@/lib/quickbooks/sync-customers'
-import { updateQbConnection, getQbConnection } from '@/lib/data/qb-connections'
+import { updateQboConnection, getQboConnection } from '@/lib/data/qb-connections'
 
 /**
  * Trigger manual customer sync
  */
 export async function POST(request: NextRequest) {
   try {
-    const connection = await getQbConnection()
+    const connection = await getQboConnection()
     
     if (!connection?.is_connected) {
       return NextResponse.json(
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const direction = body.direction || 'bidirectional'
     
     // Update sync status
-    await updateQbConnection(connection.id, {
+    await updateQboConnection(connection.id, {
       sync_status: 'syncing',
       sync_error: null,
     })
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       }
       
       // Update sync status
-      await updateQbConnection(connection.id, {
+      await updateQboConnection(connection.id, {
         sync_status: 'idle',
         last_sync_at: new Date().toISOString(),
       })
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
       
-      await updateQbConnection(connection.id, {
+      await updateQboConnection(connection.id, {
         sync_status: 'error',
         sync_error: message,
       })

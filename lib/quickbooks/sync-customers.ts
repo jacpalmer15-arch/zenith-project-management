@@ -1,6 +1,6 @@
 import { getAuthenticatedQbClient } from './auth'
 import { listCustomers, createCustomer, updateCustomer } from '@/lib/data/customers'
-import { createQbMapping, getQbMapping, getQbMappingByQbId, updateQbMapping } from '@/lib/data/qb-mappings'
+import { createQboEntityMap, getQboEntityMap, getQboEntityMapByQbId, updateQboEntityMap } from '@/lib/data/qb-mappings'
 import { createSyncLog } from '@/lib/data/qb-sync-logs'
 import { getNextNumber } from '@/lib/data/rpcs'
 
@@ -18,7 +18,7 @@ export async function syncCustomersToQuickBooks() {
     
     for (const customer of zenithCustomers) {
       try {
-        const existingMapping = await getQbMapping('customer', customer.id)
+        const existingMapping = await getQboEntityMap('customer', customer.id)
         
         if (existingMapping) {
           // Update existing QB customer
@@ -37,7 +37,7 @@ export async function syncCustomersToQuickBooks() {
           })
           
           // Update mapping timestamp
-          await updateQbMapping(existingMapping.id, {
+          await updateQboEntityMap(existingMapping.id, {
             last_synced_at: new Date().toISOString(),
           })
         } else {
@@ -55,7 +55,7 @@ export async function syncCustomersToQuickBooks() {
           })
           
           // Create mapping
-          await createQbMapping({
+          await createQboEntityMap({
             zenith_entity_type: 'customer',
             zenith_entity_id: customer.id,
             qb_entity_type: 'Customer',
@@ -123,7 +123,7 @@ export async function syncCustomersFromQuickBooks() {
           continue
         }
         
-        const existingMapping = await getQbMappingByQbId('Customer', qbCustomer.Id)
+        const existingMapping = await getQboEntityMapByQbId('Customer', qbCustomer.Id)
         
         if (existingMapping) {
           // Update Zenith customer
@@ -138,7 +138,7 @@ export async function syncCustomersFromQuickBooks() {
           })
           
           // Update mapping
-          await updateQbMapping(existingMapping.id, {
+          await updateQboEntityMap(existingMapping.id, {
             qb_full_name: qbCustomer.FullyQualifiedName,
             qb_edit_sequence: qbCustomer.SyncToken,
             last_synced_at: new Date().toISOString(),
@@ -158,7 +158,7 @@ export async function syncCustomersFromQuickBooks() {
           })
           
           // Create mapping
-          await createQbMapping({
+          await createQboEntityMap({
             zenith_entity_type: 'customer',
             zenith_entity_id: zenithCustomer.id,
             qb_entity_type: 'Customer',
