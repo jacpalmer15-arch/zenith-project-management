@@ -3,6 +3,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle, AlertTriangle } from 'lucide-react'
 import { ReceiptList } from '@/components/receipt-list'
 import { BulkAllocationToolbar } from '@/components/bulk-allocation-toolbar'
+import { StandaloneCostEntryDialog } from '@/components/standalone-cost-entry-dialog'
 
 export default async function ReceiptsPage() {
   const [unallocated, aged, duplicates] = await Promise.all([
@@ -15,6 +16,7 @@ export default async function ReceiptsPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-slate-900">Receipts</h1>
+        <StandaloneCostEntryDialog />
       </div>
       
       {/* Alert banner for aged receipts */}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -24,7 +24,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Plus } from 'lucide-react'
 import { createCostEntryAction } from '@/app/actions/cost-entries'
 import { useRouter } from 'next/navigation'
-import { showActionResult } from '@/components/action-error-toast'
+import { toast } from 'sonner'
 
 const COST_BUCKETS = [
   { value: 'LABOR', label: 'Labor' },
@@ -35,15 +35,27 @@ const COST_BUCKETS = [
   { value: 'OTHER', label: 'Other' },
 ]
 
-interface CostEntryDialogProps {
-  workOrderId: string
+interface WorkOrder {
+  id: string
+  work_order_no: string
+  summary: string
 }
 
-export function CostEntryDialog({ workOrderId }: CostEntryDialogProps) {
+interface StandaloneCostEntryDialogProps {
+  buttonVariant?: 'default' | 'outline' | 'secondary' | 'ghost'
+  buttonSize?: 'default' | 'sm' | 'lg' | 'icon'
+}
+
+export function StandaloneCostEntryDialog({ 
+  buttonVariant = 'default',
+  buttonSize = 'default'
+}: StandaloneCostEntryDialogProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   
+  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([])
+  const [workOrderId, setWorkOrderId] = useState<string>('')
   const [bucket, setBucket] = useState<string>('MATERIAL')
   const [description, setDescription] = useState('')
   const [qty, setQty] = useState('1')
@@ -54,34 +66,56 @@ export function CostEntryDialog({ workOrderId }: CostEntryDialogProps) {
 
   const totalCost = (parseFloat(qty) || 0) * (parseFloat(unitCost) || 0)
 
+  // Fetch work orders when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetch('/api/work-orders?status=SCHEDULED,IN_PROGRESS,COMPLETED')
+        .then(res => res.json())
+        .then(data => setWorkOrders(data || []))
+        .catch(err => console.error('Failed to load work orders:', err))
+    }
+  }, [open])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!workOrderId) {
+      toast.error('Please select a work order')
+      return
+    }
+    
     setLoading(true)
 
-    const result = await createCostEntryAction({
-      work_order_id: workOrderId,
-      bucket,
-      origin: 'ZENITH_CAPTURED',
-      description,
-      qty: parseFloat(qty) || 1,
-      unit_cost: parseFloat(unitCost) || 0,
-      total_cost: totalCost,
-      occurred_at: occurredAt,
-    })
+    try {
+      const result = await createCostEntryAction({
+        work_order_id: workOrderId,
+        bucket,
+        origin: 'ZENITH_CAPTURED',
+        description,
+        qty: parseFloat(qty) || 1,
+        unit_cost: parseFloat(unitCost) || 0,
+        total_cost: totalCost,
+        occurred_at: occurredAt,
+      })
 
-    showActionResult(result, {
-      successMessage: 'Cost entry added successfully',
-      onSuccess: () => {
-        setOpen(false)
-        resetForm()
-        router.refresh()
+      if (!result.success) {
+        toast.error(result.error || 'Failed to create cost entry')
+        return
       }
-    })
 
-    setLoading(false)
+      toast.success('Job cost added successfully')
+      setOpen(false)
+      resetForm()
+      router.refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create cost entry')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const resetForm = () => {
+    setWorkOrderId('')
     setBucket('MATERIAL')
     setDescription('')
     setQty('1')
@@ -90,22 +124,45 @@ export function CostEntryDialog({ workOrderId }: CostEntryDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <>
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button size="sm">
+          <Button variant={buttonVariant} size={buttonSize}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Cost
+            Add Job Cost
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <DialogTitle>Add Cost Entry</DialogTitle>
+              <DialogTitle>Add Job Cost</DialogTitle>
               <DialogDescription>
-                Manually add a cost to this work order.
+                Manually add a cost entry to a work order.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="workOrder">Work Order *</Label>
+                <Select value={workOrderId} onValueChange={setWorkOrderId}>
+                  <SelectTrigger id="workOrder">
+                    <SelectValue placeholder="Select work order..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {workOrders.length === 0 ? (
+                      <SelectItem value="" disabled>
+                        No work orders available
+                      </SelectItem>
+                    ) : (
+                      workOrders.map((wo) => (
+                        <SelectItem key={wo.id} value={wo.id}>
+                          {wo.work_order_no} - {wo.summary?.slice(0, 40)}{wo.summary?.length > 40 ? '...' : ''}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              
               <div className="grid gap-2">
                 <Label htmlFor="bucket">Cost Bucket</Label>
                 <Select value={bucket} onValueChange={setBucket}>
@@ -123,7 +180,7 @@ export function CostEntryDialog({ workOrderId }: CostEntryDialogProps) {
               </div>
               
               <div className="grid gap-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">Description *</Label>
                 <Textarea
                   id="description"
                   value={description}
@@ -159,7 +216,7 @@ export function CostEntryDialog({ workOrderId }: CostEntryDialogProps) {
                 </div>
                 
                 <div className="grid gap-2">
-                  <Label htmlFor="unitCost">Unit Cost ($)</Label>
+                  <Label htmlFor="unitCost">Unit Cost ($) *</Label>
                   <Input
                     id="unitCost"
                     type="number"
@@ -189,12 +246,13 @@ export function CostEntryDialog({ workOrderId }: CostEntryDialogProps) {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading || !workOrderId}>
                 {loading ? 'Adding...' : 'Add Cost'}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+    </>
   )
 }
