@@ -2,6 +2,7 @@ import { listCostEntries } from '@/lib/data/cost-entries'
 import { formatCurrency } from '@/lib/utils/format-currency'
 import { format } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
+import { CostEntryDialog } from '@/components/cost-entry-dialog'
 
 interface CostEntriesListProps {
   workOrderId: string
@@ -12,8 +13,9 @@ export async function CostEntriesList({ workOrderId }: CostEntriesListProps) {
   
   return (
     <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-      <div className="px-6 py-4 border-b border-slate-200">
+      <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
         <h3 className="text-lg font-semibold text-slate-900">Cost Entries</h3>
+        <CostEntryDialog workOrderId={workOrderId} />
       </div>
       
       <table className="w-full">
