@@ -1,4 +1,4 @@
-import { listCostEntries } from '@/lib/data/cost-entries'
+import { listJobCostEntries } from '@/lib/data/cost-entries'
 import { formatCurrency } from '@/lib/utils/format-currency'
 import { format } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
@@ -9,7 +9,7 @@ interface CostEntriesListProps {
 }
 
 export async function CostEntriesList({ workOrderId }: CostEntriesListProps) {
-  const entries = await listCostEntries({ work_order_id: workOrderId })
+  const entries = await listJobCostEntries({ work_order_id: workOrderId })
   
   return (
     <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">

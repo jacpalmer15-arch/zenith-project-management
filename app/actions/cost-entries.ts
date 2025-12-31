@@ -11,10 +11,12 @@ export async function createJobCostEntryAction(data: any) {
     const user = await getCurrentUser()
     
     // Check if work order is closed
-    await validateCostEntryMutable(
-      { work_order_id: data.work_order_id, project_id: data.project_id },
-      user?.role || 'TECH'
-    )
+    if (data.work_order_id) {
+      await validateCostEntryMutable(
+        { work_order_id: data.work_order_id },
+        user?.role || 'TECH'
+      )
+    }
     
     const costEntry = await createJobCostEntry(data)
     
@@ -39,11 +41,13 @@ export async function updateJobCostEntryAction(
     const existing = await getJobCostEntry(id)
     
     // Check if work order is closed
-    await validateCostEntryMutable(
-      { work_order_id: existing.work_order_id, project_id: existing.project_id },
-      user?.role || 'TECH',
-      adminReason
-    )
+    if (existing.work_order_id) {
+      await validateCostEntryMutable(
+        { work_order_id: existing.work_order_id },
+        user?.role || 'TECH',
+        adminReason
+      )
+    }
     
     await updateJobCostEntry(id, data)
     
@@ -63,11 +67,13 @@ export async function deleteJobCostEntryAction(id: string, adminReason?: string)
     const existing = await getJobCostEntry(id)
     
     // Check if work order is closed
-    await validateCostEntryMutable(
-      { work_order_id: existing.work_order_id, project_id: existing.project_id },
-      user?.role || 'TECH',
-      adminReason
-    )
+    if (existing.work_order_id) {
+      await validateCostEntryMutable(
+        { work_order_id: existing.work_order_id },
+        user?.role || 'TECH',
+        adminReason
+      )
+    }
     
     await deleteJobCostEntry(id)
     
