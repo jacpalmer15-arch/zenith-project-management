@@ -29,11 +29,11 @@ export function ReceiptForm({ receipt }: ReceiptFormProps) {
   } = useForm<ReceiptFormData>({
     resolver: zodResolver(receiptSchema),
     defaultValues: {
-      vendor_name: receipt?.vendor_name || '',
+      vendor_name: receipt?.vendor_name ?? null,
       receipt_date: receipt?.receipt_date || new Date().toISOString().split('T')[0],
       total_amount: receipt?.total_amount || 0,
-      notes: receipt?.notes || '',
-      storage_path: receipt?.storage_path || '',
+      notes: receipt?.notes ?? null,
+      storage_path: receipt?.storage_path ?? null,
     },
   })
 

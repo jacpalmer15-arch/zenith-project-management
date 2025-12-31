@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 export const receiptSchema = z.object({
-  vendor_name: z.string().min(1, 'Vendor name is required').optional().nullable(),
+  vendor_name: z.string().nullable().default(null),
   receipt_date: z.string().optional().nullable(),
   total_amount: z.coerce.number().min(0, 'Amount must be non-negative').default(0),
   storage_path: z.string().optional().nullable(), // Optional for manual entry

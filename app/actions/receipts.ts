@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { createReceipt, updateReceipt, deleteReceipt, getReceipt } from '@/lib/data/receipts'
 import { createJobCostEntry } from '@/lib/data/cost-entries'
 import { receiptSchema } from '@/lib/validations'
+import { ReceiptInsert, ReceiptUpdate } from '@/lib/db'
 
 export async function createReceiptAction(formData: FormData) {
   // Parse form data
@@ -24,8 +25,16 @@ export async function createReceiptAction(formData: FormData) {
   }
 
   try {
-    // Create receipt
-    const receipt = await createReceipt(parsed.data as any)
+    // Create receipt with proper typing
+    const receiptData: Partial<ReceiptInsert> = {
+      vendor_name: parsed.data.vendor_name,
+      receipt_date: parsed.data.receipt_date,
+      total_amount: parsed.data.total_amount,
+      storage_path: parsed.data.storage_path,
+      notes: parsed.data.notes,
+    }
+    
+    const receipt = await createReceipt(receiptData)
 
     revalidatePath('/app/receipts')
     redirect(`/app/receipts/${receipt.id}`)
@@ -53,7 +62,16 @@ export async function updateReceiptAction(id: string, formData: FormData) {
   }
 
   try {
-    await updateReceipt(id, parsed.data as any)
+    // Update receipt with proper typing
+    const receiptData: Partial<ReceiptUpdate> = {
+      vendor_name: parsed.data.vendor_name,
+      receipt_date: parsed.data.receipt_date,
+      total_amount: parsed.data.total_amount,
+      storage_path: parsed.data.storage_path,
+      notes: parsed.data.notes,
+    }
+    
+    await updateReceipt(id, receiptData)
     revalidatePath('/app/receipts')
     revalidatePath(`/app/receipts/${id}`)
   } catch (error) {
