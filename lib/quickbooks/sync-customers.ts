@@ -1,6 +1,6 @@
 import { getAuthenticatedQbClient } from './auth'
 import { listCustomers, createCustomer, updateCustomer } from '@/lib/data/customers'
-import { createQboEntityMap, getQboEntityMap, getQboEntityMapByQbId, updateQboEntityMap } from '@/lib/data/qb-mappings'
+import { createQboEntityMap, getQboEntityMap, getQboEntityMapByQboId, updateQboEntityMap } from '@/lib/data/qb-mappings'
 import { createSyncLog } from '@/lib/data/qb-sync-logs'
 import { getNextNumber } from '@/lib/data/rpcs'
 
@@ -23,7 +23,7 @@ export async function syncCustomersToQuickBooks() {
         if (existingMapping) {
           // Update existing QB customer
           await qbClient.update('Customer', {
-            Id: existingMapping.qb_list_id,
+            Id: (existingMapping as any).qb_list_id || existingMapping.qbo_id,
             DisplayName: customer.name,
             PrimaryEmailAddr: customer.email ? { Address: customer.email } : undefined,
             PrimaryPhone: customer.phone ? { FreeFormNumber: customer.phone } : undefined,
@@ -33,13 +33,13 @@ export async function syncCustomersToQuickBooks() {
               CountrySubDivisionCode: customer.billing_state || '',
               PostalCode: customer.billing_zip || '',
             },
-            SyncToken: existingMapping.qb_edit_sequence || '0',
+            SyncToken: existingMapping.qbo_sync_token || '0',
           })
           
           // Update mapping timestamp
           await updateQboEntityMap(existingMapping.id, {
             last_synced_at: new Date().toISOString(),
-          })
+          } as any)
         } else {
           // Create new QB customer
           const qbCustomer = await qbClient.create('Customer', {
@@ -56,13 +56,12 @@ export async function syncCustomersToQuickBooks() {
           
           // Create mapping
           await createQboEntityMap({
-            zenith_entity_type: 'customer',
-            zenith_entity_id: customer.id,
-            qb_entity_type: 'Customer',
-            qb_list_id: qbCustomer.Customer.Id,
-            qb_full_name: qbCustomer.Customer.DisplayName,
-            qb_edit_sequence: qbCustomer.Customer.SyncToken,
-          })
+            entity_type: 'customer',
+            local_id: customer.id,
+            qbo_id: qbCustomer.Customer.Id,
+            qbo_sync_token: qbCustomer.Customer.SyncToken,
+            local_table: 'customers',
+          } as any)
         }
         
         successCount++
@@ -123,11 +122,11 @@ export async function syncCustomersFromQuickBooks() {
           continue
         }
         
-        const existingMapping = await getQboEntityMapByQbId('Customer', qbCustomer.Id)
+        const existingMapping = await getQboEntityMapByQboId('Customer', qbCustomer.Id)
         
         if (existingMapping) {
           // Update Zenith customer
-          await updateCustomer(existingMapping.zenith_entity_id, {
+          await updateCustomer(existingMapping.local_id, {
             name: qbCustomer.DisplayName,
             email: qbCustomer.PrimaryEmailAddr?.Address,
             phone: qbCustomer.PrimaryPhone?.FreeFormNumber,
@@ -139,10 +138,9 @@ export async function syncCustomersFromQuickBooks() {
           
           // Update mapping
           await updateQboEntityMap(existingMapping.id, {
-            qb_full_name: qbCustomer.FullyQualifiedName,
-            qb_edit_sequence: qbCustomer.SyncToken,
+            qbo_sync_token: qbCustomer.SyncToken,
             last_synced_at: new Date().toISOString(),
-          })
+          } as any)
         } else {
           // Create new Zenith customer
           const customerNo = await getNextNumber('customer')
@@ -159,13 +157,12 @@ export async function syncCustomersFromQuickBooks() {
           
           // Create mapping
           await createQboEntityMap({
-            zenith_entity_type: 'customer',
-            zenith_entity_id: zenithCustomer.id,
-            qb_entity_type: 'Customer',
-            qb_list_id: qbCustomer.Id,
-            qb_full_name: qbCustomer.FullyQualifiedName,
-            qb_edit_sequence: qbCustomer.SyncToken,
-          })
+            entity_type: 'customer',
+            local_id: zenithCustomer.id,
+            qbo_id: qbCustomer.Id,
+            qbo_sync_token: qbCustomer.SyncToken,
+            local_table: 'customers',
+          } as any)
         }
         
         successCount++

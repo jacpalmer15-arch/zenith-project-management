@@ -57,7 +57,7 @@ export async function createBillFromReceipt(receiptId: string) {
     if (receipt.allocated_to_work_order_id) {
       const workOrderMapping = await getQboEntityMap('work_order', receipt.allocated_to_work_order_id)
       if (workOrderMapping) {
-        customerRef = { value: workOrderMapping.qb_list_id }
+        customerRef = { value: (workOrderMapping as any).qb_list_id || workOrderMapping.qbo_id }
       }
     }
 
@@ -102,12 +102,12 @@ export async function createBillFromReceipt(receiptId: string) {
 
     // Create mapping
     await createQboEntityMap({
-      zenith_entity_type: 'receipt',
-      zenith_entity_id: receipt.id,
-      qb_entity_type: 'Bill',
-      qb_list_id: bill.Id,
-      qb_full_name: bill.DocNumber,
-    })
+      entity_type: 'receipt',
+      local_id: receipt.id,
+      qbo_id: bill.Id,
+      qbo_sync_token: bill.SyncToken,
+      local_table: 'receipts',
+    } as any)
 
     // Log the sync operation
     await createQbSyncLog({
@@ -165,7 +165,7 @@ export async function updateBillStatus(billId: string): Promise<void> {
   }
 
   // Update receipt status
-  await updateReceipt(mapping.zenith_entity_id, {
+  await updateReceipt(mapping.local_id, {
     qb_bill_status: paymentStatus,
   } as any)
 }

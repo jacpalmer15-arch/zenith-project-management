@@ -29,12 +29,12 @@ export async function createInvoiceFromQuote(quoteId: string) {
     }
 
     // Get work order subcustomer mapping (if linked)
-    let customerRef = { value: customerMapping.qb_list_id }
+    let customerRef = { value: (customerMapping as any).qb_list_id || customerMapping.qbo_id }
     if (quote.work_order_id) {
       const workOrderMapping = await getQboEntityMap('work_order', quote.work_order_id)
       if (workOrderMapping) {
         // Use subcustomer (job) as the customer reference
-        customerRef = { value: workOrderMapping.qb_list_id }
+        customerRef = { value: (workOrderMapping as any).qb_list_id || workOrderMapping.qbo_id }
       }
     }
 
@@ -99,12 +99,12 @@ export async function createInvoiceFromQuote(quoteId: string) {
 
     // Create mapping
     await createQboEntityMap({
-      zenith_entity_type: 'quote',
-      zenith_entity_id: quote.id,
-      qb_entity_type: 'Invoice',
-      qb_list_id: invoice.Id,
-      qb_full_name: invoice.DocNumber,
-    })
+      entity_type: 'quote',
+      local_id: quote.id,
+      qbo_id: invoice.Id,
+      qbo_sync_token: invoice.SyncToken,
+      local_table: 'quotes',
+    } as any)
 
     // Log the sync operation
     await createQbSyncLog({
@@ -167,7 +167,7 @@ export async function updateInvoiceStatus(invoiceId: string): Promise<void> {
   }
 
   // Update quote status
-  await updateQuote(mapping.zenith_entity_id, {
+  await updateQuote(mapping.local_id, {
     qb_invoice_status: paymentStatus,
   } as any)
 }

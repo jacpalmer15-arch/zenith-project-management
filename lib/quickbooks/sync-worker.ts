@@ -7,7 +7,7 @@ import { syncCustomersToQuickBooks, syncCustomersFromQuickBooks } from './sync-c
 import { listQuotes } from '@/lib/data/quotes'
 import { listReceipts } from '@/lib/data/receipts'
 import { listWorkOrders } from '@/lib/data/work-orders'
-import { getQboEntityMapByQbId, getQboEntityMap } from '@/lib/data/qb-mappings'
+import { getQboEntityMapByQboId, getQboEntityMap } from '@/lib/data/qb-mappings'
 import { upsertActualCost } from '@/lib/data/qb-actual-costs'
 import { getQboConnection, updateQboConnection } from '@/lib/data/qb-connections'
 
@@ -123,7 +123,7 @@ async function snapshotActualCosts() {
   for (const job of jobs) {
     try {
       // Find linked work order
-      const mapping = await getQboEntityMapByQbId('Job', job.Id)
+      const mapping = await getQboEntityMapByQboId('Job', job.Id)
       if (!mapping) {
         continue
       }
@@ -147,7 +147,7 @@ async function snapshotActualCosts() {
       // Save snapshots
       if (laborCost > 0) {
         await upsertActualCost({
-          work_order_id: mapping.zenith_entity_id,
+          work_order_id: mapping.local_id,
           cost_type: 'labor',
           actual_amount: laborCost,
           qb_source_type: 'Invoice',
@@ -158,7 +158,7 @@ async function snapshotActualCosts() {
 
       if (materialCost > 0) {
         await upsertActualCost({
-          work_order_id: mapping.zenith_entity_id,
+          work_order_id: mapping.local_id,
           cost_type: 'material',
           actual_amount: materialCost,
           qb_source_type: 'Bill',

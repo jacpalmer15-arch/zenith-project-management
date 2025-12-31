@@ -69,9 +69,9 @@ export async function updateWebhookEvent(
 ): Promise<QboWebhookEvent> {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('qbo_webhook_events')
-    .update(updates as any)
+  const { data, error } = await (supabase
+    .from('qbo_webhook_events') as any)
+    .update(updates)
     .eq('id', id)
     .select()
     .single()
