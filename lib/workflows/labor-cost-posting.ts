@@ -2,12 +2,12 @@
 
 import { getSettings, listTimeEntries, createJobCostEntry } from '@/lib/data'
 import { createClient } from '@/lib/supabase/serverClient'
-import { WorkOrderTimeEntry, CostEntry } from '@/lib/db'
+import { WorkOrderTimeEntry, JobCostEntry } from '@/lib/db'
 
 export interface LaborPostResult {
   success: boolean
   error?: string
-  costEntries?: CostEntry[]
+  costEntries?: JobCostEntry[]
   totalHours?: number
   totalCost?: number
 }
@@ -87,7 +87,7 @@ export async function postLaborCosts(
   )
   
   // Create cost entries
-  const costEntries: CostEntry[] = []
+  const costEntries: JobCostEntry[] = []
   for (const [employeeId, hours] of Object.entries(byEmployee)) {
     const employeeName = employeeMap.get(employeeId) || 'Unknown Employee'
     

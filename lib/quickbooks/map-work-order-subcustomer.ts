@@ -29,7 +29,7 @@ export async function createSubcustomerForWorkOrder(workOrderId: string) {
     const subcustomer = await qbClient.create('Customer', {
       DisplayName: subcustomerName,
       ParentRef: {
-        value: customerMapping.qb_list_id,
+        value: (customerMapping as any).qb_list_id || customerMapping.qbo_id,
       },
       Job: true,
     })
@@ -42,13 +42,12 @@ export async function createSubcustomerForWorkOrder(workOrderId: string) {
     
     // Create mapping
     await createQboEntityMap({
-      zenith_entity_type: 'work_order',
-      zenith_entity_id: workOrderId,
-      qb_entity_type: 'Job',
-      qb_list_id: subcustomer.Customer.Id,
-      qb_full_name: subcustomer.Customer.FullyQualifiedName,
-      qb_edit_sequence: subcustomer.Customer.SyncToken,
-    })
+      entity_type: 'work_order',
+      local_id: workOrderId,
+      qbo_id: subcustomer.Customer.Id,
+      qbo_sync_token: subcustomer.Customer.SyncToken,
+      local_table: 'work_orders',
+    } as any)
     
     // Log success
     await createSyncLog({

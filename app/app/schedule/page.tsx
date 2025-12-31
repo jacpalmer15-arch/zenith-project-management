@@ -75,7 +75,7 @@ export default async function SchedulePage() {
                     {format(new Date(entry.end_at), 'MMM d, h:mm a')}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{entry.status}</Badge>
+                    <Badge variant="outline">{entry.work_order?.status || 'N/A'}</Badge>
                   </TableCell>
                   <TableCell>
                     <Link href={`/app/work-orders/${entry.work_order.id}`}>
