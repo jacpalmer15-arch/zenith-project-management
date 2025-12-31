@@ -49,10 +49,10 @@ export function ReceiptForm({ receipt }: ReceiptFormProps) {
         formData.append('receipt_date', data.receipt_date)
       }
       formData.append('total_amount', String(data.total_amount))
-      if (data.notes !== null) {
+      if (data.notes !== null && data.notes !== undefined) {
         formData.append('notes', data.notes)
       }
-      if (data.storage_path !== null) {
+      if (data.storage_path !== null && data.storage_path !== undefined) {
         formData.append('storage_path', data.storage_path)
       }
 

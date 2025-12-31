@@ -93,12 +93,12 @@ export async function postLaborCosts(
     
     const costEntry = await createJobCostEntry({
       work_order_id: workOrderId,
-      bucket: 'LABOR',
-      origin: 'ZENITH_CAPTURED',
+      cost_type_id: '00000000-0000-0000-0000-000000000000', // TODO: Map to labor cost type
+      cost_code_id: '00000000-0000-0000-0000-000000000000', // TODO: Map to labor cost code
       description: `Labor - ${employeeName}`,
       qty: hours,
       unit_cost: laborRate,
-      occurred_at: new Date().toISOString()
+      txn_date: new Date().toISOString()
     })
     
     costEntries.push(costEntry)
@@ -108,7 +108,7 @@ export async function postLaborCosts(
     success: true,
     costEntries,
     totalHours: Object.values(byEmployee).reduce((a, b) => a + b, 0),
-    totalCost: costEntries.reduce((sum, e) => sum + e.total_cost, 0)
+    totalCost: costEntries.reduce((sum, e) => sum + e.amount, 0)
   }
 }
 
