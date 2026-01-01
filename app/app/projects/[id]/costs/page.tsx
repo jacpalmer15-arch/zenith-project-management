@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, Download } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { 
   getProject,
   getProjectJobCosts,
@@ -11,6 +11,7 @@ import {
   getMaterialUsageByPart
 } from '@/lib/data'
 import { JobCostTable } from '@/components/reports/job-cost-table'
+import { ExportCostsButton } from '@/components/reports/export-costs-button'
 import { formatCurrency } from '@/lib/utils/format-currency'
 
 export default async function ProjectCostsPage({
@@ -66,10 +67,11 @@ export default async function ProjectCostsPage({
             </p>
           </div>
         </div>
-        <Button variant="outline">
-          <Download className="w-4 h-4 mr-2" />
-          Export CSV
-        </Button>
+        <ExportCostsButton 
+          targetType="project" 
+          targetId={project.id}
+          targetName={project.project_no}
+        />
       </div>
       
       {/* Summary Cards */}
