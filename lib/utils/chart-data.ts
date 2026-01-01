@@ -1,12 +1,22 @@
-import { JobCostEntry } from '@/lib/db'
 import { format, startOfWeek, startOfMonth, parseISO } from 'date-fns'
 import { formatCurrency } from './format-currency'
+
+interface CostEntry {
+  txn_date?: string
+  date?: string
+  amount: number
+  cost_type_name?: string
+  cost_type?: string
+  cost_code_code?: string
+  cost_code?: string
+  cost_code_name?: string
+}
 
 /**
  * Group costs by date period (day, week, or month)
  */
 export function groupCostsByPeriod(
-  costs: any[],
+  costs: CostEntry[],
   period: 'day' | 'week' | 'month' = 'day'
 ): { date: string; amount: number }[] {
   const grouped = new Map<string, number>()
@@ -44,7 +54,7 @@ export function groupCostsByPeriod(
  * Aggregate costs by cost type
  */
 export function aggregateCostsByType(
-  costs: any[]
+  costs: CostEntry[]
 ): { cost_type: string; total: number }[] {
   const grouped = new Map<string, number>()
 
@@ -63,7 +73,7 @@ export function aggregateCostsByType(
  * Aggregate costs by cost code
  */
 export function aggregateCostsByCode(
-  costs: any[]
+  costs: CostEntry[]
 ): { cost_code: string; cost_code_name: string; total: number }[] {
   const grouped = new Map<string, { name: string; total: number }>()
 

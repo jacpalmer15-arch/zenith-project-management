@@ -16,7 +16,6 @@ import { formatChartCurrency } from '@/lib/utils/chart-data'
 
 interface CostCodeChartProps {
   data: { cost_code: string; cost_code_name: string; total: number }[]
-  title?: string
 }
 
 const CHART_COLORS = [
@@ -53,7 +52,7 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   return null
 }
 
-export function CostCodeChart({ data, title }: CostCodeChartProps) {
+export function CostCodeChart({ data }: CostCodeChartProps) {
   const chartData = useMemo(() => {
     // Sort by total descending and take top items
     return [...data].sort((a, b) => b.total - a.total)

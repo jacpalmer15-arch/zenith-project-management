@@ -14,10 +14,15 @@ import { format, parseISO } from 'date-fns'
 import { formatCurrency } from '@/lib/utils/format-currency'
 import { groupCostsByPeriod, formatChartCurrency } from '@/lib/utils/chart-data'
 
+interface CostEntry {
+  txn_date?: string
+  date?: string
+  amount: number
+}
+
 interface CostTimelineChartProps {
-  data: any[]
+  data: CostEntry[]
   groupBy?: 'day' | 'week' | 'month'
-  title?: string
 }
 
 interface CustomTooltipProps {
@@ -46,7 +51,6 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
 export function CostTimelineChart({
   data,
   groupBy = 'day',
-  title,
 }: CostTimelineChartProps) {
   const chartData = useMemo(() => {
     return groupCostsByPeriod(data, groupBy)

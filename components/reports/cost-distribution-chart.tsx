@@ -6,7 +6,6 @@ import { formatCurrency } from '@/lib/utils/format-currency'
 
 interface CostDistributionChartProps {
   data: { cost_type: string; total: number }[]
-  title?: string
 }
 
 const CHART_COLORS = [
@@ -42,7 +41,7 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   return null
 }
 
-export function CostDistributionChart({ data, title }: CostDistributionChartProps) {
+export function CostDistributionChart({ data }: CostDistributionChartProps) {
   const chartData = useMemo(() => {
     const total = data.reduce((sum, item) => sum + item.total, 0)
     return data.map((item) => ({
