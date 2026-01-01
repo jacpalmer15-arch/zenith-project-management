@@ -16,23 +16,48 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { deleteLineItemAction } from '@/app/actions/receipts'
+import { toast } from 'sonner'
 
 interface DeleteLineItemButtonProps {
   lineItemId: string
   receiptId: string
+  disabled?: boolean
 }
 
-export function DeleteLineItemButton({ lineItemId, receiptId }: DeleteLineItemButtonProps) {
+export function DeleteLineItemButton({ lineItemId, receiptId, disabled }: DeleteLineItemButtonProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   
   async function handleDelete() {
     startTransition(async () => {
-      await deleteLineItemAction(lineItemId, receiptId)
+      const result = await deleteLineItemAction(lineItemId, receiptId)
+      
+      if (result?.error) {
+        toast.error('Error', {
+          description: result.error,
+        })
+      } else {
+        toast.success('Line item deleted successfully')
+      }
+      
       setOpen(false)
       router.refresh()
     })
+  }
+  
+  if (disabled) {
+    return (
+      <Button 
+        size="sm" 
+        variant="ghost" 
+        disabled 
+        title="Cannot delete - line has allocations"
+        className="opacity-40 cursor-not-allowed"
+      >
+        <Trash2 className="w-3 h-3" />
+      </Button>
+    )
   }
   
   return (

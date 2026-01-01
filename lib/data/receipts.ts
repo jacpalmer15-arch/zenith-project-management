@@ -438,3 +438,19 @@ export async function getLineAllocationStatus(lineItemId: string): Promise<any> 
   
   return data
 }
+
+/**
+ * Check if a line item has any allocations
+ */
+export async function lineItemHasAllocations(lineItemId: string): Promise<boolean> {
+  const status = await getLineAllocationStatus(lineItemId)
+  return status && status.allocated_total > 0
+}
+
+/**
+ * Check if a receipt is fully allocated
+ */
+export async function isReceiptFullyAllocated(receiptId: string): Promise<boolean> {
+  const status = await getReceiptAllocationStatus(receiptId)
+  return status && status.allocation_status === 'ALLOCATED'
+}
