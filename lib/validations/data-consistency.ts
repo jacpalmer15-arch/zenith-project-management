@@ -124,7 +124,7 @@ export async function validateWorkOrderConsistency(
       customer:customers(*),
       quotes(*),
       time_entries:work_order_time_entries(*),
-      cost_entries:cost_entries(*)
+      cost_entries:job_cost_entries(*)
     `)
     .eq('id', workOrderId)
     .single()
