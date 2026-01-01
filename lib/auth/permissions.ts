@@ -26,6 +26,7 @@ export type Permission =
   | 'view_settings'
   | 'edit_settings'
   | 'delete_records'
+  | 'view_audit_logs'
 
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ADMIN: [
@@ -53,7 +54,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'edit_employees',
     'view_settings',
     'edit_settings',
-    'delete_records'
+    'delete_records',
+    'view_audit_logs'
   ],
   OFFICE: [
     'view_dashboard',

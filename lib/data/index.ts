@@ -72,3 +72,6 @@ export * from './qb-sync-logs'
 // Reports
 export * from './reports'
 
+// Audit Logs
+export * from './audit-logs'
+
