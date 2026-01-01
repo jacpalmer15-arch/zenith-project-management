@@ -82,6 +82,11 @@ export default async function WorkOrderDetailPage({ params }: { params: { id: st
           <Badge variant="outline">Priority {workOrder.priority}</Badge>
         </div>
         <div className="flex gap-2">
+          <Link href={`/app/work-orders/${params.id}/costs`}>
+            <Button variant="outline">
+              View Job Costs
+            </Button>
+          </Link>
           {workOrder.status === 'COMPLETED' && (
             <WorkOrderCloseoutDialog workOrderId={params.id} />
           )}

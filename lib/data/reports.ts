@@ -387,3 +387,171 @@ export async function getQuotesPipeline(
 
   return rows
 }
+
+// ============================================================================
+// Job Cost Reporting Functions (PR #6)
+// ============================================================================
+
+/**
+ * Get all job costs for a project
+ */
+export async function getProjectJobCosts(projectId: string): Promise<any[]> {
+  const supabase = await createClient()
+  
+  const { data, error } = await supabase
+    .from('job_cost_entries')
+    .select(`
+      *,
+      cost_type:cost_types(id, name),
+      cost_code:cost_codes(id, code, name),
+      part:parts(id, sku, name),
+      receipt:receipts(id, vendor_name, receipt_date)
+    `)
+    .eq('project_id', projectId)
+    .order('txn_date', { ascending: false })
+  
+  if (error) throw new Error(`Failed to get project costs: ${error.message}`)
+  return data || []
+}
+
+/**
+ * Get all job costs for a work order
+ */
+export async function getWorkOrderJobCosts(workOrderId: string): Promise<any[]> {
+  const supabase = await createClient()
+  
+  const { data, error } = await supabase
+    .from('job_cost_entries')
+    .select(`
+      *,
+      cost_type:cost_types(id, name),
+      cost_code:cost_codes(id, code, name),
+      part:parts(id, sku, name),
+      receipt:receipts(id, vendor_name, receipt_date)
+    `)
+    .eq('work_order_id', workOrderId)
+    .order('txn_date', { ascending: false })
+  
+  if (error) throw new Error(`Failed to get work order costs: ${error.message}`)
+  return data || []
+}
+
+/**
+ * Get job cost summary by cost type
+ */
+export async function getJobCostSummaryByCostType(
+  targetType: 'project' | 'work_order',
+  targetId: string
+): Promise<{ cost_type: string; total: number }[]> {
+  const supabase = await createClient()
+  
+  let query = supabase
+    .from('job_cost_entries')
+    .select('amount, cost_type:cost_types(name)')
+  
+  if (targetType === 'project') {
+    query = query.eq('project_id', targetId)
+  } else {
+    query = query.eq('work_order_id', targetId)
+  }
+  
+  const { data, error } = await query
+  
+  if (error) throw new Error(`Failed to get cost summary: ${error.message}`)
+  
+  // Group by cost type
+  const grouped = (data || []).reduce((acc: any, entry: any) => {
+    const typeName = entry.cost_type?.name || 'Other'
+    if (!acc[typeName]) acc[typeName] = 0
+    acc[typeName] += entry.amount
+    return acc
+  }, {})
+  
+  return Object.entries(grouped).map(([cost_type, total]) => ({
+    cost_type,
+    total: total as number
+  }))
+}
+
+/**
+ * Get job cost summary by cost code
+ */
+export async function getJobCostSummaryByCostCode(
+  targetType: 'project' | 'work_order',
+  targetId: string
+): Promise<{ cost_code: string; cost_code_name: string; total: number }[]> {
+  const supabase = await createClient()
+  
+  let query = supabase
+    .from('job_cost_entries')
+    .select('amount, cost_code:cost_codes(code, name)')
+  
+  if (targetType === 'project') {
+    query = query.eq('project_id', targetId)
+  } else {
+    query = query.eq('work_order_id', targetId)
+  }
+  
+  const { data, error } = await query
+  
+  if (error) throw new Error(`Failed to get cost code summary: ${error.message}`)
+  
+  // Group by cost code
+  const grouped = (data || []).reduce((acc: any, entry: any) => {
+    const code = entry.cost_code?.code || 'Other'
+    const name = entry.cost_code?.name || 'Other'
+    const key = `${code}|${name}`
+    if (!acc[key]) acc[key] = 0
+    acc[key] += entry.amount
+    return acc
+  }, {})
+  
+  return Object.entries(grouped).map(([key, total]) => {
+    const [cost_code, cost_code_name] = (key as string).split('|')
+    return { cost_code, cost_code_name, total: total as number }
+  })
+}
+
+/**
+ * Get material usage by part
+ */
+export async function getMaterialUsageByPart(
+  targetType: 'project' | 'work_order',
+  targetId: string
+): Promise<any[]> {
+  const supabase = await createClient()
+  
+  let query = supabase
+    .from('job_cost_entries')
+    .select('qty, amount, part:parts(id, sku, name, uom)')
+    .not('part_id', 'is', null)
+  
+  if (targetType === 'project') {
+    query = query.eq('project_id', targetId)
+  } else {
+    query = query.eq('work_order_id', targetId)
+  }
+  
+  const { data, error } = await query
+  
+  if (error) throw new Error(`Failed to get material usage: ${error.message}`)
+  
+  // Group by part
+  const grouped = (data || []).reduce((acc: any, entry: any) => {
+    const partId = entry.part?.id
+    if (!partId) return acc
+    
+    if (!acc[partId]) {
+      acc[partId] = {
+        part: entry.part,
+        total_qty: 0,
+        total_cost: 0
+      }
+    }
+    acc[partId].total_qty += entry.qty
+    acc[partId].total_cost += entry.amount
+    return acc
+  }, {})
+  
+  return Object.values(grouped)
+}

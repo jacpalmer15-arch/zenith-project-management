@@ -68,3 +68,7 @@ export * from './dashboard'
 export * from './qb-connections'
 export * from './qb-mappings'
 export * from './qb-sync-logs'
+
+// Reports
+export * from './reports'
+
