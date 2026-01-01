@@ -174,40 +174,69 @@ export async function getTechHoursSummary(
     .from('work_order_time_entries')
     .select(`
       id,
-      entry_date,
-      hours_worked,
+      clock_in_at,
+      clock_out_at,
       break_minutes,
-      employee:employees(id, name),
+      tech_user_id,
+      employee:employees!tech_user_id(id, display_name),
       work_order:work_orders(
         work_order_no,
         customer:customers(name)
       )
     `)
-    .order('entry_date', { ascending: false })
+    .not('clock_out_at', 'is', null)
+    .order('clock_in_at', { ascending: false })
 
   if (filters?.employee_id) {
-    query = query.eq('employee_id', filters.employee_id)
+    query = query.eq('tech_user_id', filters.employee_id)
   }
   if (filters?.start_date) {
-    query = query.gte('entry_date', filters.start_date)
+    query = query.gte('clock_in_at', filters.start_date)
   }
   if (filters?.end_date) {
-    query = query.lte('entry_date', filters.end_date)
+    query = query.lte('clock_in_at', filters.end_date)
   }
 
   const { data, error } = await query
 
   if (error) throw new Error(`Failed to fetch time entries: ${error.message}`)
 
-  const rows: TechHoursRow[] = (data || []).map((entry: any) => ({
-    employee_id: entry.employee?.id || '',
-    employee_name: entry.employee?.name || 'Unknown',
-    date: entry.entry_date,
-    work_order_no: entry.work_order?.work_order_no || 'N/A',
-    customer_name: entry.work_order?.customer?.name || 'Unknown',
-    hours_worked: entry.hours_worked || 0,
-    break_minutes: entry.break_minutes || 0,
-  }))
+  const rows: TechHoursRow[] = (data || []).map((entry: any) => {
+    // Calculate hours_worked: (clock_out_at - clock_in_at - break_minutes) / 60
+    const clockInTime = new Date(entry.clock_in_at).getTime()
+    const clockOutTime = new Date(entry.clock_out_at).getTime()
+    
+    // Validate dates
+    if (isNaN(clockInTime) || isNaN(clockOutTime)) {
+      console.error('Invalid date in time entry:', entry.id)
+      return {
+        employee_id: entry.employee?.id || '',
+        employee_name: entry.employee?.display_name || 'Unknown',
+        date: 'Invalid Date',
+        work_order_no: entry.work_order?.work_order_no || 'N/A',
+        customer_name: entry.work_order?.customer?.name || 'Unknown',
+        hours_worked: 0,
+        break_minutes: 0,
+      }
+    }
+    
+    const breakMinutes = entry.break_minutes || 0
+    const totalMinutes = (clockOutTime - clockInTime) / (1000 * 60)
+    const hoursWorked = Math.max(0, (totalMinutes - breakMinutes) / 60)
+
+    // Extract date from clock_in_at
+    const date = format(new Date(entry.clock_in_at), 'yyyy-MM-dd')
+
+    return {
+      employee_id: entry.employee?.id || '',
+      employee_name: entry.employee?.display_name || 'Unknown',
+      date: date,
+      work_order_no: entry.work_order?.work_order_no || 'N/A',
+      customer_name: entry.work_order?.customer?.name || 'Unknown',
+      hours_worked: hoursWorked,
+      break_minutes: breakMinutes,
+    }
+  })
 
   return rows
 }
