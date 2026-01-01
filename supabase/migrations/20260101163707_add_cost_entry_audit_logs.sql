@@ -48,7 +48,10 @@ BEGIN
       'INSERT', 
       v_new_json, 
       auth.uid(),
-      current_setting('request.jwt.claims', true)::json->>'email'
+      COALESCE(
+        (current_setting('request.jwt.claims', true)::json->>'email')::text,
+        'system'
+      )
     );
     RETURN NEW;
     
@@ -56,18 +59,23 @@ BEGIN
     v_old_json := to_jsonb(OLD);
     v_new_json := to_jsonb(NEW);
     
-    -- Calculate changed fields
-    SELECT array_agg(key)
+    -- Calculate changed fields (including removed fields)
+    SELECT array_agg(DISTINCT key)
     INTO v_changed_fields
-    FROM jsonb_each(v_new_json)
-    WHERE v_new_json->key IS DISTINCT FROM v_old_json->key;
+    FROM (
+      SELECT key FROM jsonb_each(v_new_json)
+      WHERE v_new_json->key IS DISTINCT FROM v_old_json->key
+      UNION
+      SELECT key FROM jsonb_each(v_old_json)
+      WHERE v_old_json->key IS DISTINCT FROM v_new_json->key
+    ) AS changed_keys;
     
     INSERT INTO audit_log_entries (
       table_name, 
       record_id, 
       action, 
       old_values, 
-      new_values, 
+      new_values,
       changed_fields,
       user_id,
       user_email
@@ -80,7 +88,10 @@ BEGIN
       v_new_json, 
       v_changed_fields,
       auth.uid(),
-      current_setting('request.jwt.claims', true)::json->>'email'
+      COALESCE(
+        (current_setting('request.jwt.claims', true)::json->>'email')::text,
+        'system'
+      )
     );
     RETURN NEW;
     
@@ -101,7 +112,10 @@ BEGIN
       'DELETE', 
       v_old_json, 
       auth.uid(),
-      current_setting('request.jwt.claims', true)::json->>'email'
+      COALESCE(
+        (current_setting('request.jwt.claims', true)::json->>'email')::text,
+        'system'
+      )
     );
     RETURN OLD;
   END IF;

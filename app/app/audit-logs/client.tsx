@@ -73,6 +73,17 @@ export function AuditLogsClient({
   }
 
   const exportToCSV = () => {
+    // Helper function to escape CSV values according to RFC 4180
+    const escapeCSV = (value: string): string => {
+      if (value === null || value === undefined) return ''
+      const stringValue = String(value)
+      // If value contains comma, quote, or newline, wrap in quotes and escape internal quotes
+      if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+        return `"${stringValue.replace(/"/g, '""')}"`
+      }
+      return stringValue
+    }
+
     const headers = ['Timestamp', 'Action', 'Table', 'User', 'Record ID', 'Changes', 'Reason']
     const rows = logs.map(log => [
       new Date(log.created_at).toISOString(),
@@ -85,8 +96,8 @@ export function AuditLogsClient({
     ])
 
     const csv = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(',')),
+      headers.map(escapeCSV).join(','),
+      ...rows.map(row => row.map(escapeCSV).join(',')),
     ].join('\n')
 
     const blob = new Blob([csv], { type: 'text/csv' })
@@ -95,6 +106,7 @@ export function AuditLogsClient({
     a.href = url
     a.download = `audit-logs-${new Date().toISOString()}.csv`
     a.click()
+    window.URL.revokeObjectURL(url)
   }
 
   const hasActiveFilters = Object.values(filters).some(v => v !== '')
