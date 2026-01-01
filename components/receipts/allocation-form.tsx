@@ -141,7 +141,7 @@ export function AllocationForm({
           
           {/* Project or Work Order Selector */}
           <div>
-            <Label htmlFor="owner">
+            <Label>
               {ownerType === 'project' ? 'Project' : 'Work Order'} *
             </Label>
             <Select value={ownerId} onValueChange={setOwnerId}>
