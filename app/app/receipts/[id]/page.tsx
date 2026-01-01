@@ -4,7 +4,7 @@ import { getReceipt, listReceiptLineItems, getReceiptAllocationStatus } from '@/
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { ArrowLeft, Pencil, Trash2, Plus } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, Plus, DollarSign } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils/format-currency'
 import { format } from 'date-fns'
 import { DeleteReceiptButton } from '@/components/delete-receipt-button'
@@ -190,7 +190,7 @@ export default async function ReceiptDetailPage({ params }: ReceiptDetailPagePro
                   <TableHead className="text-right">Qty</TableHead>
                   <TableHead className="text-right">Unit Cost</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="w-20">Actions</TableHead>
+                  <TableHead className="w-32">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -205,9 +205,14 @@ export default async function ReceiptDetailPage({ params }: ReceiptDetailPagePro
                     <TableCell className="text-right">${item.unit_cost.toFixed(2)}</TableCell>
                     <TableCell className="text-right font-medium">${item.amount.toFixed(2)}</TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1">
+                        <Link href={`/app/receipts/${receipt.id}/lines/${item.id}/allocate`}>
+                          <Button size="sm" variant="ghost" title="Allocate">
+                            <DollarSign className="w-3 h-3" />
+                          </Button>
+                        </Link>
                         <Link href={`/app/receipts/${receipt.id}/lines/${item.id}/edit`}>
-                          <Button size="sm" variant="ghost">
+                          <Button size="sm" variant="ghost" title="Edit">
                             <Pencil className="w-3 h-3" />
                           </Button>
                         </Link>
