@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createQuote, updateQuote, createQuoteLine, updateQuoteLine, deleteQuoteLine, getQuote } from '@/lib/data'
+import { createQuote, updateQuote, createQuoteLine, updateQuoteLine, deleteQuoteLine, getQuote, recalculateQuoteTotals } from '@/lib/data'
 import { quoteHeaderSchema, quoteLineSchema } from '@/lib/validations'
 import { getNextNumber, acceptQuote } from '@/lib/data'
 import { validateQuoteParent } from '@/lib/validations/data-consistency'
@@ -79,6 +79,9 @@ export async function createQuoteAction(headerData: any, lines: QuoteLineData[])
         is_taxable: line.is_taxable,
       })
     }
+
+    // Recalculate quote totals from all lines
+    await recalculateQuoteTotals(quote.id)
 
     revalidatePath('/app/quotes')
     return { success: true, quoteId: quote.id }
@@ -170,6 +173,9 @@ export async function updateQuoteAction(id: string, headerData: any, lines: Quot
       }
     }
 
+    // Recalculate quote totals from all lines
+    await recalculateQuoteTotals(id)
+
     revalidatePath('/app/quotes')
     revalidatePath(`/app/quotes/${id}`)
     return { success: true }
@@ -194,6 +200,8 @@ export async function acceptQuoteAction(id: string) {
 export async function deleteQuoteLineAction(lineId: string, quoteId: string) {
   try {
     await deleteQuoteLine(lineId)
+    // Recalculate quote totals after deleting a line
+    await recalculateQuoteTotals(quoteId)
     revalidatePath(`/app/quotes/${quoteId}`)
     return { success: true }
   } catch (error) {
