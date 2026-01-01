@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getReceipt, getReceiptLineItem, getLineAllocationStatus } from '@/lib/data/receipts'
-import { listJobCostEntriesByLineItem } from '@/lib/data/job-costs'
+import { listJobCostEntriesByLineItem } from '@/lib/data/cost-entries'
 import { listProjects } from '@/lib/data/projects'
 import { listWorkOrders } from '@/lib/data/work-orders'
 import { listCostTypes } from '@/lib/data/cost-types'

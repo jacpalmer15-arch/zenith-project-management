@@ -6,7 +6,7 @@ import {
   createJobCostEntry,
   deleteJobCostEntry,
   validateAllocationAmount
-} from '@/lib/data/job-costs'
+} from '@/lib/data/cost-entries'
 import { getReceipt } from '@/lib/data/receipts'
 import { jobCostEntrySchema } from '@/lib/validations/job-costs'
 import { JobCostEntryInsert } from '@/lib/db'
