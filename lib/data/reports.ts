@@ -251,7 +251,7 @@ export interface InventoryReportRow {
   part_name: string
   on_hand_quantity: number
   last_receipt_date: string | null
-  last_issue_date: string | null
+  last_usage_date: string | null
   total_receipts: number
   total_issues: number
 }
@@ -294,7 +294,7 @@ export async function getInventoryReport(
   for (const part of (parts as any[]) || []) {
     const { data: ledger, error: ledgerError } = await supabase
       .from('inventory_ledger')
-      .select('txn_type, quantity, txn_date')
+      .select('txn_type, qty_delta, txn_date')
       .eq('part_id', part.id)
 
     if (ledgerError) {
@@ -304,24 +304,32 @@ export async function getInventoryReport(
 
     let onHandQty = 0
     let lastReceiptDate: string | null = null
-    let lastIssueDate: string | null = null
+    let lastUsageDate: string | null = null
     let totalReceipts = 0
     let totalIssues = 0
 
     for (const txn of (ledger as any[]) || []) {
+      // qty_delta is already signed: positive for additions, negative for subtractions
+      onHandQty += txn.qty_delta || 0
+      
       if (txn.txn_type === 'RECEIPT') {
-        onHandQty += txn.quantity || 0
-        totalReceipts += txn.quantity || 0
+        totalReceipts += txn.qty_delta || 0
         if (!lastReceiptDate || txn.txn_date > lastReceiptDate) {
           lastReceiptDate = txn.txn_date
         }
-      } else if (txn.txn_type === 'ISSUE') {
-        onHandQty -= txn.quantity || 0
-        totalIssues += txn.quantity || 0
-        if (!lastIssueDate || txn.txn_date > lastIssueDate) {
-          lastIssueDate = txn.txn_date
+      } else if (txn.txn_type === 'USAGE') {
+        // qty_delta is negative for usage, so we negate it for the total
+        totalIssues += Math.abs(txn.qty_delta || 0)
+        if (!lastUsageDate || txn.txn_date > lastUsageDate) {
+          lastUsageDate = txn.txn_date
+        }
+      } else if (txn.txn_type === 'RETURN') {
+        totalReceipts += txn.qty_delta || 0
+        if (!lastReceiptDate || txn.txn_date > lastReceiptDate) {
+          lastReceiptDate = txn.txn_date
         }
       }
+      // ADJUSTMENT transactions affect onHandQty but don't count as receipts or issues
     }
 
     rows.push({
@@ -330,7 +338,7 @@ export async function getInventoryReport(
       part_name: part.name,
       on_hand_quantity: onHandQty,
       last_receipt_date: lastReceiptDate,
-      last_issue_date: lastIssueDate,
+      last_usage_date: lastUsageDate,
       total_receipts: totalReceipts,
       total_issues: totalIssues,
     })
