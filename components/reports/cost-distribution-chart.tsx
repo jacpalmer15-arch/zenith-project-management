@@ -5,7 +5,9 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 import { formatCurrency } from '@/lib/utils/format-currency'
 
 interface CostDistributionChartProps {
-  data: { cost_type: string; total: number }[]
+  data: { cost_type: string; cost_type_id: string; total: number }[]
+  onSliceClick?: (costTypeId: string) => void
+  activeCostTypeId?: string
 }
 
 const CHART_COLORS = [
@@ -18,6 +20,7 @@ const CHART_COLORS = [
 
 interface ChartDataPoint {
   cost_type: string
+  cost_type_id: string
   total: number
   percentage: number
 }
@@ -47,7 +50,7 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   return null
 }
 
-export function CostDistributionChart({ data }: CostDistributionChartProps) {
+export function CostDistributionChart({ data, onSliceClick, activeCostTypeId }: CostDistributionChartProps) {
   const { chartData, total } = useMemo(() => {
     const calculatedTotal = data.reduce((sum, item) => sum + item.total, 0)
     const chartData = data.map((item) => ({
@@ -56,6 +59,12 @@ export function CostDistributionChart({ data }: CostDistributionChartProps) {
     }))
     return { chartData, total: calculatedTotal }
   }, [data])
+
+  const handleClick = (data: any) => {
+    if (onSliceClick && data.cost_type_id) {
+      onSliceClick(data.cost_type_id)
+    }
+  }
 
   if (data.length === 0) {
     return (
@@ -81,13 +90,21 @@ export function CostDistributionChart({ data }: CostDistributionChartProps) {
               return `${entry.cost_type}: ${entry.percentage.toFixed(0)}%`
             }}
             labelLine={true}
+            onClick={handleClick}
+            style={{ cursor: onSliceClick ? 'pointer' : 'default' }}
           >
-            {chartData.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={CHART_COLORS[index % CHART_COLORS.length]}
-              />
-            ))}
+            {chartData.map((entry, index) => {
+              const isActive = activeCostTypeId === entry.cost_type_id
+              return (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={CHART_COLORS[index % CHART_COLORS.length]}
+                  stroke={isActive ? 'hsl(var(--primary))' : 'none'}
+                  strokeWidth={isActive ? 3 : 0}
+                  opacity={activeCostTypeId && !isActive ? 0.5 : 1}
+                />
+              )
+            })}
           </Pie>
           <Tooltip content={<CustomTooltip />} />
           <Legend />

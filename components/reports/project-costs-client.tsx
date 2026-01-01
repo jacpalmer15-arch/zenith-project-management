@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { CostType, CostCode } from '@/lib/db'
 import { JobCostTable } from '@/components/reports/job-cost-table'
 import { CostFilters } from '@/components/reports/cost-filters'
@@ -13,6 +14,7 @@ import { JobCostFilters } from '@/lib/data/reports'
 import { CostDistributionChart } from '@/components/reports/cost-distribution-chart'
 import { CostCodeChart } from '@/components/reports/cost-code-chart'
 import { CostTimelineChart } from '@/components/reports/cost-timeline-chart'
+import { Check } from 'lucide-react'
 
 interface ProjectCostsClientProps {
   projectId: string
@@ -40,13 +42,18 @@ export function ProjectCostsClient({
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // Parse filters from URL
+  // Parse filters from URL - including single drill-down filters
   const filters = useMemo(() => {
+    const cost_type_ids = searchParams.get('cost_type_ids')?.split(',').filter(Boolean)
+    const cost_type_id = searchParams.get('cost_type_id')
+    const cost_code_ids = searchParams.get('cost_code_ids')?.split(',').filter(Boolean)
+    const cost_code_id = searchParams.get('cost_code_id')
+    
     return {
       start_date: searchParams.get('start_date') || undefined,
       end_date: searchParams.get('end_date') || undefined,
-      cost_type_ids: searchParams.get('cost_type_ids')?.split(',').filter(Boolean) || undefined,
-      cost_code_ids: searchParams.get('cost_code_ids')?.split(',').filter(Boolean) || undefined,
+      cost_type_ids: cost_type_id ? [cost_type_id] : cost_type_ids,
+      cost_code_ids: cost_code_id ? [cost_code_id] : cost_code_ids,
       source_type: (searchParams.get('source') as 'receipt' | 'manual' | 'qb_synced') || undefined,
     }
   }, [searchParams])
@@ -90,6 +97,10 @@ export function ProjectCostsClient({
         } else {
           params.delete('cost_type_ids')
         }
+        // Also remove single drill-down filter
+        if (params.get('cost_type_id') === typeId) {
+          params.delete('cost_type_id')
+        }
       } else if (filterKey.startsWith('cost_code_id:')) {
         const codeId = filterKey.split(':')[1]
         const currentCodes = params.get('cost_code_ids')?.split(',').filter(Boolean) || []
@@ -99,10 +110,52 @@ export function ProjectCostsClient({
         } else {
           params.delete('cost_code_ids')
         }
+        // Also remove single drill-down filter
+        if (params.get('cost_code_id') === codeId) {
+          params.delete('cost_code_id')
+        }
       }
 
       const newUrl = params.toString() ? `/app/projects/${projectId}/costs?${params.toString()}` : `/app/projects/${projectId}/costs`
       router.push(newUrl)
+    },
+    [router, projectId, searchParams]
+  )
+
+  // Handler for drill-down on cost type (card or chart click)
+  const handleCostTypeClick = useCallback(
+    (costTypeId: string) => {
+      const params = new URLSearchParams(searchParams)
+      
+      // Toggle: if already filtered by this type, remove it
+      if (params.get('cost_type_id') === costTypeId) {
+        params.delete('cost_type_id')
+      } else {
+        // Remove multi-select filter and set single drill-down
+        params.delete('cost_type_ids')
+        params.set('cost_type_id', costTypeId)
+      }
+      
+      router.push(`/app/projects/${projectId}/costs?${params.toString()}`)
+    },
+    [router, projectId, searchParams]
+  )
+
+  // Handler for drill-down on cost code (card or chart click)
+  const handleCostCodeClick = useCallback(
+    (costCodeId: string) => {
+      const params = new URLSearchParams(searchParams)
+      
+      // Toggle: if already filtered by this code, remove it
+      if (params.get('cost_code_id') === costCodeId) {
+        params.delete('cost_code_id')
+      } else {
+        // Remove multi-select filter and set single drill-down
+        params.delete('cost_code_ids')
+        params.set('cost_code_id', costCodeId)
+      }
+      
+      router.push(`/app/projects/${projectId}/costs?${params.toString()}`)
     },
     [router, projectId, searchParams]
   )
@@ -190,7 +243,11 @@ export function ProjectCostsClient({
                 <CardTitle>Cost Distribution by Type</CardTitle>
               </CardHeader>
               <CardContent>
-                <CostDistributionChart data={costTypeSummary} />
+                <CostDistributionChart 
+                  data={costTypeSummary} 
+                  onSliceClick={handleCostTypeClick}
+                  activeCostTypeId={searchParams.get('cost_type_id') || undefined}
+                />
               </CardContent>
             </Card>
 
@@ -210,7 +267,11 @@ export function ProjectCostsClient({
                 <CardTitle>Top Cost Codes</CardTitle>
               </CardHeader>
               <CardContent>
-                <CostCodeChart data={costCodeSummary.slice(0, 10)} />
+                <CostCodeChart 
+                  data={costCodeSummary.slice(0, 10)} 
+                  onBarClick={handleCostCodeClick}
+                  activeCostCodeId={searchParams.get('cost_code_id') || undefined}
+                />
               </CardContent>
             </Card>
           )}
@@ -225,12 +286,37 @@ export function ProjectCostsClient({
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {costTypeSummary.map((item) => (
-                <div key={item.cost_type} className="flex justify-between items-center">
-                  <span className="font-medium">{item.cost_type}</span>
-                  <span className="text-lg font-bold">{formatCurrency(item.total)}</span>
-                </div>
-              ))}
+              {costTypeSummary.map((item) => {
+                const isActive = searchParams.get('cost_type_id') === item.cost_type_id
+                return (
+                  <div 
+                    key={item.cost_type_id} 
+                    className={`flex justify-between items-center p-3 rounded-lg cursor-pointer transition-all hover:shadow-md relative ${
+                      isActive ? 'border-2 border-primary bg-primary/5' : 'border border-transparent hover:border-slate-200'
+                    }`}
+                    onClick={() => handleCostTypeClick(item.cost_type_id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        handleCostTypeClick(item.cost_type_id)
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Filter by ${item.cost_type}`}
+                  >
+                    <span className="font-medium">{item.cost_type}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg font-bold">{formatCurrency(item.total)}</span>
+                      {isActive && (
+                        <Badge variant="default" className="gap-1">
+                          <Check className="w-3 h-3" />
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </CardContent>
         </Card>
@@ -244,15 +330,40 @@ export function ProjectCostsClient({
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {costCodeSummary.map((item) => (
-                <div key={item.cost_code} className="flex justify-between items-center py-2 border-b">
-                  <div>
-                    <span className="font-mono font-medium">{item.cost_code}</span>
-                    <span className="text-slate-600 ml-2">{item.cost_code_name}</span>
+              {costCodeSummary.map((item) => {
+                const isActive = searchParams.get('cost_code_id') === item.cost_code_id
+                return (
+                  <div 
+                    key={item.cost_code_id} 
+                    className={`flex justify-between items-center py-2 px-3 rounded-lg cursor-pointer transition-all hover:shadow-md relative ${
+                      isActive ? 'border-2 border-primary bg-primary/5' : 'border border-transparent hover:border-slate-200'
+                    }`}
+                    onClick={() => handleCostCodeClick(item.cost_code_id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        handleCostCodeClick(item.cost_code_id)
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Filter by cost code ${item.cost_code}`}
+                  >
+                    <div>
+                      <span className="font-mono font-medium">{item.cost_code}</span>
+                      <span className="text-slate-600 ml-2">{item.cost_code_name}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold">{formatCurrency(item.total)}</span>
+                      {isActive && (
+                        <Badge variant="default" className="gap-1">
+                          <Check className="w-3 h-3" />
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                  <span className="font-bold">{formatCurrency(item.total)}</span>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </CardContent>
         </Card>
