@@ -22,6 +22,7 @@ import {
   DollarSign,
   UserCircle,
   TestTube,
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { logout } from '@/app/actions/auth';
@@ -63,6 +64,7 @@ const navigation: Array<{
   { name: 'Costs', href: '/app/receipts', icon: DollarSign, permission: 'view_costs' },
   { name: 'Reports', href: '/app/reports', icon: BarChart3, permission: 'view_reports' },
   { name: 'Employees', href: '/app/employees', icon: UserCircle, permission: 'view_employees' },
+  { name: 'Audit Logs', href: '/app/audit-logs', icon: Shield, permission: 'view_audit_logs' },
   { name: 'Settings', href: '/app/settings', icon: Settings, permission: 'view_settings' },
 ];
 

@@ -123,7 +123,7 @@ export function AuditLogTable({ logs, showTable = true }: AuditLogTableProps) {
                   {formatChangeSummary(log)}
                   {log.reason && (
                     <div className="text-xs text-gray-500 mt-1 italic">
-                      "{log.reason}"
+                      &ldquo;{log.reason}&rdquo;
                     </div>
                   )}
                 </div>
