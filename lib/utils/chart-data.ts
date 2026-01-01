@@ -12,9 +12,10 @@ export function groupCostsByPeriod(
   const grouped = new Map<string, number>()
 
   costs.forEach((cost) => {
-    if (!cost.date) return
+    const dateStr = cost.txn_date || cost.date
+    if (!dateStr) return
 
-    const date = parseISO(cost.date)
+    const date = parseISO(dateStr)
     let key: string
 
     switch (period) {
