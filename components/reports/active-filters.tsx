@@ -4,15 +4,10 @@ import { Badge } from '@/components/ui/badge'
 import { X } from 'lucide-react'
 import { format } from 'date-fns'
 import { CostType, CostCode } from '@/lib/db'
+import { JobCostFilters } from '@/lib/data/reports'
 
 interface ActiveFiltersProps {
-  filters: {
-    start_date?: string
-    end_date?: string
-    cost_type_ids?: string[]
-    cost_code_ids?: string[]
-    source_type?: 'receipt' | 'manual' | 'qb_synced' | null
-  }
+  filters: JobCostFilters
   costTypes: CostType[]
   costCodes: CostCode[]
   onClearFilter: (filterKey: string) => void

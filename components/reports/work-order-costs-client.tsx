@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CostType, CostCode } from '@/lib/db'
@@ -9,12 +9,13 @@ import { CostFilters } from '@/components/reports/cost-filters'
 import { ActiveFilters } from '@/components/reports/active-filters'
 import { formatCurrency } from '@/lib/utils/format-currency'
 import { Skeleton } from '@/components/ui/skeleton'
+import { JobCostFilters } from '@/lib/data/reports'
 
 interface WorkOrderCostsClientProps {
   workOrderId: string
   costTypes: CostType[]
   costCodes: CostCode[]
-  onFiltersChange: (filters: any) => void
+  onFiltersChange: (filters: JobCostFilters) => void
   jobCosts: any[]
   costTypeSummary: any[]
   costCodeSummary: any[]
@@ -48,15 +49,15 @@ export function WorkOrderCostsClient({
   }, [searchParams])
 
   const handleFiltersChange = useCallback(
-    (newFilters: any) => {
+    (newFilters: JobCostFilters) => {
       const params = new URLSearchParams()
 
       if (newFilters.start_date) params.set('start_date', newFilters.start_date)
       if (newFilters.end_date) params.set('end_date', newFilters.end_date)
-      if (newFilters.cost_type_ids?.length > 0) {
+      if (newFilters.cost_type_ids && newFilters.cost_type_ids.length > 0) {
         params.set('cost_type_ids', newFilters.cost_type_ids.join(','))
       }
-      if (newFilters.cost_code_ids?.length > 0) {
+      if (newFilters.cost_code_ids && newFilters.cost_code_ids.length > 0) {
         params.set('cost_code_ids', newFilters.cost_code_ids.join(','))
       }
       if (newFilters.source_type) params.set('source', newFilters.source_type)

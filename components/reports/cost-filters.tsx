@@ -22,24 +22,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { JobCostFilters } from '@/lib/data/reports'
 
 interface CostFiltersProps {
-  onFiltersChange: (filters: {
-    start_date?: string
-    end_date?: string
-    cost_type_ids?: string[]
-    cost_code_ids?: string[]
-    source_type?: 'receipt' | 'manual' | 'qb_synced' | null
-  }) => void
+  onFiltersChange: (filters: JobCostFilters) => void
   availableCostTypes: CostType[]
   availableCostCodes: CostCode[]
-  initialFilters?: {
-    start_date?: string
-    end_date?: string
-    cost_type_ids?: string[]
-    cost_code_ids?: string[]
-    source_type?: 'receipt' | 'manual' | 'qb_synced' | null
-  }
+  initialFilters?: JobCostFilters
 }
 
 export function CostFilters({
