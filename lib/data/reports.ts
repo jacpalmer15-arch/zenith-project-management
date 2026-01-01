@@ -206,8 +206,8 @@ export async function getTechHoursSummary(
     const clockInTime = new Date(entry.clock_in_at).getTime()
     const clockOutTime = new Date(entry.clock_out_at).getTime()
     const breakMinutes = entry.break_minutes || 0
-    const totalMinutes = (clockOutTime - clockInTime) / (1000 * 60) - breakMinutes
-    const hoursWorked = totalMinutes / 60
+    const totalMinutes = (clockOutTime - clockInTime) / (1000 * 60)
+    const hoursWorked = Math.max(0, (totalMinutes - breakMinutes) / 60)
 
     // Extract date from clock_in_at
     const date = format(new Date(entry.clock_in_at), 'yyyy-MM-dd')
