@@ -10,6 +10,9 @@ import { ActiveFilters } from '@/components/reports/active-filters'
 import { formatCurrency } from '@/lib/utils/format-currency'
 import { Skeleton } from '@/components/ui/skeleton'
 import { JobCostFilters } from '@/lib/data/reports'
+import { CostDistributionChart } from '@/components/reports/cost-distribution-chart'
+import { CostCodeChart } from '@/components/reports/cost-code-chart'
+import { CostTimelineChart } from '@/components/reports/cost-timeline-chart'
 
 interface WorkOrderCostsClientProps {
   workOrderId: string
@@ -176,6 +179,42 @@ export function WorkOrderCostsClient({
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Charts Section */}
+      {!isLoading && jobCosts.length > 0 && (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Cost Distribution by Type</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CostDistributionChart data={costTypeSummary} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Costs Over Time</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CostTimelineChart data={jobCosts} groupBy="week" />
+              </CardContent>
+            </Card>
+          </div>
+
+          {costCodeSummary.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Top Cost Codes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CostCodeChart data={costCodeSummary.slice(0, 10)} />
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
 
       {/* Cost by Type */}
