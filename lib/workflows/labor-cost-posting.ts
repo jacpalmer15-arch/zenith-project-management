@@ -23,7 +23,7 @@ export async function postLaborCosts(
   
   // Check if already posted
   const { data: existingCosts, error: checkError } = await supabase
-    .from('cost_entries')
+    .from('job_cost_entries')
     .select('*')
     .eq('work_order_id', workOrderId)
     .eq('bucket', 'LABOR')

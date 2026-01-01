@@ -76,7 +76,7 @@ export async function getWorkOrderProfitability(
   
   if (workOrderIds.length > 0) {
     const { data: costEntries, error: costError } = await supabase
-      .from('cost_entries')
+      .from('job_cost_entries')
       .select('work_order_id, amount')
       .in('work_order_id', workOrderIds)
 

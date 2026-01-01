@@ -63,7 +63,7 @@ export async function getEstimatedProfit() {
   // Get cost entries for these work orders
   const workOrderIds = workOrdersWithQuotes.map((wo) => wo.id)
   const { data: costEntries, error: costError } = await supabase
-    .from('cost_entries')
+    .from('job_cost_entries')
     .select('work_order_id, amount')
     .in('work_order_id', workOrderIds)
 
