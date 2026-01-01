@@ -276,7 +276,6 @@ export default async function ReceiptDetailPage({ params }: ReceiptDetailPagePro
                     </TableRow>
                   )
                 })}
-                ))}
               </TableBody>
             </Table>
           )}
