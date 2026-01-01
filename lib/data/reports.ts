@@ -205,6 +205,21 @@ export async function getTechHoursSummary(
     // Calculate hours_worked: (clock_out_at - clock_in_at - break_minutes) / 60
     const clockInTime = new Date(entry.clock_in_at).getTime()
     const clockOutTime = new Date(entry.clock_out_at).getTime()
+    
+    // Validate dates
+    if (isNaN(clockInTime) || isNaN(clockOutTime)) {
+      console.error('Invalid date in time entry:', entry.id)
+      return {
+        employee_id: entry.employee?.id || '',
+        employee_name: entry.employee?.display_name || 'Unknown',
+        date: 'Invalid Date',
+        work_order_no: entry.work_order?.work_order_no || 'N/A',
+        customer_name: entry.work_order?.customer?.name || 'Unknown',
+        hours_worked: 0,
+        break_minutes: 0,
+      }
+    }
+    
     const breakMinutes = entry.break_minutes || 0
     const totalMinutes = (clockOutTime - clockInTime) / (1000 * 60)
     const hoursWorked = Math.max(0, (totalMinutes - breakMinutes) / 60)
