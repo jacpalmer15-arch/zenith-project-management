@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { getReceipt, listReceiptLineItems } from '@/lib/data/receipts'
+import { getReceipt, listReceiptLineItems, getReceiptAllocationStatus } from '@/lib/data/receipts'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -9,6 +9,7 @@ import { formatCurrency } from '@/lib/utils/format-currency'
 import { format } from 'date-fns'
 import { DeleteReceiptButton } from '@/components/delete-receipt-button'
 import { DeleteLineItemButton } from '@/components/receipts/delete-line-item-button'
+import { AllocationStatusBadge } from '@/components/receipts/allocation-status-badge'
 import { ReceiptLineItem } from '@/lib/db'
 
 interface ReceiptDetailPageProps {
@@ -20,10 +21,16 @@ interface ReceiptDetailPageProps {
 export default async function ReceiptDetailPage({ params }: ReceiptDetailPageProps) {
   let receipt
   let lineItems: ReceiptLineItem[] = []
+  let allocationStatus: any = null
   
   try {
     receipt = await getReceipt(params.id)
     lineItems = await listReceiptLineItems(params.id)
+    
+    // Fetch allocation status if there are line items
+    if (lineItems.length > 0) {
+      allocationStatus = await getReceiptAllocationStatus(params.id)
+    }
   } catch (error) {
     notFound()
   }
@@ -110,6 +117,53 @@ export default async function ReceiptDetailPage({ params }: ReceiptDetailPagePro
           )}
         </CardContent>
       </Card>
+
+      {/* Allocation Status Card */}
+      {lineItems.length > 0 && allocationStatus && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Allocation Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-sm text-slate-500">Lines Total</p>
+                <p className="text-lg font-bold">
+                  {formatCurrency(allocationStatus.receipt_lines_total)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">Allocated</p>
+                <p className="text-lg font-bold text-green-600">
+                  {formatCurrency(allocationStatus.receipt_allocated_total)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">Unallocated</p>
+                <p className="text-lg font-bold text-amber-600">
+                  {formatCurrency(allocationStatus.receipt_unallocated_total)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">Status</p>
+                <div className="mt-2">
+                  <AllocationStatusBadge status={allocationStatus.allocation_status} />
+                </div>
+              </div>
+            </div>
+            
+            {allocationStatus.needs_allocation && (
+              <div className="mt-4">
+                <Button asChild>
+                  <Link href={`/app/receipts/${receipt.id}/allocation`}>
+                    View Allocation Details
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Line Items Section */}
       <Card className="mt-6">

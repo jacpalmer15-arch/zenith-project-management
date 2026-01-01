@@ -21,6 +21,11 @@ export default async function ReceiptsPage() {
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Receipts</h1>
         <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/app/receipts/allocate">
+              View Allocation Queue
+            </Link>
+          </Button>
           <StandaloneCostEntryDialog />
           <Link href="/app/receipts/new">
             <Button className="w-full sm:w-auto">
