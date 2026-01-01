@@ -392,13 +392,24 @@ export async function getQuotesPipeline(
 // Job Cost Reporting Functions (PR #6)
 // ============================================================================
 
+export interface JobCostFilters {
+  start_date?: string  // ISO date string
+  end_date?: string    // ISO date string
+  cost_type_ids?: string[]  // Array of cost type UUIDs
+  cost_code_ids?: string[]  // Array of cost code UUIDs
+  source_type?: 'receipt' | 'manual' | 'qb_synced' | null
+}
+
 /**
  * Get all job costs for a project
  */
-export async function getProjectJobCosts(projectId: string): Promise<any[]> {
+export async function getProjectJobCosts(
+  projectId: string,
+  filters?: JobCostFilters
+): Promise<any[]> {
   const supabase = await createClient()
   
-  const { data, error } = await supabase
+  let query = supabase
     .from('job_cost_entries')
     .select(`
       *,
@@ -408,7 +419,33 @@ export async function getProjectJobCosts(projectId: string): Promise<any[]> {
       receipt:receipts(id, vendor_name, receipt_date)
     `)
     .eq('project_id', projectId)
-    .order('txn_date', { ascending: false })
+  
+  // Apply filters
+  if (filters?.start_date) {
+    query = query.gte('txn_date', filters.start_date)
+  }
+  if (filters?.end_date) {
+    query = query.lte('txn_date', filters.end_date)
+  }
+  if (filters?.cost_type_ids && filters.cost_type_ids.length > 0) {
+    query = query.in('cost_type_id', filters.cost_type_ids)
+  }
+  if (filters?.cost_code_ids && filters.cost_code_ids.length > 0) {
+    query = query.in('cost_code_id', filters.cost_code_ids)
+  }
+  if (filters?.source_type) {
+    if (filters.source_type === 'receipt') {
+      query = query.in('source_type', ['receipt_manual', 'receipt_auto'])
+    } else if (filters.source_type === 'manual') {
+      query = query.eq('source_type', 'manual')
+    } else if (filters.source_type === 'qb_synced') {
+      query = query.eq('source_type', 'qb_synced')
+    }
+  }
+  
+  query = query.order('txn_date', { ascending: false })
+  
+  const { data, error } = await query
   
   if (error) throw new Error(`Failed to get project costs: ${error.message}`)
   return data || []
@@ -417,10 +454,13 @@ export async function getProjectJobCosts(projectId: string): Promise<any[]> {
 /**
  * Get all job costs for a work order
  */
-export async function getWorkOrderJobCosts(workOrderId: string): Promise<any[]> {
+export async function getWorkOrderJobCosts(
+  workOrderId: string,
+  filters?: JobCostFilters
+): Promise<any[]> {
   const supabase = await createClient()
   
-  const { data, error } = await supabase
+  let query = supabase
     .from('job_cost_entries')
     .select(`
       *,
@@ -430,7 +470,33 @@ export async function getWorkOrderJobCosts(workOrderId: string): Promise<any[]> 
       receipt:receipts(id, vendor_name, receipt_date)
     `)
     .eq('work_order_id', workOrderId)
-    .order('txn_date', { ascending: false })
+  
+  // Apply filters
+  if (filters?.start_date) {
+    query = query.gte('txn_date', filters.start_date)
+  }
+  if (filters?.end_date) {
+    query = query.lte('txn_date', filters.end_date)
+  }
+  if (filters?.cost_type_ids && filters.cost_type_ids.length > 0) {
+    query = query.in('cost_type_id', filters.cost_type_ids)
+  }
+  if (filters?.cost_code_ids && filters.cost_code_ids.length > 0) {
+    query = query.in('cost_code_id', filters.cost_code_ids)
+  }
+  if (filters?.source_type) {
+    if (filters.source_type === 'receipt') {
+      query = query.in('source_type', ['receipt_manual', 'receipt_auto'])
+    } else if (filters.source_type === 'manual') {
+      query = query.eq('source_type', 'manual')
+    } else if (filters.source_type === 'qb_synced') {
+      query = query.eq('source_type', 'qb_synced')
+    }
+  }
+  
+  query = query.order('txn_date', { ascending: false })
+  
+  const { data, error } = await query
   
   if (error) throw new Error(`Failed to get work order costs: ${error.message}`)
   return data || []

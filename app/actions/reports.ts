@@ -1,6 +1,6 @@
 'use server'
 
-import { getProjectJobCosts, getWorkOrderJobCosts } from '@/lib/data/reports'
+import { getProjectJobCosts, getWorkOrderJobCosts, JobCostFilters } from '@/lib/data/reports'
 
 /**
  * Escape CSV field value according to RFC 4180
@@ -22,11 +22,12 @@ function escapeCsvField(value: any): string {
 
 export async function exportJobCostsCSV(
   targetType: 'project' | 'work_order',
-  targetId: string
+  targetId: string,
+  filters?: JobCostFilters
 ) {
   const costs = targetType === 'project' 
-    ? await getProjectJobCosts(targetId)
-    : await getWorkOrderJobCosts(targetId)
+    ? await getProjectJobCosts(targetId, filters)
+    : await getWorkOrderJobCosts(targetId, filters)
   
   const headers = ['Date', 'Cost Type', 'Cost Code', 'Description', 'Qty', 'Unit Cost', 'Amount', 'Source']
   const rows = costs.map(cost => [

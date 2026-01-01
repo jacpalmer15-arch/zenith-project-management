@@ -5,20 +5,22 @@ import { Button } from '@/components/ui/button'
 import { Download, Loader2 } from 'lucide-react'
 import { exportJobCostsCSV } from '@/app/actions/reports'
 import { toast } from 'sonner'
+import { JobCostFilters } from '@/lib/data/reports'
 
 interface ExportCostsButtonProps {
   targetType: 'project' | 'work_order'
   targetId: string
   targetName: string | null
+  filters?: JobCostFilters
 }
 
-export function ExportCostsButton({ targetType, targetId, targetName }: ExportCostsButtonProps) {
+export function ExportCostsButton({ targetType, targetId, targetName, filters }: ExportCostsButtonProps) {
   const [isPending, startTransition] = useTransition()
   
   const handleExport = async () => {
     startTransition(async () => {
       try {
-        const csv = await exportJobCostsCSV(targetType, targetId)
+        const csv = await exportJobCostsCSV(targetType, targetId, filters)
         
         // Create a blob and download
         const blob = new Blob([csv], { type: 'text/csv' })
