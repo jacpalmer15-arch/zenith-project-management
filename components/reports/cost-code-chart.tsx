@@ -15,7 +15,9 @@ import { formatCurrency } from '@/lib/utils/format-currency'
 import { formatChartCurrency } from '@/lib/utils/chart-data'
 
 interface CostCodeChartProps {
-  data: { cost_code: string; cost_code_name: string; total: number }[]
+  data: { cost_code: string; cost_code_name: string; cost_code_id: string; total: number }[]
+  onBarClick?: (costCodeId: string) => void
+  activeCostCodeId?: string
 }
 
 const CHART_COLORS = [
@@ -29,6 +31,7 @@ const CHART_COLORS = [
 interface ChartDataPoint {
   cost_code: string
   cost_code_name: string
+  cost_code_id: string
   total: number
 }
 
@@ -58,11 +61,17 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   return null
 }
 
-export function CostCodeChart({ data }: CostCodeChartProps) {
+export function CostCodeChart({ data, onBarClick, activeCostCodeId }: CostCodeChartProps) {
   const chartData = useMemo(() => {
     // Sort by total descending and take top items
     return [...data].sort((a, b) => b.total - a.total)
   }, [data])
+
+  const handleClick = (data: any) => {
+    if (onBarClick && data.cost_code_id) {
+      onBarClick(data.cost_code_id)
+    }
+  }
 
   if (data.length === 0) {
     return (
@@ -93,13 +102,24 @@ export function CostCodeChart({ data }: CostCodeChartProps) {
             stroke="hsl(var(--muted-foreground))"
           />
           <Tooltip content={<CustomTooltip />} />
-          <Bar dataKey="total" radius={[0, 4, 4, 0]}>
-            {chartData.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={CHART_COLORS[index % CHART_COLORS.length]}
-              />
-            ))}
+          <Bar 
+            dataKey="total" 
+            radius={[0, 4, 4, 0]}
+            onClick={handleClick}
+            style={{ cursor: onBarClick ? 'pointer' : 'default' }}
+          >
+            {chartData.map((entry, index) => {
+              const isActive = activeCostCodeId === entry.cost_code_id
+              return (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={CHART_COLORS[index % CHART_COLORS.length]}
+                  stroke={isActive ? 'hsl(var(--primary))' : 'none'}
+                  strokeWidth={isActive ? 3 : 0}
+                  opacity={activeCostCodeId && !isActive ? 0.5 : 1}
+                />
+              )
+            })}
           </Bar>
         </BarChart>
       </ResponsiveContainer>

@@ -508,12 +508,12 @@ export async function getWorkOrderJobCosts(
 export async function getJobCostSummaryByCostType(
   targetType: 'project' | 'work_order',
   targetId: string
-): Promise<{ cost_type: string; total: number }[]> {
+): Promise<{ cost_type: string; cost_type_id: string; total: number }[]> {
   const supabase = await createClient()
   
   let query = supabase
     .from('job_cost_entries')
-    .select('amount, cost_type:cost_types(name)')
+    .select('amount, cost_type_id, cost_type:cost_types(id, name)')
   
   if (targetType === 'project') {
     query = query.eq('project_id', targetId)
@@ -527,16 +527,18 @@ export async function getJobCostSummaryByCostType(
   
   // Group by cost type
   const grouped = (data || []).reduce((acc: any, entry: any) => {
+    const typeId = entry.cost_type?.id || entry.cost_type_id || 'other'
     const typeName = entry.cost_type?.name || 'Other'
-    if (!acc[typeName]) acc[typeName] = 0
-    acc[typeName] += entry.amount
+    const key = `${typeId}|${typeName}`
+    if (!acc[key]) acc[key] = 0
+    acc[key] += entry.amount
     return acc
   }, {})
   
-  return Object.entries(grouped).map(([cost_type, total]) => ({
-    cost_type,
-    total: total as number
-  }))
+  return Object.entries(grouped).map(([key, total]) => {
+    const [cost_type_id, cost_type] = (key as string).split('|')
+    return { cost_type, cost_type_id, total: total as number }
+  })
 }
 
 /**
@@ -545,12 +547,12 @@ export async function getJobCostSummaryByCostType(
 export async function getJobCostSummaryByCostCode(
   targetType: 'project' | 'work_order',
   targetId: string
-): Promise<{ cost_code: string; cost_code_name: string; total: number }[]> {
+): Promise<{ cost_code: string; cost_code_name: string; cost_code_id: string; total: number }[]> {
   const supabase = await createClient()
   
   let query = supabase
     .from('job_cost_entries')
-    .select('amount, cost_code:cost_codes(code, name)')
+    .select('amount, cost_code_id, cost_code:cost_codes(id, code, name)')
   
   if (targetType === 'project') {
     query = query.eq('project_id', targetId)
@@ -564,17 +566,18 @@ export async function getJobCostSummaryByCostCode(
   
   // Group by cost code
   const grouped = (data || []).reduce((acc: any, entry: any) => {
+    const codeId = entry.cost_code?.id || entry.cost_code_id || 'other'
     const code = entry.cost_code?.code || 'Other'
     const name = entry.cost_code?.name || 'Other'
-    const key = `${code}|${name}`
+    const key = `${codeId}|${code}|${name}`
     if (!acc[key]) acc[key] = 0
     acc[key] += entry.amount
     return acc
   }, {})
   
   return Object.entries(grouped).map(([key, total]) => {
-    const [cost_code, cost_code_name] = (key as string).split('|')
-    return { cost_code, cost_code_name, total: total as number }
+    const [cost_code_id, cost_code, cost_code_name] = (key as string).split('|')
+    return { cost_code, cost_code_name, cost_code_id, total: total as number }
   })
 }
 
