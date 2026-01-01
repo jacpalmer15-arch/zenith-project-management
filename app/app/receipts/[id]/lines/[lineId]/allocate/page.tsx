@@ -140,7 +140,7 @@ export default async function AllocateLineItemPage({
       {/* Existing Allocations */}
       <AllocationHistory
         receiptId={params.id}
-        lineItemId={params.lineId}
+        receiptLineItemId={params.lineId}
         allocations={existingAllocations}
       />
     </div>

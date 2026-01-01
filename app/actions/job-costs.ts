@@ -103,13 +103,13 @@ export async function createAllocationAction(formData: FormData) {
   }
 }
 
-export async function deleteAllocationAction(id: string, receiptId: string, lineItemId: string) {
+export async function deleteAllocationAction(id: string, receiptId: string, receiptLineItemId: string) {
   try {
     await deleteJobCostEntry(id)
 
     // Revalidate relevant paths
     revalidatePath(`/app/receipts/${receiptId}`)
-    revalidatePath(`/app/receipts/${receiptId}/lines/${lineItemId}/allocate`)
+    revalidatePath(`/app/receipts/${receiptId}/lines/${receiptLineItemId}/allocate`)
 
     return { success: true }
   } catch (error) {

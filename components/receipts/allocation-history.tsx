@@ -12,13 +12,13 @@ import { format } from 'date-fns'
 
 interface AllocationHistoryProps {
   receiptId: string
-  lineItemId: string
+  receiptLineItemId: string
   allocations: any[]
 }
 
 export function AllocationHistory({ 
   receiptId, 
-  lineItemId, 
+  receiptLineItemId, 
   allocations 
 }: AllocationHistoryProps) {
   const router = useRouter()
@@ -33,7 +33,7 @@ export function AllocationHistory({
     setDeletingId(id)
     
     startTransition(async () => {
-      const result = await deleteAllocationAction(id, receiptId, lineItemId)
+      const result = await deleteAllocationAction(id, receiptId, receiptLineItemId)
       
       if (result?.error) {
         alert(result.error)

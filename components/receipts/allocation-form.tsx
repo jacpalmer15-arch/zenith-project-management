@@ -53,9 +53,9 @@ export function AllocationForm({
   const amount = (parseFloat(qty) || 0) * (parseFloat(unitCost) || 0)
   
   // Filter cost codes based on selected cost type
-  const filteredCostCodes = costCodeId || !costTypeId 
-    ? costCodes
-    : costCodes.filter(cc => cc.cost_type_id === costTypeId)
+  const filteredCostCodes = costTypeId 
+    ? costCodes.filter(cc => cc.cost_type_id === costTypeId)
+    : costCodes
   
   // Reset cost code when cost type changes
   useEffect(() => {
