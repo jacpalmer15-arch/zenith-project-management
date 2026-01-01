@@ -362,3 +362,79 @@ export async function getNextLineNumber(receiptId: string): Promise<number> {
   
   return data && data.length > 0 ? (data[0] as any).line_no + 1 : 1
 }
+
+/**
+ * List receipts that need allocation
+ */
+export async function listReceiptsNeedingAllocation(): Promise<any[]> {
+  const supabase = await createClient()
+  
+  const { data, error } = await supabase
+    .from('vw_receipt_allocation_status')
+    .select('*')
+    .eq('needs_allocation', true)
+    .order('receipt_date', { ascending: false })
+  
+  if (error) {
+    throw new Error(`Failed to list receipts needing allocation: ${error.message}`)
+  }
+  
+  return data || []
+}
+
+/**
+ * Get allocation status for a specific receipt
+ */
+export async function getReceiptAllocationStatus(receiptId: string): Promise<any> {
+  const supabase = await createClient()
+  
+  const { data, error } = await supabase
+    .from('vw_receipt_allocation_status')
+    .select('*')
+    .eq('receipt_id', receiptId)
+    .single()
+  
+  if (error) {
+    throw new Error(`Failed to get receipt allocation status: ${error.message}`)
+  }
+  
+  return data
+}
+
+/**
+ * List line allocation statuses for a receipt
+ */
+export async function listLineAllocationStatuses(receiptId: string): Promise<any[]> {
+  const supabase = await createClient()
+  
+  const { data, error } = await supabase
+    .from('vw_receipt_line_allocation_status')
+    .select('*')
+    .eq('receipt_id', receiptId)
+    .order('line_no', { ascending: true })
+  
+  if (error) {
+    throw new Error(`Failed to list line allocation statuses: ${error.message}`)
+  }
+  
+  return data || []
+}
+
+/**
+ * Get allocation status for a specific line item
+ */
+export async function getLineAllocationStatus(lineItemId: string): Promise<any> {
+  const supabase = await createClient()
+  
+  const { data, error } = await supabase
+    .from('vw_receipt_line_allocation_status')
+    .select('*')
+    .eq('receipt_line_item_id', lineItemId)
+    .single()
+  
+  if (error) {
+    throw new Error(`Failed to get line allocation status: ${error.message}`)
+  }
+  
+  return data
+}
