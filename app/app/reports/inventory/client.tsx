@@ -26,8 +26,8 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
       format: (val: string | null) => val ? formatDate(new Date(val), 'yyyy-MM-dd') : 'N/A'
     },
     { 
-      key: 'last_issue_date', 
-      header: 'Last Issue',
+      key: 'last_usage_date', 
+      header: 'Last Usage',
       format: (val: string | null) => val ? formatDate(new Date(val), 'yyyy-MM-dd') : 'N/A'
     },
     { key: 'total_receipts', header: 'Total Receipts' },
@@ -68,7 +68,7 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
                     <th className="text-left py-3 px-4 font-medium text-slate-700">Part Name</th>
                     <th className="text-right py-3 px-4 font-medium text-slate-700">On-Hand</th>
                     <th className="text-left py-3 px-4 font-medium text-slate-700">Last Receipt</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-700">Last Issue</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-700">Last Usage</th>
                     <th className="text-right py-3 px-4 font-medium text-slate-700">Total Receipts</th>
                     <th className="text-right py-3 px-4 font-medium text-slate-700">Total Issues</th>
                   </tr>
@@ -97,8 +97,8 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
                           : '—'}
                       </td>
                       <td className="py-3 px-4 text-sm">
-                        {row.last_issue_date
-                          ? formatDate(new Date(row.last_issue_date), 'MMM dd, yyyy')
+                        {row.last_usage_date
+                          ? formatDate(new Date(row.last_usage_date), 'MMM dd, yyyy')
                           : '—'}
                       </td>
                       <td className="py-3 px-4 text-right">{row.total_receipts}</td>
