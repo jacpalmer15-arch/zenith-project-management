@@ -96,6 +96,7 @@ export default async function WorkOrderCostsPage({
           targetType="work_order" 
           targetId={workOrder.id}
           targetName={workOrder.work_order_no}
+          filters={filters}
         />
       </div>
       

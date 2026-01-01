@@ -96,6 +96,7 @@ export default async function ProjectCostsPage({
           targetType="project" 
           targetId={project.id}
           targetName={project.project_no}
+          filters={filters}
         />
       </div>
       
