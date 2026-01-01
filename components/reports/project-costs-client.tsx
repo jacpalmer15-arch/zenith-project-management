@@ -15,6 +15,7 @@ import { CostDistributionChart } from '@/components/reports/cost-distribution-ch
 import { CostCodeChart } from '@/components/reports/cost-code-chart'
 import { CostTimelineChart } from '@/components/reports/cost-timeline-chart'
 import { Check } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface ProjectCostsClientProps {
   projectId: string
@@ -291,9 +292,12 @@ export function ProjectCostsClient({
                 return (
                   <div 
                     key={item.cost_type_id} 
-                    className={`flex justify-between items-center p-3 rounded-lg cursor-pointer transition-all hover:shadow-md relative ${
-                      isActive ? 'border-2 border-primary bg-primary/5' : 'border border-transparent hover:border-slate-200'
-                    }`}
+                    className={cn(
+                      'flex justify-between items-center p-3 rounded-lg cursor-pointer transition-all hover:shadow-md relative',
+                      isActive 
+                        ? 'border-2 border-primary bg-primary/5' 
+                        : 'border border-transparent hover:border-slate-200'
+                    )}
                     onClick={() => handleCostTypeClick(item.cost_type_id)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
@@ -335,9 +339,12 @@ export function ProjectCostsClient({
                 return (
                   <div 
                     key={item.cost_code_id} 
-                    className={`flex justify-between items-center py-2 px-3 rounded-lg cursor-pointer transition-all hover:shadow-md relative ${
-                      isActive ? 'border-2 border-primary bg-primary/5' : 'border border-transparent hover:border-slate-200'
-                    }`}
+                    className={cn(
+                      'flex justify-between items-center py-2 px-3 rounded-lg cursor-pointer transition-all hover:shadow-md relative',
+                      isActive 
+                        ? 'border-2 border-primary bg-primary/5' 
+                        : 'border border-transparent hover:border-slate-200'
+                    )}
                     onClick={() => handleCostCodeClick(item.cost_code_id)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
