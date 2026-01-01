@@ -383,6 +383,39 @@ export async function listReceiptsNeedingAllocation(): Promise<any[]> {
 }
 
 /**
+ * List all receipts with their allocation status
+ */
+export async function listReceiptsWithAllocationStatus(options?: {
+  allocation_status?: 'UNALLOCATED' | 'PARTIAL' | 'ALLOCATED' | 'OVERALLOCATED' | 'NO_LINES'
+}): Promise<any[]> {
+  const supabase = await createClient()
+  
+  let query = supabase
+    .from('vw_receipt_allocation_status')
+    .select('*')
+    .order('receipt_date', { ascending: false })
+  
+  if (options?.allocation_status) {
+    query = query.eq('allocation_status', options.allocation_status)
+  }
+  
+  const { data, error } = await query
+  
+  if (error) {
+    throw new Error(`Failed to list receipts with allocation status: ${error.message}`)
+  }
+  
+  return data || []
+}
+
+/**
+ * List completed (fully allocated) receipts
+ */
+export async function listCompletedReceipts(): Promise<any[]> {
+  return listReceiptsWithAllocationStatus({ allocation_status: 'ALLOCATED' })
+}
+
+/**
  * Get allocation status for a specific receipt
  */
 export async function getReceiptAllocationStatus(receiptId: string): Promise<any> {

@@ -2,14 +2,17 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { ArrowLeft, AlertTriangle } from 'lucide-react'
-import { listReceiptsNeedingAllocation } from '@/lib/data/receipts'
+import { ArrowLeft, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { listReceiptsNeedingAllocation, listCompletedReceipts } from '@/lib/data/receipts'
 import { AllocationStatusBadge } from '@/components/receipts/allocation-status-badge'
 import { formatCurrency } from '@/lib/utils/format-currency'
 import { format } from 'date-fns'
 
 export default async function AllocationDashboardPage() {
-  const receipts = await listReceiptsNeedingAllocation()
+  const [receipts, completedReceipts] = await Promise.all([
+    listReceiptsNeedingAllocation(),
+    listCompletedReceipts()
+  ])
   
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -28,10 +31,18 @@ export default async function AllocationDashboardPage() {
             </p>
           </div>
         </div>
+        {completedReceipts.length > 0 && (
+          <Button variant="outline" asChild>
+            <Link href="/app/receipts/completed">
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              View Completed ({completedReceipts.length})
+            </Link>
+          </Button>
+        )}
       </div>
       
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardHeader className="pb-3">
             <CardDescription>Total Receipts</CardDescription>
@@ -57,6 +68,18 @@ export default async function AllocationDashboardPage() {
               {receipts.filter(r => r.allocation_status === 'OVERALLOCATED').length}
               {receipts.some(r => r.allocation_status === 'OVERALLOCATED') && (
                 <AlertTriangle className="w-6 h-6 text-red-600" />
+              )}
+            </CardTitle>
+          </CardHeader>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-3">
+            <CardDescription>Completed</CardDescription>
+            <CardTitle className="text-3xl flex items-center gap-2 text-green-600">
+              {completedReceipts.length}
+              {completedReceipts.length > 0 && (
+                <CheckCircle2 className="w-6 h-6" />
               )}
             </CardTitle>
           </CardHeader>
