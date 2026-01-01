@@ -10,7 +10,8 @@ import {
   createReceiptLineItem,
   updateReceiptLineItem,
   deleteReceiptLineItem,
-  getNextLineNumber
+  getNextLineNumber,
+  lineItemHasAllocations
 } from '@/lib/data/receipts'
 import { createJobCostEntry } from '@/lib/data/cost-entries'
 import { receiptSchema, receiptLineItemSchema } from '@/lib/validations'
@@ -186,6 +187,15 @@ export async function createLineItemAction(formData: FormData) {
 export async function updateLineItemAction(id: string, formData: FormData) {
   const receiptId = formData.get('receipt_id') as string
   
+  // Check if line item has allocations before updating
+  const hasAllocations = await lineItemHasAllocations(id)
+  
+  if (hasAllocations) {
+    return { 
+      error: 'Cannot edit this line item. It has allocations. Delete allocations first to make changes.' 
+    }
+  }
+  
   const data = {
     description: formData.get('description') as string,
     qty: parseFloat(formData.get('qty') as string),
@@ -214,6 +224,15 @@ export async function updateLineItemAction(id: string, formData: FormData) {
 
 export async function deleteLineItemAction(id: string, receiptId: string) {
   try {
+    // Check if line item has allocations before deleting
+    const hasAllocations = await lineItemHasAllocations(id)
+    
+    if (hasAllocations) {
+      return { 
+        error: 'Cannot delete line item with allocations. Remove allocations first.' 
+      }
+    }
+    
     await deleteReceiptLineItem(id)
     revalidatePath(`/app/receipts/${receiptId}`)
     return { success: true }
