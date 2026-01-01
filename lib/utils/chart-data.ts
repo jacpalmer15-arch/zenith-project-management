@@ -25,24 +25,32 @@ export function groupCostsByPeriod(
     const dateStr = cost.txn_date || cost.date
     if (!dateStr) return
 
-    const date = parseISO(dateStr)
-    let key: string
+    try {
+      const date = parseISO(dateStr)
+      // Check if date is valid
+      if (isNaN(date.getTime())) return
 
-    switch (period) {
-      case 'week':
-        key = format(startOfWeek(date), 'yyyy-MM-dd')
-        break
-      case 'month':
-        key = format(startOfMonth(date), 'yyyy-MM-dd')
-        break
-      case 'day':
-      default:
-        key = format(date, 'yyyy-MM-dd')
-        break
+      let key: string
+
+      switch (period) {
+        case 'week':
+          key = format(startOfWeek(date), 'yyyy-MM-dd')
+          break
+        case 'month':
+          key = format(startOfMonth(date), 'yyyy-MM-dd')
+          break
+        case 'day':
+        default:
+          key = format(date, 'yyyy-MM-dd')
+          break
+      }
+
+      const currentAmount = grouped.get(key) || 0
+      grouped.set(key, currentAmount + (cost.amount || 0))
+    } catch (error) {
+      // Skip entries with invalid dates
+      console.warn(`Invalid date string: ${dateStr}`)
     }
-
-    const currentAmount = grouped.get(key) || 0
-    grouped.set(key, currentAmount + (cost.amount || 0))
   })
 
   return Array.from(grouped.entries())

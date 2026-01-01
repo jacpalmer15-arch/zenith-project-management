@@ -48,16 +48,13 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
 }
 
 export function CostDistributionChart({ data }: CostDistributionChartProps) {
-  const chartData = useMemo(() => {
-    const total = data.reduce((sum, item) => sum + item.total, 0)
-    return data.map((item) => ({
+  const { chartData, total } = useMemo(() => {
+    const calculatedTotal = data.reduce((sum, item) => sum + item.total, 0)
+    const chartData = data.map((item) => ({
       ...item,
-      percentage: total > 0 ? (item.total / total) * 100 : 0,
+      percentage: calculatedTotal > 0 ? (item.total / calculatedTotal) * 100 : 0,
     }))
-  }, [data])
-
-  const total = useMemo(() => {
-    return data.reduce((sum, item) => sum + item.total, 0)
+    return { chartData, total: calculatedTotal }
   }, [data])
 
   if (data.length === 0) {

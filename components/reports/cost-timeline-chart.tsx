@@ -39,16 +39,32 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (active && payload && payload.length) {
     const data = payload[0].payload
 
-    return (
-      <div className="bg-white dark:bg-slate-800 p-3 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg">
-        <p className="font-semibold text-slate-900 dark:text-slate-100">
-          {format(parseISO(data.date), 'MMM d, yyyy')}
-        </p>
-        <p className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">
-          {formatCurrency(data.amount)}
-        </p>
-      </div>
-    )
+    try {
+      const formattedDate = format(parseISO(data.date), 'MMM d, yyyy')
+      
+      return (
+        <div className="bg-white dark:bg-slate-800 p-3 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg">
+          <p className="font-semibold text-slate-900 dark:text-slate-100">
+            {formattedDate}
+          </p>
+          <p className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">
+            {formatCurrency(data.amount)}
+          </p>
+        </div>
+      )
+    } catch (error) {
+      // Fallback for invalid dates
+      return (
+        <div className="bg-white dark:bg-slate-800 p-3 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg">
+          <p className="font-semibold text-slate-900 dark:text-slate-100">
+            {data.date}
+          </p>
+          <p className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">
+            {formatCurrency(data.amount)}
+          </p>
+        </div>
+      )
+    }
   }
   return null
 }
