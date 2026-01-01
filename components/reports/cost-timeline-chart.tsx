@@ -25,9 +25,14 @@ interface CostTimelineChartProps {
   groupBy?: 'day' | 'week' | 'month'
 }
 
+interface TimelineDataPoint {
+  date: string
+  amount: number
+}
+
 interface CustomTooltipProps {
   active?: boolean
-  payload?: any[]
+  payload?: Array<{ payload: TimelineDataPoint }>
 }
 
 function CustomTooltip({ active, payload }: CustomTooltipProps) {

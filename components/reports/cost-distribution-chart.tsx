@@ -16,9 +16,15 @@ const CHART_COLORS = [
   'hsl(var(--chart-5))',
 ]
 
+interface ChartDataPoint {
+  cost_type: string
+  total: number
+  percentage: number
+}
+
 interface CustomTooltipProps {
   active?: boolean
-  payload?: any[]
+  payload?: Array<{ payload: ChartDataPoint }>
 }
 
 function CustomTooltip({ active, payload }: CustomTooltipProps) {
@@ -73,9 +79,10 @@ export function CostDistributionChart({ data }: CostDistributionChartProps) {
             cx="50%"
             cy="50%"
             outerRadius={100}
-            label={(entry: any) =>
-              `${entry.cost_type}: ${entry.percentage.toFixed(0)}%`
-            }
+            label={(props) => {
+              const entry = props as unknown as ChartDataPoint
+              return `${entry.cost_type}: ${entry.percentage.toFixed(0)}%`
+            }}
             labelLine={true}
           >
             {chartData.map((entry, index) => (

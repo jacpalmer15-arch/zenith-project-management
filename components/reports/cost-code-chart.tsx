@@ -26,9 +26,15 @@ const CHART_COLORS = [
   'hsl(var(--chart-5))',
 ]
 
+interface ChartDataPoint {
+  cost_code: string
+  cost_code_name: string
+  total: number
+}
+
 interface CustomTooltipProps {
   active?: boolean
-  payload?: any[]
+  payload?: Array<{ payload: ChartDataPoint }>
 }
 
 function CustomTooltip({ active, payload }: CustomTooltipProps) {
