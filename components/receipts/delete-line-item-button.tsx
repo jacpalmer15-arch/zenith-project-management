@@ -34,7 +34,7 @@ export function DeleteLineItemButton({ lineItemId, receiptId, disabled }: Delete
       const result = await deleteLineItemAction(lineItemId, receiptId)
       
       if (result?.error) {
-        toast.error('Error', {
+        toast.error('Delete Failed', {
           description: result.error,
         })
       } else {

@@ -40,7 +40,7 @@ export default async function ReceiptDetailPage({ params }: ReceiptDetailPagePro
   
   // Create a map of line item ID to allocation status for easy lookup
   const lineAllocationMap = new Map(
-    lineAllocationStatuses.map(status => [status.receipt_line_item_id, status])
+    (lineAllocationStatuses || []).map(status => [status.receipt_line_item_id, status])
   )
   
   const isFullyAllocated = allocationStatus?.allocation_status === 'ALLOCATED'

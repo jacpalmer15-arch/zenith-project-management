@@ -19,13 +19,16 @@ interface ReceiptsPageProps {
   }
 }
 
+// Age threshold for receipts in days
+const AGED_RECEIPT_THRESHOLD_DAYS = 7
+
 export default async function ReceiptsPage({ searchParams }: ReceiptsPageProps) {
   const filter = searchParams.filter || 'all'
   
   // Fetch receipts with allocation status
   const [allReceiptsWithStatus, aged, duplicates] = await Promise.all([
     listReceiptsWithAllocationStatus(),
-    getAgedReceipts(7),
+    getAgedReceipts(AGED_RECEIPT_THRESHOLD_DAYS),
     findDuplicateReceipts()
   ])
   
@@ -114,7 +117,7 @@ export default async function ReceiptsPage({ searchParams }: ReceiptsPageProps) 
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Aged Receipts</AlertTitle>
           <AlertDescription>
-            {aged.length} receipts are over 7 days old and unallocated
+            {aged.length} receipts are over {AGED_RECEIPT_THRESHOLD_DAYS} days old and unallocated
           </AlertDescription>
         </Alert>
       )}

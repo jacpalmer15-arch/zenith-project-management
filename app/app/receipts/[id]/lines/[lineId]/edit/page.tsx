@@ -17,7 +17,10 @@ export default async function EditLineItemPage({
     getReceipt(params.id),
     getReceiptLineItem(params.lineId),
     listParts({ is_active: true }),
-    getLineAllocationStatus(params.lineId).catch(() => null)
+    getLineAllocationStatus(params.lineId).catch((error) => {
+      console.warn('Failed to fetch allocation status:', error)
+      return null
+    })
   ])
   
   if (!receipt || !lineItem) {
