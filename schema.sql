@@ -213,6 +213,13 @@ begin
       where id = s.id;
     return out_no;
 
+  elsif p_kind = 'work_order' then
+    out_no := s.work_order_number_prefix || lpad(s.next_work_order_seq::text, 6, '0');
+    update public.settings
+      set next_work_order_seq = next_work_order_seq + 1
+      where id = s.id;
+    return out_no;
+
   else
     raise exception 'Unknown kind: %', p_kind;
   end if;
@@ -848,6 +855,8 @@ CREATE TABLE IF NOT EXISTS "public"."settings" (
     "next_project_seq" bigint DEFAULT 1 NOT NULL,
     "quote_number_prefix" "text" DEFAULT 'Q-'::"text" NOT NULL,
     "next_quote_seq" bigint DEFAULT 1 NOT NULL,
+    "work_order_number_prefix" "text" DEFAULT 'WO-'::"text" NOT NULL,
+    "next_work_order_seq" bigint DEFAULT 1 NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "created_by" "uuid",
