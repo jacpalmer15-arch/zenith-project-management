@@ -10,7 +10,15 @@ import {
   QuoteLineUpdate,
   QuoteStatus,
   QuoteType,
+  TaxRule,
 } from '@/lib/db'
+
+/**
+ * Quote with tax_rule relation
+ */
+interface QuoteWithTaxRule extends Quote {
+  tax_rule?: TaxRule | null
+}
 
 /**
  * Calculate line totals for a quote line
@@ -209,10 +217,10 @@ export async function createQuoteLine(
   const supabase = await createClient()
 
   // Get the quote to access the tax rule
-  const quote = await getQuote(quoteLine.quote_id)
+  const quote = (await getQuote(quoteLine.quote_id)) as QuoteWithTaxRule
   
   // Extract tax rate from the quote's tax_rule relation
-  const taxRate = Number((quote as any).tax_rule?.rate || 0)
+  const taxRate = Number(quote.tax_rule?.rate || 0)
 
   // Calculate line totals
   const { line_subtotal, line_tax, line_total } = calculateLineTotals(
@@ -253,16 +261,16 @@ export async function updateQuoteLine(
 ): Promise<QuoteLine> {
   const supabase = await createClient()
 
-  // Get the current quote line to access quote_id
-  const currentLine = await getQuoteLine(id)
-  const quote = await getQuote(currentLine.quote_id)
-  
-  // Extract tax rate from the quote's tax_rule relation
-  const taxRate = Number((quote as any).tax_rule?.rate || 0)
-
   // Calculate line totals if relevant fields are being updated
   let lineUpdates = { ...updates }
   if ('qty' in updates || 'unit_price' in updates || 'is_taxable' in updates) {
+    // Get the current quote line and quote with tax_rule in one call
+    const currentLine = await getQuoteLine(id)
+    const quote = (await getQuote(currentLine.quote_id)) as QuoteWithTaxRule
+    
+    // Extract tax rate from the quote's tax_rule relation
+    const taxRate = Number(quote.tax_rule?.rate || 0)
+
     const qty = Number(updates.qty ?? currentLine.qty)
     const unit_price = Number(updates.unit_price ?? currentLine.unit_price)
     const is_taxable = updates.is_taxable ?? currentLine.is_taxable
