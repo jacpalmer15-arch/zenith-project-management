@@ -11,7 +11,6 @@ import {
   QuoteStatus,
   QuoteType,
 } from '@/lib/db'
-import { getTaxRule } from './tax-rules'
 
 /**
  * Calculate line totals for a quote line
@@ -211,14 +210,16 @@ export async function createQuoteLine(
 
   // Get the quote to access the tax rule
   const quote = await getQuote(quoteLine.quote_id)
-  const taxRule = await getTaxRule(quote.tax_rule_id)
+  
+  // Extract tax rate from the quote's tax_rule relation
+  const taxRate = Number((quote as any).tax_rule?.rate || 0)
 
   // Calculate line totals
   const { line_subtotal, line_tax, line_total } = calculateLineTotals(
     Number(quoteLine.qty),
     Number(quoteLine.unit_price),
     quoteLine.is_taxable ?? true,
-    Number(taxRule.rate)
+    taxRate
   )
 
   const { data, error } = await supabase
@@ -255,7 +256,9 @@ export async function updateQuoteLine(
   // Get the current quote line to access quote_id
   const currentLine = await getQuoteLine(id)
   const quote = await getQuote(currentLine.quote_id)
-  const taxRule = await getTaxRule(quote.tax_rule_id)
+  
+  // Extract tax rate from the quote's tax_rule relation
+  const taxRate = Number((quote as any).tax_rule?.rate || 0)
 
   // Calculate line totals if relevant fields are being updated
   let lineUpdates = { ...updates }
@@ -268,7 +271,7 @@ export async function updateQuoteLine(
       qty,
       unit_price,
       is_taxable,
-      Number(taxRule.rate)
+      taxRate
     )
 
     lineUpdates = {
