@@ -10,7 +10,33 @@ import {
   QuoteLineUpdate,
   QuoteStatus,
   QuoteType,
+  TaxRule,
 } from '@/lib/db'
+
+/**
+ * Quote with tax_rule relation
+ */
+interface QuoteWithTaxRule extends Quote {
+  tax_rule?: TaxRule | null
+}
+
+/**
+ * Calculate line totals for a quote line
+ */
+function calculateLineTotals(
+  qty: number,
+  unit_price: number,
+  is_taxable: boolean,
+  tax_rate: number
+): { line_subtotal: number; line_tax: number; line_total: number } {
+  const line_subtotal = Math.round(qty * unit_price * 100) / 100
+  const line_tax = is_taxable
+    ? Math.round(line_subtotal * tax_rate * 100) / 100
+    : 0
+  const line_total = Math.round((line_subtotal + line_tax) * 100) / 100
+
+  return { line_subtotal, line_tax, line_total }
+}
 
 export interface ListQuotesOptions {
   project_id?: string
@@ -189,10 +215,29 @@ export async function createQuoteLine(
   quoteLine: QuoteLineInsert
 ): Promise<QuoteLine> {
   const supabase = await createClient()
+
+  // Get the quote to access the tax rule
+  const quote = (await getQuote(quoteLine.quote_id)) as QuoteWithTaxRule
   
+  // Extract tax rate from the quote's tax_rule relation
+  const taxRate = Number(quote.tax_rule?.rate || 0)
+
+  // Calculate line totals
+  const { line_subtotal, line_tax, line_total } = calculateLineTotals(
+    Number(quoteLine.qty),
+    Number(quoteLine.unit_price),
+    quoteLine.is_taxable ?? true,
+    taxRate
+  )
+
   const { data, error } = await supabase
     .from('quote_lines')
-    .insert(quoteLine as never)
+    .insert({
+      ...quoteLine,
+      line_subtotal,
+      line_tax,
+      line_total,
+    } as never)
     .select('*, part:parts(id, sku, name, uom)')
     .single()
   
@@ -215,10 +260,39 @@ export async function updateQuoteLine(
   updates: QuoteLineUpdate
 ): Promise<QuoteLine> {
   const supabase = await createClient()
-  
+
+  // Calculate line totals if relevant fields are being updated
+  let lineUpdates = { ...updates }
+  if ('qty' in updates || 'unit_price' in updates || 'is_taxable' in updates) {
+    // Get the current quote line and quote with tax_rule in one call
+    const currentLine = await getQuoteLine(id)
+    const quote = (await getQuote(currentLine.quote_id)) as QuoteWithTaxRule
+    
+    // Extract tax rate from the quote's tax_rule relation
+    const taxRate = Number(quote.tax_rule?.rate || 0)
+
+    const qty = Number(updates.qty ?? currentLine.qty)
+    const unit_price = Number(updates.unit_price ?? currentLine.unit_price)
+    const is_taxable = updates.is_taxable ?? currentLine.is_taxable
+
+    const { line_subtotal, line_tax, line_total } = calculateLineTotals(
+      qty,
+      unit_price,
+      is_taxable,
+      taxRate
+    )
+
+    lineUpdates = {
+      ...lineUpdates,
+      line_subtotal,
+      line_tax,
+      line_total,
+    }
+  }
+
   const { data, error } = await supabase
     .from('quote_lines')
-    .update(updates as never)
+    .update(lineUpdates as never)
     .eq('id', id)
     .select('*, part:parts(id, sku, name, uom)')
     .single()
@@ -247,6 +321,41 @@ export async function deleteQuoteLine(id: string): Promise<void> {
   
   if (error) {
     throw new Error(`Failed to delete quote line: ${error.message}`)
+  }
+}
+
+/**
+ * Recalculate and update quote totals based on all quote lines
+ */
+export async function recalculateQuoteTotals(quote_id: string): Promise<void> {
+  const supabase = await createClient()
+
+  // Get all quote lines
+  const lines = await listQuoteLines(quote_id)
+
+  // Calculate totals from lines
+  const subtotal = lines.reduce(
+    (sum, line) => sum + (Number(line.line_subtotal) || 0),
+    0
+  )
+  const tax_total = lines.reduce(
+    (sum, line) => sum + (Number(line.line_tax) || 0),
+    0
+  )
+  const total_amount = Math.round((subtotal + tax_total) * 100) / 100
+
+  // Update quote with calculated totals
+  const { error } = await supabase
+    .from('quotes')
+    .update({
+      subtotal: Math.round(subtotal * 100) / 100,
+      tax_total: Math.round(tax_total * 100) / 100,
+      total_amount,
+    } as never)
+    .eq('id', quote_id)
+
+  if (error) {
+    throw new Error(`Failed to update quote totals: ${error.message}`)
   }
 }
 
