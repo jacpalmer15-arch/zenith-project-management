@@ -10,7 +10,6 @@ export async function createScheduleEntryAction(data: {
   tech_user_id: string
   start_at: string
   end_at: string
-  status?: 'PLANNED' | 'DISPATCHED' | 'ARRIVED' | 'DONE' | 'CANCELED'
 }) {
   // Validate with zod
   const parsed = scheduleEntrySchema.safeParse(data)
@@ -43,7 +42,6 @@ export async function updateScheduleEntryAction(id: string, data: {
   tech_user_id?: string
   start_at?: string
   end_at?: string
-  status?: 'PLANNED' | 'DISPATCHED' | 'ARRIVED' | 'DONE' | 'CANCELED'
 }) {
   try {
     await updateScheduleEntry(id, data)
