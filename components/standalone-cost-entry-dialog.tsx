@@ -149,7 +149,7 @@ export function StandaloneCostEntryDialog({
                   </SelectTrigger>
                   <SelectContent>
                     {workOrders.length === 0 ? (
-                      <SelectItem value="" disabled>
+                      <SelectItem value="no-work-orders" disabled>
                         No work orders available
                       </SelectItem>
                     ) : (
