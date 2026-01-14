@@ -6,8 +6,11 @@ import { Pencil, Mail, Phone, MapPin } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { RelatedLinks } from '@/components/related-links'
 import { Badge } from '@/components/ui/badge'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
 
 export default async function CustomerDetailPage({ params }: { params: { id: string } }) {
+  const user = await getCurrentUser()
   let customer
   
   try {
@@ -19,7 +22,10 @@ export default async function CustomerDetailPage({ params }: { params: { id: str
   // Fetch related data
   const [projects, workOrders] = await Promise.all([
     listProjects({ customer_id: params.id }).catch(() => []),
-    listWorkOrders({ customer_id: params.id }).catch(() => [])
+    listWorkOrders({
+      customer_id: params.id,
+      assigned_to: user?.role === 'TECH' ? user.employee?.id : undefined,
+    }).catch(() => [])
   ])
 
   const relatedEntities: Array<{
@@ -63,14 +69,16 @@ export default async function CustomerDetailPage({ params }: { params: { id: str
           <h1 className="text-3xl font-bold text-slate-900">{customer.name}</h1>
           <p className="text-slate-600 mt-1">{customer.customer_no}</p>
         </div>
-        <div className="flex gap-2">
-          <Link href={`/app/customers/${params.id}/edit`}>
-            <Button>
-              <Pencil className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-          </Link>
-        </div>
+        {hasPermission(user?.role, 'edit_customers') && (
+          <div className="flex gap-2">
+            <Link href={`/app/customers/${params.id}/edit`}>
+              <Button>
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

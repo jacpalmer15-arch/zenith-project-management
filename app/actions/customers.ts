@@ -2,11 +2,19 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createCustomer, updateCustomer } from '@/lib/data'
+import { createCustomer, updateCustomer, getCustomer } from '@/lib/data'
 import { customerSchema } from '@/lib/validations/customers'
 import { getNextNumber } from '@/lib/data'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
+import { logAction } from '@/lib/audit/log'
 
 export async function createCustomerAction(formData: FormData) {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'edit_customers')) {
+    return { error: 'Permission denied' }
+  }
+
   // Parse form data
   const data = {
     name: formData.get('name') as string,
@@ -36,10 +44,13 @@ export async function createCustomerAction(formData: FormData) {
     const customerNo = await getNextNumber('customer')
     
     // Create customer
-    await createCustomer({
+    const customer = await createCustomer({
       ...parsed.data,
       customer_no: customerNo,
     })
+    if (user) {
+      await logAction('customers', customer.id, 'CREATE', user.id, null, customer)
+    }
 
     revalidatePath('/app/customers')
   } catch (error) {
@@ -51,6 +62,11 @@ export async function createCustomerAction(formData: FormData) {
 }
 
 export async function updateCustomerAction(id: string, formData: FormData) {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'edit_customers')) {
+    return { error: 'Permission denied' }
+  }
+
   // Parse form data
   const data = {
     name: formData.get('name') as string,
@@ -76,7 +92,11 @@ export async function updateCustomerAction(id: string, formData: FormData) {
   }
 
   try {
-    await updateCustomer(id, parsed.data)
+    const before = await getCustomer(id)
+    const updated = await updateCustomer(id, parsed.data)
+    if (user) {
+      await logAction('customers', id, 'UPDATE', user.id, before, updated)
+    }
     revalidatePath('/app/customers')
     revalidatePath(`/app/customers/${id}/edit`)
   } catch (error) {

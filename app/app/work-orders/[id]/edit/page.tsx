@@ -1,8 +1,15 @@
 import { getWorkOrder, listCustomers, getActiveEmployees, getLocationsByCustomer } from '@/lib/data'
 import { WorkOrderForm } from '@/components/work-order-form'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
 
 export default async function EditWorkOrderPage({ params }: { params: { id: string } }) {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'edit_work_orders')) {
+    redirect('/app/dashboard')
+  }
+
   let workOrder
   
   try {

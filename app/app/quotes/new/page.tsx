@@ -3,8 +3,16 @@ import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { NewQuoteForm } from '@/components/new-quote-form'
 import { listProjects, listTaxRules, listQuotes, listParts } from '@/lib/data'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
+import { redirect } from 'next/navigation'
 
 export default async function NewQuotePage() {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'edit_quotes')) {
+    redirect('/app/dashboard')
+  }
+
   const [projects, taxRules, quotes, parts] = await Promise.all([
     listProjects(),
     listTaxRules(),

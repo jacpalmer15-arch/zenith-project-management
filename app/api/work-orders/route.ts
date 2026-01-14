@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { listWorkOrders } from '@/lib/data/work-orders'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (!hasPermission(user.role, 'view_work_orders')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const searchParams = request.nextUrl.searchParams
     const status = searchParams.get('status')
     
@@ -13,7 +23,11 @@ export async function GET(request: NextRequest) {
     
     // Get work orders - if multiple statuses, we'll filter client side for simplicity
     // Or we can call listWorkOrders multiple times
-    const workOrders = await listWorkOrders()
+    const workOrders = await listWorkOrders(
+      user.role === 'TECH' && user.employee?.id
+        ? { assigned_to: user.employee.id }
+        : undefined
+    )
     
     // Filter by status if provided
     const filtered = statuses 

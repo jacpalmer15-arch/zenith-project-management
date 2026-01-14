@@ -11,13 +11,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { WorkOrderCostReconciliation } from '@/components/work-order-cost-reconciliation'
 import { CostEntriesList } from '@/components/cost-entries-list'
 import { RelatedLinks } from '@/components/related-links'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
 
 export default async function WorkOrderDetailPage({ params }: { params: { id: string } }) {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'view_work_orders')) {
+    notFound()
+  }
   let workOrder
   
   try {
     workOrder = await getWorkOrder(params.id)
   } catch (error) {
+    notFound()
+  }
+
+  if (
+    user?.role === 'TECH' &&
+    (!user.employee?.id || workOrder.assigned_to !== user.employee.id)
+  ) {
     notFound()
   }
 
@@ -63,7 +76,9 @@ export default async function WorkOrderDetailPage({ params }: { params: { id: st
         id: quote.id,
         label: quote.quote_no,
         href: `/app/quotes/${quote.id}`,
-        metadata: `${quote.status || 'Unknown'} - $${quote.total_amount?.toFixed(2) || '0.00'}`
+        metadata: user?.role === 'TECH'
+          ? `${quote.status || 'Unknown'}`
+          : `${quote.status || 'Unknown'} - $${quote.total_amount?.toFixed(2) || '0.00'}`
       })
     }
   })
@@ -79,30 +94,38 @@ export default async function WorkOrderDetailPage({ params }: { params: { id: st
             workOrderId={params.id}
             currentStatus={workOrder.status}
           />
+          {/* TODO(schema): add invoice_ready flag/status to support internal invoice-ready workflow. */}
           <Badge variant="outline">Priority {workOrder.priority}</Badge>
         </div>
         <div className="flex gap-2">
-          <Link href={`/app/work-orders/${params.id}/costs`}>
-            <Button variant="outline">
-              View Job Costs
-            </Button>
-          </Link>
-          {workOrder.status === 'COMPLETED' && (
+          {hasPermission(user?.role, 'view_costs') && (
+            <Link href={`/app/work-orders/${params.id}/costs`}>
+              <Button variant="outline">
+                View Job Costs
+              </Button>
+            </Link>
+          )}
+          {hasPermission(user?.role, 'edit_work_orders') && workOrder.status === 'COMPLETED' && (
             <WorkOrderCloseoutDialog workOrderId={params.id} />
           )}
-          <Link href={`/app/work-orders/${params.id}/edit`}>
-            <Button>
-              <Pencil className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-          </Link>
+          {hasPermission(user?.role, 'edit_work_orders') && (
+            <Link href={`/app/work-orders/${params.id}/edit`}>
+              <Button>
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="costs">Costs</TabsTrigger>
+          {/* TODO(schema): add work_order notes table + file entity type to support Notes/Files tabs. */}
+          {hasPermission(user?.role, 'view_costs') && (
+            <TabsTrigger value="costs">Costs</TabsTrigger>
+          )}
         </TabsList>
         
         <TabsContent value="overview" className="space-y-6">
@@ -212,7 +235,7 @@ export default async function WorkOrderDetailPage({ params }: { params: { id: st
       </div>
 
       {/* Contract Totals */}
-      {(workOrder.contract_total > 0) && (
+      {hasPermission(user?.role, 'view_costs') && workOrder.contract_total > 0 && (
         <div className="bg-white rounded-lg border border-slate-200 p-6">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">Contract</h2>
           <div className="space-y-2 text-sm">
@@ -246,12 +269,14 @@ export default async function WorkOrderDetailPage({ params }: { params: { id: st
       </div>
         </TabsContent>
         
-        <TabsContent value="costs" className="space-y-6">
-          <div className="grid gap-6">
-            <WorkOrderCostReconciliation workOrderId={params.id} />
-            <CostEntriesList workOrderId={params.id} />
-          </div>
-        </TabsContent>
+        {hasPermission(user?.role, 'view_costs') && (
+          <TabsContent value="costs" className="space-y-6">
+            <div className="grid gap-6">
+              <WorkOrderCostReconciliation workOrderId={params.id} />
+              <CostEntriesList workOrderId={params.id} />
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )

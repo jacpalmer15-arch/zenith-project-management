@@ -12,16 +12,31 @@ import {
 import { Clock } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
+import { redirect } from 'next/navigation'
 
 export default async function TimePage() {
-  const timeEntries = await listTimeEntries()
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'view_time')) {
+    redirect('/app/dashboard')
+  }
+  const timeEntries = await listTimeEntries({
+    tech_user_id: user?.role === 'TECH' ? user.employee?.id : undefined,
+  })
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Time Tracking</h1>
-          <p className="text-slate-600 mt-1">Employee time entries and labor tracking</p>
+          <h1 className="text-3xl font-bold text-slate-900">
+            {user?.role === 'TECH' ? 'My Time Entries' : 'Time Tracking'}
+          </h1>
+          <p className="text-slate-600 mt-1">
+            {user?.role === 'TECH'
+              ? 'Track your submitted hours'
+              : 'Employee time entries and labor tracking'}
+          </p>
         </div>
       </div>
 

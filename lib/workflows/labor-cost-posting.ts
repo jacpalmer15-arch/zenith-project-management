@@ -20,6 +20,37 @@ export async function postLaborCosts(
   workOrderId: string
 ): Promise<LaborPostResult> {
   const supabase = await createClient()
+
+  const { data: laborCostType, error: costTypeError } = await supabase
+    .from('cost_types')
+    .select('id, name')
+    .ilike('name', '%labor%')
+    .order('sort_order', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (costTypeError || !laborCostType) {
+    return {
+      success: false,
+      error: 'No labor cost type configured. Create a cost type with "Labor" in the name.'
+    }
+  }
+
+  const { data: laborCostCode, error: costCodeError } = await supabase
+    .from('cost_codes')
+    .select('id, code, name')
+    .eq('cost_type_id', laborCostType.id)
+    .ilike('name', '%labor%')
+    .order('sort_order', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (costCodeError || !laborCostCode) {
+    return {
+      success: false,
+      error: 'No labor cost code configured. Create a cost code with "Labor" in the name.'
+    }
+  }
   
   // Check if already posted
   const { data: existingCosts, error: checkError } = await supabase
@@ -93,8 +124,8 @@ export async function postLaborCosts(
     
     const costEntry = await createJobCostEntry({
       work_order_id: workOrderId,
-      cost_type_id: '00000000-0000-0000-0000-000000000000', // TODO: Map to labor cost type
-      cost_code_id: '00000000-0000-0000-0000-000000000000', // TODO: Map to labor cost code
+      cost_type_id: laborCostType.id,
+      cost_code_id: laborCostCode.id,
       description: `Labor - ${employeeName}`,
       qty: hours,
       unit_cost: laborRate,

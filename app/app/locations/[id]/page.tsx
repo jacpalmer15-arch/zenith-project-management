@@ -13,8 +13,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
+import { redirect } from 'next/navigation'
 
 export default async function LocationDetailPage({ params }: { params: { id: string } }) {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'view_customers')) {
+    redirect('/app/dashboard')
+  }
   let location
   
   try {
@@ -24,7 +31,10 @@ export default async function LocationDetailPage({ params }: { params: { id: str
   }
 
   // Get work orders for this location
-  const workOrders = await listWorkOrders({ customer_id: location.customer_id })
+  const workOrders = await listWorkOrders({
+    customer_id: location.customer_id,
+    assigned_to: user?.role === 'TECH' ? user.employee?.id : undefined,
+  })
   const locationWorkOrders = workOrders.filter(wo => wo.location_id === params.id)
 
   return (
@@ -44,12 +54,14 @@ export default async function LocationDetailPage({ params }: { params: { id: str
             </Badge>
           )}
         </div>
-        <Link href={`/app/locations/${params.id}/edit`}>
-          <Button>
-            <Pencil className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
-        </Link>
+        {hasPermission(user?.role, 'edit_customers') && (
+          <Link href={`/app/locations/${params.id}/edit`}>
+            <Button>
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">

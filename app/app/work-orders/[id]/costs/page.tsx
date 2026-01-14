@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
@@ -13,6 +13,8 @@ import {
 } from '@/lib/data'
 import { ExportCostsButton } from '@/components/reports/export-costs-button'
 import { WorkOrderCostsClient } from '@/components/reports/work-order-costs-client'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
 
 interface PageProps {
   params: { id: string }
@@ -23,6 +25,11 @@ export default async function WorkOrderCostsPage({
   params,
   searchParams
 }: PageProps) {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'view_costs')) {
+    redirect('/app/dashboard')
+  }
+
   let workOrder
   let costTypes
   let costCodes

@@ -2,20 +2,25 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createWorkOrder, updateWorkOrder, deleteWorkOrder } from '@/lib/data'
-import { canTransitionStatus } from '@/lib/utils/work-order-utils'
+import { createWorkOrder, updateWorkOrder, deleteWorkOrder, getWorkOrder } from '@/lib/data'
 import { getNextNumber } from '@/lib/data'
 import { workOrderSchema } from '@/lib/validations/work-orders'
 import { WorkStatus } from '@/lib/db'
 import { transitionWorkOrder } from '@/lib/workflows/work-order-lifecycle'
 import { validateWorkOrderClose } from '@/lib/workflows/work-order-closeout'
-import { withErrorHandling, handleWorkflowError } from '@/lib/errors/handler'
+import { withErrorHandling } from '@/lib/errors/handler'
 import { PermissionDeniedError, ValidationError } from '@/lib/errors'
 import { getCurrentUser } from '@/lib/auth/get-user'
 import { hasPermission } from '@/lib/auth/permissions'
 import { validateWorkOrderLocation } from '@/lib/validations/data-consistency'
+import { logAction } from '@/lib/audit/log'
 
 export async function createWorkOrderAction(formData: FormData) {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'edit_work_orders')) {
+    return { error: 'Permission denied' }
+  }
+
   // Parse form data
   const data = {
     customer_id: formData.get('customer_id') as string,
@@ -46,10 +51,13 @@ export async function createWorkOrderAction(formData: FormData) {
     const workOrderNo = await getNextNumber('work_order')
     
     // Create work order
-    await createWorkOrder({
+    const created = await createWorkOrder({
       ...parsed.data,
       work_order_no: workOrderNo,
     })
+    if (user) {
+      await logAction('work_orders', created.id, 'CREATE', user.id, null, created)
+    }
 
     revalidatePath('/app/work-orders')
   } catch (error) {
@@ -61,6 +69,11 @@ export async function createWorkOrderAction(formData: FormData) {
 }
 
 export async function updateWorkOrderAction(id: string, formData: FormData) {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'edit_work_orders')) {
+    return { error: 'Permission denied' }
+  }
+
   // Parse form data - exclude status from updates as it should only be changed via workflow
   const data = {
     customer_id: formData.get('customer_id') as string,
@@ -96,7 +109,11 @@ export async function updateWorkOrderAction(id: string, formData: FormData) {
       })
     }
     
-    await updateWorkOrder(id, updateData)
+    const before = await getWorkOrder(id)
+    const updated = await updateWorkOrder(id, updateData)
+    if (user) {
+      await logAction('work_orders', id, 'UPDATE', user.id, before, updated)
+    }
     revalidatePath('/app/work-orders')
     revalidatePath(`/app/work-orders/${id}`)
     revalidatePath(`/app/work-orders/${id}/edit`)
@@ -121,6 +138,18 @@ export async function updateWorkOrderStatusAction(
     }
     
     const result = await transitionWorkOrder(id, newStatus, reason)
+
+    if (user) {
+      await logAction(
+        'work_orders',
+        id,
+        'STATUS_CHANGE',
+        user.id,
+        { status: result.from },
+        { status: result.to },
+        reason || null
+      )
+    }
     
     revalidatePath('/app/work-orders')
     revalidatePath(`/app/work-orders/${id}`)
@@ -136,8 +165,14 @@ export async function deleteWorkOrderAction(id: string) {
     if (!hasPermission(user?.role, 'delete_records')) {
       throw new PermissionDeniedError('delete', 'work order')
     }
+
+    const before = await getWorkOrder(id)
     
     await deleteWorkOrder(id)
+
+    if (user) {
+      await logAction('work_orders', id, 'DELETE', user.id, before, null)
+    }
     
     revalidatePath('/app/work-orders')
     
@@ -160,6 +195,18 @@ export async function closeWorkOrder(id: string, reason: string) {
     }
     
     const result = await transitionWorkOrder(id, 'CLOSED', reason)
+
+    if (user) {
+      await logAction(
+        'work_orders',
+        id,
+        'STATUS_CHANGE',
+        user.id,
+        { status: result.from },
+        { status: result.to },
+        reason || null
+      )
+    }
     
     revalidatePath('/app/work-orders')
     revalidatePath(`/app/work-orders/${id}`)
