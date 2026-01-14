@@ -49,6 +49,7 @@ export function ProjectFilters({ customers }: ProjectFiltersProps) {
       }
     })
 
+    params.delete('page')
     router.push(`/app/projects?${params.toString()}`)
   }, [router, searchParams, searchValue, customerId, status])
 

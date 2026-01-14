@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createTimeEntry, updateTimeEntry, deleteTimeEntry, getTimeEntry, getWorkOrder } from '@/lib/data'
+import { createTimeEntry, updateTimeEntry, deleteTimeEntry, getTimeEntry, getWorkOrder, isTechAssignedToWorkOrder } from '@/lib/data'
 import { timeEntrySchema, validateTimeEntry } from '@/lib/validations/time-entries'
 import { validateTimeEntryMutable } from '@/lib/validations/data-consistency'
 import { getCurrentUser } from '@/lib/auth/get-user'
@@ -30,6 +30,12 @@ export async function createTimeEntryAction(data: {
     }
     if (user?.role === 'TECH' && user.employee?.id !== data.tech_user_id) {
       return { error: 'Technicians can only create their own time entries' }
+    }
+    if (user?.role === 'TECH' && user.employee?.id) {
+      const isAssigned = await isTechAssignedToWorkOrder(data.work_order_id, user.employee.id)
+      if (!isAssigned) {
+        return { error: 'You can only log time on work orders assigned to you' }
+      }
     }
     
     // Check if work order is closed

@@ -7,6 +7,15 @@ export interface ListCustomersOptions {
   search?: string
 }
 
+export interface ListCustomersWithCountOptions extends ListCustomersOptions {
+  has_email?: boolean
+  has_phone?: boolean
+  sort?: 'name' | 'customer_no' | 'created_at'
+  sort_direction?: 'asc' | 'desc'
+  limit?: number
+  offset?: number
+}
+
 /**
  * List all customers with optional search
  */
@@ -33,6 +42,53 @@ export async function listCustomers(
   }
   
   return data || []
+}
+
+/**
+ * List customers with pagination + count
+ */
+export async function listCustomersWithCount(
+  options?: ListCustomersWithCountOptions
+): Promise<{ data: Customer[]; count: number }> {
+  const supabase = await createClient()
+
+  const sortColumn = options?.sort || 'name'
+  const sortDirection = options?.sort_direction || 'asc'
+
+  let query = supabase
+    .from('customers')
+    .select('*', { count: 'exact' })
+    .order(sortColumn, { ascending: sortDirection === 'asc' })
+
+  if (options?.search) {
+    query = query.or(
+      `name.ilike.%${options.search}%,customer_no.ilike.%${options.search}%,contact_name.ilike.%${options.search}%`
+    )
+  }
+
+  if (options?.has_email) {
+    query = query.not('email', 'is', null).neq('email', '')
+  }
+
+  if (options?.has_phone) {
+    query = query.not('phone', 'is', null).neq('phone', '')
+  }
+
+  if (options?.limit) {
+    const start = options.offset || 0
+    query = query.range(start, start + options.limit - 1)
+  }
+
+  const { data, error, count } = await query
+
+  if (error) {
+    throw new Error(`Failed to fetch customers: ${error.message}`)
+  }
+
+  return {
+    data: data || [],
+    count: count || 0,
+  }
 }
 
 /**

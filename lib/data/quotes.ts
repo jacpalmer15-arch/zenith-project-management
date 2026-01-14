@@ -43,6 +43,7 @@ export interface ListQuotesOptions {
   work_order_id?: string
   status?: QuoteStatus
   quote_type?: QuoteType
+  search?: string
 }
 
 /**
@@ -73,6 +74,10 @@ export async function listQuotes(options?: ListQuotesOptions): Promise<Quote[]> 
   if (options?.quote_type) {
     query = query.eq('quote_type', options.quote_type)
   }
+
+  if (options?.search) {
+    query = query.ilike('quote_no', `%${options.search}%`)
+  }
   
   const { data, error } = await query
   
@@ -80,6 +85,86 @@ export async function listQuotes(options?: ListQuotesOptions): Promise<Quote[]> 
     throw new Error(`Failed to fetch quotes: ${error.message}`)
   }
   
+  return (data || []) as Quote[]
+}
+
+/**
+ * List quotes with pagination + count
+ */
+export async function listQuotesWithCount(
+  options?: ListQuotesOptions & { limit?: number; offset?: number }
+): Promise<{ data: Quote[]; count: number }> {
+  const supabase = await createClient()
+
+  let query = supabase
+    .from('quotes')
+    .select(
+      '*, project:projects(id, project_no, name, customer:customers(id, customer_no, name)), tax_rule:tax_rules(id, name, rate, is_active), parent_quote:quotes(id, quote_no)',
+      { count: 'exact' }
+    )
+    .order('created_at', { ascending: false })
+
+  if (options?.project_id) {
+    query = query.eq('project_id', options.project_id)
+  }
+
+  if (options?.work_order_id) {
+    query = query.eq('work_order_id', options.work_order_id)
+  }
+
+  if (options?.status) {
+    query = query.eq('status', options.status)
+  }
+
+  if (options?.quote_type) {
+    query = query.eq('quote_type', options.quote_type)
+  }
+
+  if (options?.search) {
+    query = query.ilike('quote_no', `%${options.search}%`)
+  }
+
+  if (options?.limit) {
+    const start = options.offset || 0
+    query = query.range(start, start + options.limit - 1)
+  }
+
+  const { data, error, count } = await query
+
+  if (error) {
+    throw new Error(`Failed to fetch quotes: ${error.message}`)
+  }
+
+  return {
+    data: (data || []) as Quote[],
+    count: count || 0,
+  }
+}
+
+/**
+ * List quotes for multiple projects
+ */
+export async function listQuotesByProjectIds(
+  projectIds: string[]
+): Promise<Quote[]> {
+  const supabase = await createClient()
+
+  if (projectIds.length === 0) {
+    return []
+  }
+
+  const { data, error } = await supabase
+    .from('quotes')
+    .select(
+      '*, project:projects(id, project_no, name, customer:customers(id, customer_no, name))'
+    )
+    .in('project_id', projectIds)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    throw new Error(`Failed to fetch quotes: ${error.message}`)
+  }
+
   return (data || []) as Quote[]
 }
 

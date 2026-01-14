@@ -3,8 +3,16 @@ import { listCustomers } from '@/lib/data'
 import { ProjectForm } from '@/components/project-form'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
+import { redirect } from 'next/navigation'
 
 export default async function NewProjectPage() {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'edit_projects')) {
+    redirect('/app/dashboard')
+  }
+
   const customers = await listCustomers()
 
   return (

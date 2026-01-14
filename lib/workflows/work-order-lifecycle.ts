@@ -42,7 +42,14 @@ export async function transitionWorkOrder(
     throw new ValidationError(issues)
   }
   
-  await updateWorkOrder(id, { status: to })
+  const updates: Record<string, any> = { status: to }
+  if (to === 'COMPLETED') {
+    updates.completed_at = new Date().toISOString()
+  }
+  if (to === 'CLOSED') {
+    updates.closed_at = new Date().toISOString()
+  }
+  await updateWorkOrder(id, updates)
   
   return {
     workOrderId: id,
@@ -52,4 +59,3 @@ export async function transitionWorkOrder(
     reason
   }
 }
-

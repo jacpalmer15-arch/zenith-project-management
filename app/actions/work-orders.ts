@@ -15,6 +15,129 @@ import { hasPermission } from '@/lib/auth/permissions'
 import { validateWorkOrderLocation } from '@/lib/validations/data-consistency'
 import { logAction } from '@/lib/audit/log'
 
+export async function assignWorkOrderTechAction(params: {
+  workOrderId: string
+  assignedTo: string | null
+}) {
+  return withErrorHandling(async () => {
+    const user = await getCurrentUser()
+
+    if (!hasPermission(user?.role, 'edit_work_orders')) {
+      throw new PermissionDeniedError('assign', 'work order')
+    }
+
+    const before = await getWorkOrder(params.workOrderId)
+    const updated = await updateWorkOrder(params.workOrderId, {
+      assigned_to: params.assignedTo,
+    })
+
+    if (user) {
+      await logAction('work_orders', params.workOrderId, 'UPDATE', user.id, before, updated)
+    }
+
+    revalidatePath('/app/work-orders')
+    revalidatePath(`/app/work-orders/${params.workOrderId}`)
+    return { success: true }
+  })
+}
+
+export async function bulkAssignWorkOrdersAction(params: {
+  ids: string[]
+  assignedTo: string | null
+}) {
+  return withErrorHandling(async () => {
+    const user = await getCurrentUser()
+
+    if (!hasPermission(user?.role, 'edit_work_orders')) {
+      throw new PermissionDeniedError('assign', 'work orders')
+    }
+
+    for (const id of params.ids) {
+      const before = await getWorkOrder(id)
+      const updated = await updateWorkOrder(id, { assigned_to: params.assignedTo })
+      if (user) {
+        await logAction('work_orders', id, 'UPDATE', user.id, before, updated)
+      }
+    }
+
+    revalidatePath('/app/work-orders')
+    return { success: true }
+  })
+}
+
+export async function bulkRescheduleWorkOrdersAction(params: {
+  ids: string[]
+  requested_window_start: string | null
+  requested_window_end: string | null
+}) {
+  return withErrorHandling(async () => {
+    const user = await getCurrentUser()
+
+    if (!hasPermission(user?.role, 'edit_work_orders')) {
+      throw new PermissionDeniedError('reschedule', 'work orders')
+    }
+
+    if (params.requested_window_start && params.requested_window_end) {
+      const start = new Date(params.requested_window_start)
+      const end = new Date(params.requested_window_end)
+      if (end <= start) {
+        throw new ValidationError(['Requested end must be after start'])
+      }
+    }
+
+    for (const id of params.ids) {
+      const before = await getWorkOrder(id)
+      const updated = await updateWorkOrder(id, {
+        requested_window_start: params.requested_window_start,
+        requested_window_end: params.requested_window_end,
+      })
+      if (user) {
+        await logAction('work_orders', id, 'UPDATE', user.id, before, updated)
+      }
+    }
+
+    revalidatePath('/app/work-orders')
+    return { success: true }
+  })
+}
+
+export async function bulkUpdateWorkOrderStatusAction(params: {
+  ids: string[]
+  status: WorkStatus
+}) {
+  return withErrorHandling(async () => {
+    const user = await getCurrentUser()
+
+    if (!hasPermission(user?.role, 'edit_work_orders')) {
+      throw new PermissionDeniedError('update status', 'work orders')
+    }
+
+    const results: { id: string; error?: string }[] = []
+
+    for (const id of params.ids) {
+      try {
+        const result = await transitionWorkOrder(id, params.status)
+        if (user) {
+          await logAction(
+            'work_orders',
+            id,
+            'STATUS_CHANGE',
+            user.id,
+            { status: result.from },
+            { status: result.to }
+          )
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Status update failed'
+        results.push({ id, error: message })
+      }
+    }
+
+    revalidatePath('/app/work-orders')
+    return { success: results.length === 0, errors: results }
+  })
+}
+
 export async function createWorkOrderAction(formData: FormData) {
   const user = await getCurrentUser()
   if (!hasPermission(user?.role, 'edit_work_orders')) {

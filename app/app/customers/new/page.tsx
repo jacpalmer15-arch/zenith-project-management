@@ -2,8 +2,15 @@ import Link from 'next/link'
 import { CustomerForm } from '@/components/customer-form'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
+import { redirect } from 'next/navigation'
 
-export default function NewCustomerPage() {
+export default async function NewCustomerPage() {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'edit_customers')) {
+    redirect('/app/dashboard')
+  }
   return (
     <div>
       <div className="mb-6">
