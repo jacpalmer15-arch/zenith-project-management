@@ -12,8 +12,15 @@ import { Badge } from '@/components/ui/badge'
 import { Calendar } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
+import { redirect } from 'next/navigation'
 
 export default async function SchedulePage() {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'view_schedule')) {
+    redirect('/app/dashboard')
+  }
   // Get current week
   const now = new Date()
   const weekStart = startOfWeek(now, { weekStartsOn: 1 }) // Monday
@@ -22,13 +29,16 @@ export default async function SchedulePage() {
   const scheduleEntries = await listScheduleEntries({
     start_date: weekStart.toISOString(),
     end_date: weekEnd.toISOString(),
+    tech_user_id: user?.role === 'TECH' ? user.employee?.id : undefined,
   })
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Schedule</h1>
+          <h1 className="text-3xl font-bold text-slate-900">
+            {user?.role === 'TECH' ? 'My Schedule' : 'Schedule'}
+          </h1>
           <p className="text-slate-600 mt-1">
             Week of {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
           </p>

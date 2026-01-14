@@ -2,10 +2,18 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createLocation, updateLocation } from '@/lib/data'
+import { createLocation, updateLocation, getLocation } from '@/lib/data'
 import { locationSchema } from '@/lib/validations/locations'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
+import { logAction } from '@/lib/audit/log'
 
 export async function createLocationAction(formData: FormData) {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'edit_customers')) {
+    return { error: 'Permission denied' }
+  }
+
   // Parse form data
   const data = {
     customer_id: formData.get('customer_id') as string,
@@ -26,7 +34,10 @@ export async function createLocationAction(formData: FormData) {
   }
 
   try {
-    await createLocation(parsed.data)
+    const location = await createLocation(parsed.data)
+    if (user) {
+      await logAction('locations', location.id, 'CREATE', user.id, null, location)
+    }
     revalidatePath('/app/locations')
     revalidatePath(`/app/customers/${data.customer_id}`)
   } catch (error) {
@@ -38,6 +49,11 @@ export async function createLocationAction(formData: FormData) {
 }
 
 export async function updateLocationAction(id: string, formData: FormData) {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'edit_customers')) {
+    return { error: 'Permission denied' }
+  }
+
   // Parse form data
   const data = {
     customer_id: formData.get('customer_id') as string,
@@ -58,7 +74,11 @@ export async function updateLocationAction(id: string, formData: FormData) {
   }
 
   try {
-    await updateLocation(id, parsed.data)
+    const before = await getLocation(id)
+    const updated = await updateLocation(id, parsed.data)
+    if (user) {
+      await logAction('locations', id, 'UPDATE', user.id, before, updated)
+    }
     revalidatePath('/app/locations')
     revalidatePath(`/app/locations/${id}`)
     revalidatePath(`/app/locations/${id}/edit`)

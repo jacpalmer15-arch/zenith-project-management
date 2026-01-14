@@ -11,6 +11,7 @@ import {
   SelectValue 
 } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { CostCode, CostType } from '@/lib/db'
 
 interface WorkOrder {
   id: string
@@ -20,16 +21,26 @@ interface WorkOrder {
 
 interface BulkAllocationToolbarProps {
   selectedIds: string[]
+  costTypes: CostType[]
+  costCodes: CostCode[]
   onClearSelection?: () => void
 }
 
 export function BulkAllocationToolbar({ 
   selectedIds, 
+  costTypes,
+  costCodes,
   onClearSelection 
 }: BulkAllocationToolbarProps) {
   const [workOrderId, setWorkOrderId] = useState<string>('')
+  const [costTypeId, setCostTypeId] = useState<string>('')
+  const [costCodeId, setCostCodeId] = useState<string>('')
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([])
   const [isLoading, setIsLoading] = useState(false)
+
+  const availableCostCodes = costTypeId
+    ? costCodes.filter((code) => code.cost_type_id === costTypeId)
+    : costCodes
   
   useEffect(() => {
     // Fetch active work orders
@@ -40,10 +51,15 @@ export function BulkAllocationToolbar({
   }, [])
   
   const handleBulkAllocate = async () => {
-    if (selectedIds.length === 0 || !workOrderId) return
+    if (selectedIds.length === 0 || !workOrderId || !costTypeId || !costCodeId) return
     
     setIsLoading(true)
-    const result = await bulkAllocateReceipts(selectedIds, workOrderId)
+    const result = await bulkAllocateReceipts(
+      selectedIds,
+      workOrderId,
+      costTypeId,
+      costCodeId
+    )
     setIsLoading(false)
     
     if (result.error) {
@@ -51,6 +67,8 @@ export function BulkAllocationToolbar({
     } else {
       toast.success(`Allocated ${result.allocated} receipts`)
       setWorkOrderId('')
+      setCostTypeId('')
+      setCostCodeId('')
       if (onClearSelection) {
         onClearSelection()
       }
@@ -79,10 +97,39 @@ export function BulkAllocationToolbar({
           ))}
         </SelectContent>
       </Select>
+
+      <Select value={costTypeId} onValueChange={(value) => {
+        setCostTypeId(value)
+        setCostCodeId('')
+      }}>
+        <SelectTrigger className="w-[220px]">
+          <SelectValue placeholder="Cost type..." />
+        </SelectTrigger>
+        <SelectContent>
+          {costTypes.map((type) => (
+            <SelectItem key={type.id} value={type.id}>
+              {type.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select value={costCodeId} onValueChange={setCostCodeId} disabled={!costTypeId}>
+        <SelectTrigger className="w-[220px]">
+          <SelectValue placeholder="Cost code..." />
+        </SelectTrigger>
+        <SelectContent>
+          {availableCostCodes.map((code) => (
+            <SelectItem key={code.id} value={code.id}>
+              {code.code} - {code.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       
       <Button
         onClick={handleBulkAllocate}
-        disabled={selectedIds.length === 0 || !workOrderId || isLoading}
+        disabled={selectedIds.length === 0 || !workOrderId || !costTypeId || !costCodeId || isLoading}
       >
         {isLoading ? 'Allocating...' : 'Allocate Selected'}
       </Button>

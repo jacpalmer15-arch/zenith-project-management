@@ -16,31 +16,35 @@ import { QuickActions } from '@/components/quick-actions'
 import { DashboardProfitCard } from '@/components/dashboard-profit-card'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle, Clock, Users } from 'lucide-react'
+import { getCurrentUser } from '@/lib/auth/get-user'
 
 export default async function DashboardPage() {
-  // Get active work orders for profit calculation
-  const activeWorkOrders = await listWorkOrders({ 
-    status: 'IN_PROGRESS' as WorkStatus
-  })
-  
-  // Fetch all dashboard data in parallel
+  const user = await getCurrentUser()
+  const isTech = user?.role === 'TECH'
+
+  const activeWorkOrders = isTech
+    ? []
+    : await listWorkOrders({ status: 'IN_PROGRESS' as WorkStatus })
+
   const [
     metrics,
-    recentQuotes,
     recentProjects,
-    profitSummary,
     completedThisWeek,
     unscheduledBacklog,
-    topCustomers,
   ] = await Promise.all([
     getDashboardMetrics(),
-    getRecentQuotes(5),
     getRecentProjects(5),
-    calculateProfitSummary(activeWorkOrders.map(wo => wo.id)),
     getCompletedThisWeek(),
     getUnscheduledBacklog(),
-    getTopCustomersByQuotes(),
   ])
+
+  const recentQuotes = isTech ? [] : await getRecentQuotes(5)
+
+  const profitSummary = isTech
+    ? null
+    : await calculateProfitSummary(activeWorkOrders.map(wo => wo.id))
+
+  const topCustomers = isTech ? [] : await getTopCustomersByQuotes()
 
   return (
     <div className="space-y-8">
@@ -49,12 +53,14 @@ export default async function DashboardPage() {
       {/* Enhanced Metrics Section - Stack on mobile, grid on desktop */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {/* Profit Preview */}
-        <DashboardProfitCard
-          totalRevenue={profitSummary.totalRevenue}
-          totalCosts={profitSummary.totalCosts}
-          totalProfit={profitSummary.totalProfit}
-          averageMarginPct={profitSummary.averageMarginPct}
-        />
+        {!isTech && profitSummary && (
+          <DashboardProfitCard
+            totalRevenue={profitSummary.totalRevenue}
+            totalCosts={profitSummary.totalCosts}
+            totalProfit={profitSummary.totalProfit}
+            averageMarginPct={profitSummary.averageMarginPct}
+          />
+        )}
 
         {/* Completed This Week */}
         <Card>
@@ -85,24 +91,26 @@ export default async function DashboardPage() {
         </Card>
 
         {/* Top Customers */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Top Customers (30d)</CardTitle>
-            <div className="p-2 rounded-lg bg-blue-50">
-              <Users className="w-4 h-4 text-blue-600" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{topCustomers.length}</div>
-            <p className="text-xs text-slate-500 mt-1">
-              By accepted quote totals
-            </p>
-          </CardContent>
-        </Card>
+        {!isTech && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Top Customers (30d)</CardTitle>
+              <div className="p-2 rounded-lg bg-blue-50">
+                <Users className="w-4 h-4 text-blue-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{topCustomers.length}</div>
+              <p className="text-xs text-slate-500 mt-1">
+                By accepted quote totals
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Top Customers Detail */}
-      {topCustomers.length > 0 && (
+      {!isTech && topCustomers.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Top Customers by Quote Total (Last 30 Days)</CardTitle>
@@ -130,12 +138,12 @@ export default async function DashboardPage() {
 
       {/* Recent Activity Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RecentQuotes quotes={recentQuotes} />
+        {!isTech && <RecentQuotes quotes={recentQuotes} />}
         <RecentProjects projects={recentProjects} />
       </div>
 
       {/* Quick Actions Section */}
-      <QuickActions />
+      {!isTech && <QuickActions />}
     </div>
   )
 }

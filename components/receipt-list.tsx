@@ -13,6 +13,8 @@ import { Clock, AlertTriangle } from 'lucide-react'
 
 interface ReceiptListProps {
   receipts: Receipt[]
+  costTypes?: Array<{ id: string; name: string }>
+  costCodes?: Array<{ id: string; code: string; name: string; cost_type_id: string }>
   showAge?: boolean
   showDuplicateWarning?: boolean
   agedReceipts?: ReceiptWithAge[]
@@ -20,6 +22,8 @@ interface ReceiptListProps {
 
 export function ReceiptList({ 
   receipts, 
+  costTypes = [],
+  costCodes = [],
   showAge = false, 
   showDuplicateWarning = false,
   agedReceipts = []
@@ -135,7 +139,9 @@ export function ReceiptList({
       
       {/* Bulk allocation toolbar */}
       <BulkAllocationToolbar 
-        selectedIds={selectedIds} 
+        selectedIds={selectedIds}
+        costTypes={costTypes}
+        costCodes={costCodes}
         onClearSelection={() => setSelectedIds([])}
       />
     </div>
