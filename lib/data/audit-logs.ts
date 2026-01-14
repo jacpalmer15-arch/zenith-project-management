@@ -30,6 +30,8 @@ export interface AuditLogEntry {
 
 export interface ListAuditLogsOptions {
   entity_type?: string
+  entity_id?: string
+  entity_ids?: string[]
   action?: string
   start_date?: string
   end_date?: string
@@ -53,6 +55,14 @@ export async function listAuditLogs(
 
   if (options?.entity_type) {
     query = query.eq('entity_type', options.entity_type)
+  }
+
+  if (options?.entity_id) {
+    query = query.eq('entity_id', options.entity_id)
+  }
+
+  if (options?.entity_ids && options.entity_ids.length > 0) {
+    query = query.in('entity_id', options.entity_ids)
   }
 
   if (options?.action) {

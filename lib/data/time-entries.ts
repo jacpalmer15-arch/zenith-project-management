@@ -9,6 +9,8 @@ export interface ListTimeEntriesOptions {
   start_date?: string
   end_date?: string
   clock_out?: null | 'not_null'
+  limit?: number
+  offset?: number
 }
 
 /**
@@ -47,6 +49,11 @@ export async function listTimeEntries(
   if (options?.clock_out === null) {
     query = query.is('clock_out_at', null)
   }
+
+  if (options?.limit) {
+    const start = options.offset || 0
+    query = query.range(start, start + options.limit - 1)
+  }
   
   const { data, error } = await query
   
@@ -55,6 +62,63 @@ export async function listTimeEntries(
   }
   
   return data as TimeEntryWithDetails[] || []
+}
+
+/**
+ * List time entries with pagination + count
+ */
+export async function listTimeEntriesWithCount(
+  options?: ListTimeEntriesOptions
+): Promise<{ data: TimeEntryWithDetails[]; count: number }> {
+  const supabase = await createClient()
+
+  let query = supabase
+    .from('work_order_time_entries')
+    .select(
+      `
+        *,
+        work_order:work_orders(*, customer:customers(*)),
+        employee:employees(*)
+      `,
+      { count: 'exact' }
+    )
+    .order('clock_in_at', { ascending: false })
+
+  if (options?.tech_user_id) {
+    query = query.eq('tech_user_id', options.tech_user_id)
+  }
+
+  if (options?.work_order_id) {
+    query = query.eq('work_order_id', options.work_order_id)
+  }
+
+  if (options?.start_date) {
+    query = query.gte('clock_in_at', options.start_date)
+  }
+
+  if (options?.end_date) {
+    query = query.lte('clock_in_at', options.end_date)
+  }
+
+  if (options?.clock_out === null) {
+    query = query.is('clock_out_at', null)
+  }
+
+  if (options?.limit) {
+    const start = options.offset || 0
+    query = query.range(start, start + options.limit - 1)
+  }
+
+  const { data, error, count } = await query
+
+  if (error) {
+    throw new Error(`Failed to fetch time entries: ${error.message}`)
+  }
+
+  return {
+    data: (data as TimeEntryWithDetails[]) || [],
+    count: count || 0,
+  }
 }
 
 /**

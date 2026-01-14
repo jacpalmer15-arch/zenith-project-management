@@ -6,7 +6,6 @@ const statusConfig: Record<QuoteStatus, { label: string; className: string }> = 
   SENT: { label: 'Sent', className: 'bg-blue-500' },
   ACCEPTED: { label: 'Accepted', className: 'bg-green-500' },
   REJECTED: { label: 'Rejected', className: 'bg-red-500' },
-  EXPIRED: { label: 'Expired', className: 'bg-yellow-500' },
 }
 
 export function QuoteStatusBadge({ status }: { status: QuoteStatus }) {

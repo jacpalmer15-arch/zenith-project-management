@@ -23,6 +23,7 @@ import { validateQuoteParent } from '@/lib/validations/data-consistency'
 import { getCurrentUser } from '@/lib/auth/get-user'
 import { hasPermission } from '@/lib/auth/permissions'
 import { logAction } from '@/lib/audit/log'
+import { QuoteStatus } from '@/lib/db'
 
 async function resolveWorkOrderLocationId(
   projectId: string,
@@ -329,7 +330,8 @@ export async function acceptQuoteAction(id: string) {
 
     // TODO(db): move accept+create work order flow into a transactional RPC for atomicity.
     const existing = await getQuote(id)
-    if (existing.status !== 'ACCEPTED') {
+    const wasAccepted = existing.status === 'ACCEPTED'
+    if (!wasAccepted) {
       await acceptQuote(id)
       if (user) {
         await logAction('quotes', id, 'STATUS_CHANGE', user.id, { status: existing.status }, { status: 'ACCEPTED' })
@@ -338,7 +340,7 @@ export async function acceptQuoteAction(id: string) {
 
     const refreshed = await getQuote(id)
 
-    if (!refreshed.work_order_id) {
+    if (!wasAccepted && !refreshed.work_order_id) {
       const project = await getProject(refreshed.project_id)
       const locationId = await resolveWorkOrderLocationId(
         refreshed.project_id,
@@ -409,7 +411,7 @@ export async function deleteQuoteLineAction(lineId: string, quoteId: string) {
   }
 }
 
-export async function updateQuoteStatusAction(id: string, status: 'DRAFT' | 'SENT' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED') {
+export async function updateQuoteStatusAction(id: string, status: QuoteStatus) {
   try {
     const user = await getCurrentUser()
     if (!hasPermission(user?.role, 'edit_quotes')) {
@@ -431,5 +433,40 @@ export async function updateQuoteStatusAction(id: string, status: 'DRAFT' | 'SEN
   } catch (error) {
     console.error('Error updating quote status:', error)
     return { error: 'Failed to update quote status' }
+  }
+}
+
+export async function bulkUpdateQuoteStatusAction(params: {
+  ids: string[]
+  status: QuoteStatus
+}) {
+  try {
+    const user = await getCurrentUser()
+    if (!hasPermission(user?.role, 'edit_quotes')) {
+      return { error: 'Permission denied' }
+    }
+
+    const results: { id: string; error?: string }[] = []
+
+    for (const id of params.ids) {
+      if (params.status === 'ACCEPTED') {
+        const result = await acceptQuoteAction(id)
+        if (result?.error) {
+          results.push({ id, error: result.error })
+        }
+        continue
+      }
+
+      const result = await updateQuoteStatusAction(id, params.status)
+      if (result?.error) {
+        results.push({ id, error: result.error })
+      }
+    }
+
+    revalidatePath('/app/quotes')
+    return { success: results.length === 0, errors: results }
+  } catch (error) {
+    console.error('Error bulk updating quote statuses:', error)
+    return { error: 'Failed to update quote statuses' }
   }
 }

@@ -1,4 +1,4 @@
-import { listTimeEntries } from '@/lib/data'
+import { listTimeEntriesWithCount, getActiveEmployees, listWorkOrders } from '@/lib/data'
 import { calculateHours } from '@/lib/utils/work-order-utils'
 import { format } from 'date-fns'
 import {
@@ -15,15 +15,48 @@ import { Button } from '@/components/ui/button'
 import { getCurrentUser } from '@/lib/auth/get-user'
 import { hasPermission } from '@/lib/auth/permissions'
 import { redirect } from 'next/navigation'
+import { TimeEntryFilters } from '@/components/time-entry-filters'
+import { Pagination } from '@/components/pagination'
 
-export default async function TimePage() {
+interface TimePageProps {
+  searchParams: {
+    tech_user_id?: string
+    work_order_id?: string
+    start_date?: string
+    end_date?: string
+    page?: string
+  }
+}
+
+const PAGE_SIZE = 10
+
+export default async function TimePage({ searchParams }: TimePageProps) {
   const user = await getCurrentUser()
   if (!hasPermission(user?.role, 'view_time')) {
     redirect('/app/dashboard')
   }
-  const timeEntries = await listTimeEntries({
-    tech_user_id: user?.role === 'TECH' ? user.employee?.id : undefined,
+
+  const page = Math.max(parseInt(searchParams.page || '1', 10), 1)
+  const offset = (page - 1) * PAGE_SIZE
+
+  const techFilter = user?.role === 'TECH' ? user.employee?.id : searchParams.tech_user_id
+  if (user?.role === 'TECH' && !techFilter) {
+    redirect('/app/dashboard')
+  }
+
+  const { data: timeEntries, count } = await listTimeEntriesWithCount({
+    tech_user_id: techFilter,
+    work_order_id: searchParams.work_order_id,
+    start_date: searchParams.start_date,
+    end_date: searchParams.end_date,
+    limit: PAGE_SIZE,
+    offset,
   })
+
+  const totalPages = Math.ceil(count / PAGE_SIZE)
+
+  const employees = await getActiveEmployees()
+  const workOrders = await listWorkOrders({ limit: 50, offset: 0 })
 
   return (
     <div>
@@ -38,6 +71,14 @@ export default async function TimePage() {
               : 'Employee time entries and labor tracking'}
           </p>
         </div>
+      </div>
+
+      <div className="mb-6">
+        <TimeEntryFilters
+          employees={employees}
+          workOrders={workOrders}
+          isTech={user?.role === 'TECH'}
+        />
       </div>
 
       {timeEntries.length === 0 ? (
@@ -103,6 +144,12 @@ export default async function TimePage() {
               })}
             </TableBody>
           </Table>
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={count}
+            itemsPerPage={PAGE_SIZE}
+          />
         </div>
       )}
     </div>

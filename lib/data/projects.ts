@@ -9,6 +9,11 @@ export interface ListProjectsOptions {
   search?: string
 }
 
+export interface ListProjectsWithCountOptions extends ListProjectsOptions {
+  limit?: number
+  offset?: number
+}
+
 /**
  * List all projects with optional filters
  */
@@ -43,6 +48,50 @@ export async function listProjects(
   }
   
   return (data || []) as Project[]
+}
+
+/**
+ * List projects with pagination + count
+ */
+export async function listProjectsWithCount(
+  options?: ListProjectsWithCountOptions
+): Promise<{ data: Project[]; count: number }> {
+  const supabase = await createClient()
+
+  let query = supabase
+    .from('projects')
+    .select('*, customer:customers(id, customer_no, name, contact_name)', { count: 'exact' })
+    .order('created_at', { ascending: false })
+
+  if (options?.customer_id) {
+    query = query.eq('customer_id', options.customer_id)
+  }
+
+  if (options?.status) {
+    query = query.eq('status', options.status)
+  }
+
+  if (options?.search) {
+    query = query.or(
+      `name.ilike.%${options.search}%,project_no.ilike.%${options.search}%`
+    )
+  }
+
+  if (options?.limit) {
+    const start = options.offset || 0
+    query = query.range(start, start + options.limit - 1)
+  }
+
+  const { data, error, count } = await query
+
+  if (error) {
+    throw new Error(`Failed to fetch projects: ${error.message}`)
+  }
+
+  return {
+    data: (data || []) as Project[],
+    count: count || 0,
+  }
 }
 
 /**

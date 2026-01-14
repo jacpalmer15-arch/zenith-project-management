@@ -1,9 +1,11 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { getProject, listCustomers } from '@/lib/data'
 import { ProjectForm } from '@/components/project-form'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
 
 interface EditProjectPageProps {
   params: {
@@ -12,6 +14,11 @@ interface EditProjectPageProps {
 }
 
 export default async function EditProjectPage({ params }: EditProjectPageProps) {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'edit_projects')) {
+    redirect('/app/dashboard')
+  }
+
   let project
   try {
     project = await getProject(params.id)

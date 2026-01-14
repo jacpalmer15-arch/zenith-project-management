@@ -1,9 +1,11 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { getCustomer } from '@/lib/data'
 import { CustomerForm } from '@/components/customer-form'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
 
 interface EditCustomerPageProps {
   params: {
@@ -12,6 +14,11 @@ interface EditCustomerPageProps {
 }
 
 export default async function EditCustomerPage({ params }: EditCustomerPageProps) {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'edit_customers')) {
+    redirect('/app/dashboard')
+  }
+
   let customer
   try {
     customer = await getCustomer(params.id)

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { listProjects, listCustomers } from '@/lib/data'
+import { listProjectsWithCount, listCustomers } from '@/lib/data'
 import { ProjectFilters } from '@/components/project-filters'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
@@ -11,15 +11,20 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Pencil, Briefcase } from 'lucide-react'
+import { Briefcase, Eye } from 'lucide-react'
 import { Project, ProjectStatus } from '@/lib/db'
 import { EmptyState } from '@/components/empty-state'
+import { Pagination } from '@/components/pagination'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
+import { redirect } from 'next/navigation'
 
 interface ProjectsPageProps {
   searchParams: {
     search?: string
     customer_id?: string
     status?: string
+    page?: string
   }
 }
 
@@ -32,22 +37,40 @@ type ProjectWithCustomer = Project & {
   } | null
 }
 
+const PAGE_SIZE = 10
+
 export default async function ProjectsPage({ searchParams }: ProjectsPageProps) {
-  const projects = await listProjects({
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'view_projects')) {
+    redirect('/app/dashboard')
+  }
+
+  const page = Math.max(parseInt(searchParams.page || '1', 10), 1)
+  const offset = (page - 1) * PAGE_SIZE
+
+  const { data: projects, count } = await listProjectsWithCount({
     search: searchParams.search,
     customer_id: searchParams.customer_id,
     status: searchParams.status as ProjectStatus | undefined,
+    limit: PAGE_SIZE,
+    offset,
   })
-  
+
   const customers = await listCustomers()
+  const totalPages = Math.ceil(count / PAGE_SIZE)
 
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Projects</h1>
-        <Link href="/app/projects/new">
-          <Button className="w-full sm:w-auto">Add Project</Button>
-        </Link>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Projects</h1>
+          <p className="text-slate-600 mt-1">Track project scopes and quoting workflows</p>
+        </div>
+        {hasPermission(user?.role, 'edit_projects') && (
+          <Link href="/app/projects/new">
+            <Button className="w-full sm:w-auto">Add Project</Button>
+          </Link>
+        )}
       </div>
 
       <div className="mb-6">
@@ -67,16 +90,19 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
               icon={Briefcase}
               title="No projects yet"
               description="Create a project to start quoting."
-              action={{
-                label: 'Add Project',
-                href: '/app/projects/new',
-              }}
+              action={
+                hasPermission(user?.role, 'edit_projects')
+                  ? {
+                      label: 'Add Project',
+                      href: '/app/projects/new',
+                    }
+                  : undefined
+              }
             />
           )}
         </div>
       ) : (
         <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-          {/* Desktop view - table */}
           <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
@@ -94,7 +120,7 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
                   const jobLocation = [project.job_city, project.job_state]
                     .filter(Boolean)
                     .join(', ') || '-'
-                  
+
                   return (
                     <TableRow key={project.id}>
                       <TableCell className="font-medium">{project.project_no}</TableCell>
@@ -107,9 +133,9 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
                       </TableCell>
                       <TableCell>{jobLocation}</TableCell>
                       <TableCell>
-                        <Link href={`/app/projects/${project.id}/edit`}>
-                          <Button variant="ghost" size="icon" aria-label="Edit project">
-                            <Pencil className="h-4 w-4" />
+                        <Link href={`/app/projects/${project.id}`}>
+                          <Button variant="ghost" size="icon" aria-label="View project">
+                            <Eye className="h-4 w-4" />
                           </Button>
                         </Link>
                       </TableCell>
@@ -120,13 +146,12 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
             </Table>
           </div>
 
-          {/* Mobile view - cards */}
           <div className="md:hidden divide-y divide-slate-200">
             {(projects as ProjectWithCustomer[]).map((project) => {
               const jobLocation = [project.job_city, project.job_state]
                 .filter(Boolean)
                 .join(', ') || '-'
-              
+
               return (
                 <div key={project.id} className="p-4 space-y-2">
                   <div className="flex justify-between items-start gap-2">
@@ -134,9 +159,9 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
                       <p className="font-medium text-slate-900 truncate">{project.name}</p>
                       <p className="text-sm text-slate-500">{project.project_no}</p>
                     </div>
-                    <Link href={`/app/projects/${project.id}/edit`}>
-                      <Button variant="ghost" size="icon" aria-label="Edit project" className="min-h-[44px] min-w-[44px]">
-                        <Pencil className="h-4 w-4" />
+                    <Link href={`/app/projects/${project.id}`}>
+                      <Button variant="ghost" size="icon" aria-label="View project" className="min-h-[44px] min-w-[44px]">
+                        <Eye className="h-4 w-4" />
                       </Button>
                     </Link>
                   </div>
@@ -153,6 +178,12 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
               )
             })}
           </div>
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={count}
+            itemsPerPage={PAGE_SIZE}
+          />
         </div>
       )}
     </div>

@@ -34,6 +34,7 @@ export function QuoteFilters({ projects }: QuoteFiltersProps) {
     } else {
       params.delete(key)
     }
+    params.delete('page')
     router.push(`/app/quotes?${params.toString()}`)
   }, [router, searchParams])
 
