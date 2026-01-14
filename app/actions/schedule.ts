@@ -1,9 +1,12 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createScheduleEntry, updateScheduleEntry, deleteScheduleEntry } from '@/lib/data'
+import { createScheduleEntry, updateScheduleEntry, deleteScheduleEntry, getScheduleEntry } from '@/lib/data'
 import { scheduleEntrySchema } from '@/lib/validations/schedule'
 import { onScheduleCreated, onScheduleStarted, onScheduleEnded } from '@/lib/workflows/schedule-sync'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
+import { logAction } from '@/lib/audit/log'
 
 export async function createScheduleEntryAction(data: {
   work_order_id: string
@@ -11,6 +14,11 @@ export async function createScheduleEntryAction(data: {
   start_at: string
   end_at: string
 }) {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'edit_schedule')) {
+    return { error: 'Permission denied' }
+  }
+
   // Validate with zod
   const parsed = scheduleEntrySchema.safeParse(data)
   
@@ -21,9 +29,24 @@ export async function createScheduleEntryAction(data: {
   try {
     // Create schedule entry
     const schedule = await createScheduleEntry(parsed.data)
+
+    if (user) {
+      await logAction('work_order_schedule', schedule.id, 'CREATE', user.id, null, schedule)
+    }
     
     // Trigger auto-transition
-    await onScheduleCreated(schedule)
+    const transition = await onScheduleCreated(schedule)
+    if (transition && user) {
+      await logAction(
+        'work_orders',
+        transition.workOrderId,
+        'STATUS_CHANGE',
+        user.id,
+        { status: transition.from },
+        { status: transition.to },
+        transition.reason || null
+      )
+    }
 
     revalidatePath('/app/schedule')
     revalidatePath('/app/work-orders')
@@ -44,7 +67,16 @@ export async function updateScheduleEntryAction(id: string, data: {
   end_at?: string
 }) {
   try {
-    await updateScheduleEntry(id, data)
+    const user = await getCurrentUser()
+    if (!hasPermission(user?.role, 'edit_schedule')) {
+      return { error: 'Permission denied' }
+    }
+
+    const before = await getScheduleEntry(id)
+    const updated = await updateScheduleEntry(id, data)
+    if (user) {
+      await logAction('work_order_schedule', id, 'UPDATE', user.id, before, updated)
+    }
     
     revalidatePath('/app/schedule')
     revalidatePath('/app/work-orders')
@@ -61,7 +93,16 @@ export async function updateScheduleEntryAction(id: string, data: {
 
 export async function deleteScheduleEntryAction(id: string, workOrderId: string) {
   try {
+    const user = await getCurrentUser()
+    if (!hasPermission(user?.role, 'edit_schedule')) {
+      return { error: 'Permission denied' }
+    }
+
+    const before = await getScheduleEntry(id)
     await deleteScheduleEntry(id)
+    if (user) {
+      await logAction('work_order_schedule', id, 'DELETE', user.id, before, null)
+    }
     
     revalidatePath('/app/schedule')
     revalidatePath('/app/work-orders')
@@ -76,7 +117,23 @@ export async function deleteScheduleEntryAction(id: string, workOrderId: string)
 
 export async function startScheduleAction(scheduleId: string) {
   try {
-    await onScheduleStarted(scheduleId)
+    const user = await getCurrentUser()
+    if (!hasPermission(user?.role, 'edit_schedule')) {
+      return { error: 'Permission denied' }
+    }
+
+    const transition = await onScheduleStarted(scheduleId)
+    if (transition && user) {
+      await logAction(
+        'work_orders',
+        transition.workOrderId,
+        'STATUS_CHANGE',
+        user.id,
+        { status: transition.from },
+        { status: transition.to },
+        transition.reason || null
+      )
+    }
     
     revalidatePath('/app/schedule')
     return { success: true }
@@ -88,6 +145,11 @@ export async function startScheduleAction(scheduleId: string) {
 
 export async function endScheduleAction(scheduleId: string) {
   try {
+    const user = await getCurrentUser()
+    if (!hasPermission(user?.role, 'edit_schedule')) {
+      return { error: 'Permission denied' }
+    }
+
     await onScheduleEnded(scheduleId)
     
     revalidatePath('/app/schedule')

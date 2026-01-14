@@ -14,9 +14,20 @@ import { Badge } from '@/components/ui/badge'
 import { WorkOrderStatusBadge } from '@/components/work-order-status-badge'
 import { formatDistanceToNow } from 'date-fns'
 import { EmptyState } from '@/components/empty-state'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
+import { redirect } from 'next/navigation'
 
 export default async function WorkOrdersPage() {
-  const workOrders = await listWorkOrders()
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'view_work_orders')) {
+    redirect('/app/dashboard')
+  }
+  const workOrders = await listWorkOrders(
+    user?.role === 'TECH' && user.employee?.id
+      ? { assigned_to: user.employee.id }
+      : undefined
+  )
 
   return (
     <div>
@@ -25,9 +36,11 @@ export default async function WorkOrdersPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Work Orders</h1>
           <p className="text-slate-600 mt-1">Service work orders and field jobs</p>
         </div>
-        <Link href="/app/work-orders/new">
-          <Button className="w-full sm:w-auto">New Work Order</Button>
-        </Link>
+        {hasPermission(user?.role, 'edit_work_orders') && (
+          <Link href="/app/work-orders/new">
+            <Button className="w-full sm:w-auto">New Work Order</Button>
+          </Link>
+        )}
       </div>
 
       {workOrders.length === 0 ? (

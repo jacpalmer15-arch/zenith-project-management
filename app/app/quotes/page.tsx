@@ -15,6 +15,9 @@ import { listQuotes, listProjects } from '@/lib/data'
 import { Plus, Eye, FileText } from 'lucide-react'
 import type { QuoteStatus, QuoteType } from '@/lib/db'
 import { EmptyState } from '@/components/empty-state'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
+import { redirect } from 'next/navigation'
 
 interface PageProps {
   searchParams: {
@@ -26,6 +29,11 @@ interface PageProps {
 }
 
 export default async function QuotesPage({ searchParams }: PageProps) {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'view_quotes')) {
+    redirect('/app/dashboard')
+  }
+
   const filters: any = {}
   
   if (searchParams.project_id) {
@@ -103,10 +111,7 @@ export default async function QuotesPage({ searchParams }: PageProps) {
               </TableHeader>
               <TableBody>
                 {filteredQuotes.map((quote: any) => {
-                  // TODO: Total should be calculated from quote_lines aggregation
-                  // Currently showing 0 as we don't have total stored on quote header
-                  // For production, consider adding total field to quotes table or using RPC
-                  const total = 0
+                  const total = Number(quote.total_amount || 0)
                   
                   return (
                     <TableRow key={quote.id}>
@@ -147,7 +152,7 @@ export default async function QuotesPage({ searchParams }: PageProps) {
           {/* Mobile view - cards */}
           <div className="md:hidden divide-y divide-slate-200">
             {filteredQuotes.map((quote: any) => {
-              const total = 0
+                      const total = Number(quote.total_amount || 0)
               
               return (
                 <div key={quote.id} className="p-4 space-y-2">

@@ -11,15 +11,16 @@ export async function validateQuoteParent(
   const hasProject = !!quoteData.project_id
   const hasWorkOrder = !!quoteData.work_order_id
   
-  if (!hasProject && !hasWorkOrder) {
+  if (!hasProject) {
     throw new ValidationError([
-      'Quote must be linked to either a Project or Work Order'
+      'Quote must be linked to a Project'
     ])
   }
-  
-  if (hasProject && hasWorkOrder) {
+
+  if (hasWorkOrder) {
+    // TODO(schema): allow quotes to reference work orders directly (nullable project_id or relaxed check constraint).
     throw new ValidationError([
-      'Quote cannot be linked to both a Project and Work Order'
+      'Quote cannot be linked to a work order with the current schema'
     ])
   }
 }
@@ -30,6 +31,7 @@ export async function validateQuoteParent(
 export async function validateWorkOrderLocation(
   workOrderData: { location_id?: string | null }
 ): Promise<void> {
+  // TODO(schema): allow nullable work_orders.location_id to support customer-level job sites.
   if (!workOrderData.location_id) {
     throw new ValidationError([
       'Work Order must have a service location'

@@ -5,6 +5,8 @@ import { createTimeEntry, updateTimeEntry, deleteTimeEntry, getTimeEntry, getWor
 import { timeEntrySchema, validateTimeEntry } from '@/lib/validations/time-entries'
 import { validateTimeEntryMutable } from '@/lib/validations/data-consistency'
 import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
+import { logAction } from '@/lib/audit/log'
 
 export async function createTimeEntryAction(data: {
   work_order_id: string
@@ -23,6 +25,12 @@ export async function createTimeEntryAction(data: {
 
   try {
     const user = await getCurrentUser()
+    if (!hasPermission(user?.role, 'edit_time')) {
+      return { error: 'Permission denied' }
+    }
+    if (user?.role === 'TECH' && user.employee?.id !== data.tech_user_id) {
+      return { error: 'Technicians can only create their own time entries' }
+    }
     
     // Check if work order is closed
     await validateTimeEntryMutable(
@@ -39,7 +47,10 @@ export async function createTimeEntryAction(data: {
       }
     }
     
-    await createTimeEntry(parsed.data)
+    const entry = await createTimeEntry(parsed.data)
+    if (user) {
+      await logAction('work_order_time_entries', entry.id, 'CREATE', user.id, null, entry)
+    }
 
     revalidatePath('/app/time')
     revalidatePath('/app/work-orders')
@@ -65,9 +76,15 @@ export async function updateTimeEntryAction(id: string, data: {
 }) {
   try {
     const user = await getCurrentUser()
+    if (!hasPermission(user?.role, 'edit_time')) {
+      return { error: 'Permission denied' }
+    }
     
     // Check work order status
     const existing = await getTimeEntry(id)
+    if (user?.role === 'TECH' && existing.tech_user_id !== user.employee?.id) {
+      return { error: 'Technicians can only edit their own time entries' }
+    }
     const wo = await getWorkOrder(existing.work_order_id)
     
     // Check if work order is closed
@@ -100,7 +117,10 @@ export async function updateTimeEntryAction(id: string, data: {
       }
     }
     
-    await updateTimeEntry(id, data)
+    const updated = await updateTimeEntry(id, data)
+    if (user) {
+      await logAction('work_order_time_entries', id, 'UPDATE', user.id, existing, updated)
+    }
     
     revalidatePath('/app/time')
     revalidatePath('/app/work-orders')
@@ -119,6 +139,13 @@ export async function updateTimeEntryAction(id: string, data: {
 export async function deleteTimeEntryAction(id: string, workOrderId: string) {
   try {
     const user = await getCurrentUser()
+    if (!hasPermission(user?.role, 'edit_time')) {
+      return { error: 'Permission denied' }
+    }
+    const existing = await getTimeEntry(id)
+    if (user?.role === 'TECH' && existing.tech_user_id !== user.employee?.id) {
+      return { error: 'Technicians can only delete their own time entries' }
+    }
     
     // Check if work order is closed
     await validateTimeEntryMutable(
@@ -127,6 +154,9 @@ export async function deleteTimeEntryAction(id: string, workOrderId: string) {
     )
     
     await deleteTimeEntry(id)
+    if (user) {
+      await logAction('work_order_time_entries', id, 'DELETE', user.id, existing, null)
+    }
     
     revalidatePath('/app/time')
     revalidatePath('/app/work-orders')

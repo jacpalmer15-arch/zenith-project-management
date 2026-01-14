@@ -12,12 +12,14 @@ export async function onScheduleCreated(scheduleEntry: WorkOrderSchedule) {
   const wo = await getWorkOrder(scheduleEntry.work_order_id)
   
   if (wo.status === 'UNSCHEDULED') {
-    await transitionWorkOrder(
+    return await transitionWorkOrder(
       wo.id, 
       'SCHEDULED',
       'Auto-transitioned when schedule entry created'
     )
   }
+
+  return null
 }
 
 /**
@@ -31,12 +33,14 @@ export async function onScheduleStarted(scheduleId: string) {
   
   const wo = await getWorkOrder(schedule.work_order_id)
   if (wo.status === 'SCHEDULED') {
-    await transitionWorkOrder(
+    return await transitionWorkOrder(
       wo.id,
       'IN_PROGRESS',
       'Started from schedule'
     )
   }
+
+  return null
 }
 
 /**

@@ -11,13 +11,22 @@ import {
   updateReceiptLineItem,
   deleteReceiptLineItem,
   getNextLineNumber,
-  lineItemHasAllocations
+  lineItemHasAllocations,
+  getReceiptLineItem
 } from '@/lib/data/receipts'
 import { createJobCostEntry } from '@/lib/data/cost-entries'
 import { receiptSchema, receiptLineItemSchema } from '@/lib/validations'
 import { ReceiptInsert, ReceiptUpdate } from '@/lib/db'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
+import { logAction } from '@/lib/audit/log'
 
 export async function createReceiptAction(formData: FormData) {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'edit_receipts')) {
+    return { error: 'Permission denied' }
+  }
+
   // Parse form data - preserve null for missing fields
   const data = {
     vendor_name: formData.has('vendor_name') ? (formData.get('vendor_name') as string) : null,
@@ -45,6 +54,9 @@ export async function createReceiptAction(formData: FormData) {
     }
     
     const receipt = await createReceipt(receiptData)
+    if (user) {
+      await logAction('receipts', receipt.id, 'CREATE', user.id, null, receipt)
+    }
 
     revalidatePath('/app/receipts')
     redirect(`/app/receipts/${receipt.id}`)
@@ -55,6 +67,11 @@ export async function createReceiptAction(formData: FormData) {
 }
 
 export async function updateReceiptAction(id: string, formData: FormData) {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'edit_receipts')) {
+    return { error: 'Permission denied' }
+  }
+
   // Parse form data - preserve null for missing fields
   const data = {
     vendor_name: formData.has('vendor_name') ? (formData.get('vendor_name') as string) : null,
@@ -81,7 +98,11 @@ export async function updateReceiptAction(id: string, formData: FormData) {
       notes: parsed.data.notes,
     }
     
-    await updateReceipt(id, receiptData)
+    const before = await getReceipt(id)
+    const updated = await updateReceipt(id, receiptData)
+    if (user) {
+      await logAction('receipts', id, 'UPDATE', user.id, before, updated)
+    }
     revalidatePath('/app/receipts')
     revalidatePath(`/app/receipts/${id}`)
   } catch (error) {
@@ -94,7 +115,16 @@ export async function updateReceiptAction(id: string, formData: FormData) {
 
 export async function deleteReceiptAction(id: string) {
   try {
+    const user = await getCurrentUser()
+    if (!hasPermission(user?.role, 'edit_receipts')) {
+      return { error: 'Permission denied' }
+    }
+
+    const before = await getReceipt(id)
     await deleteReceipt(id)
+    if (user) {
+      await logAction('receipts', id, 'DELETE', user.id, before, null)
+    }
     revalidatePath('/app/receipts')
   } catch (error) {
     console.error('Error deleting receipt:', error)
@@ -109,32 +139,45 @@ export async function deleteReceiptAction(id: string) {
  */
 export async function bulkAllocateReceipts(
   receiptIds: string[],
-  workOrderId: string
+  workOrderId: string,
+  costTypeId: string,
+  costCodeId: string
 ) {
   try {
+    const user = await getCurrentUser()
+    if (!hasPermission(user?.role, 'edit_costs')) {
+      return { error: 'Permission denied' }
+    }
+
     const results = []
     
     for (const receiptId of receiptIds) {
       const receipt = await getReceipt(receiptId)
       
       // Allocate to work order
-      await updateReceipt(receiptId, {
+      const updatedReceipt = await updateReceipt(receiptId, {
         is_allocated: true,
         allocated_to_work_order_id: workOrderId,
         allocated_overhead_bucket: null
       })
+      if (user) {
+        await logAction('receipts', receiptId, 'UPDATE', user.id, receipt, updatedReceipt)
+      }
       
       // Create cost entry
-      await createJobCostEntry({
+      const costEntry = await createJobCostEntry({
         work_order_id: workOrderId,
-        cost_type_id: '00000000-0000-0000-0000-000000000000', // TODO: Map to appropriate cost type
-        cost_code_id: '00000000-0000-0000-0000-000000000000', // TODO: Map to appropriate cost code
+        cost_type_id: costTypeId,
+        cost_code_id: costCodeId,
         description: `Receipt - ${receipt.vendor_name}`,
         qty: 1,
         unit_cost: receipt.total_amount,
         receipt_id: receiptId,
         txn_date: receipt.receipt_date
       })
+      if (user) {
+        await logAction('job_cost_entries', costEntry.id, 'CREATE', user.id, null, costEntry)
+      }
       
       results.push({ receiptId, success: true })
     }
@@ -153,6 +196,11 @@ export async function bulkAllocateReceipts(
 }
 
 export async function createLineItemAction(formData: FormData) {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'edit_receipts')) {
+    return { error: 'Permission denied' }
+  }
+
   const receiptId = formData.get('receipt_id') as string
   
   // Get next line number
@@ -175,7 +223,10 @@ export async function createLineItemAction(formData: FormData) {
   }
   
   try {
-    await createReceiptLineItem(parsed.data)
+    const lineItem = await createReceiptLineItem(parsed.data)
+    if (user) {
+      await logAction('receipt_line_items', lineItem.id, 'CREATE', user.id, null, lineItem)
+    }
     revalidatePath(`/app/receipts/${receiptId}`)
     return { success: true }
   } catch (error) {
@@ -185,6 +236,11 @@ export async function createLineItemAction(formData: FormData) {
 }
 
 export async function updateLineItemAction(id: string, formData: FormData) {
+  const user = await getCurrentUser()
+  if (!hasPermission(user?.role, 'edit_receipts')) {
+    return { error: 'Permission denied' }
+  }
+
   const receiptId = formData.get('receipt_id') as string
   
   // Check if line item has allocations before updating
@@ -213,7 +269,11 @@ export async function updateLineItemAction(id: string, formData: FormData) {
   }
   
   try {
-    await updateReceiptLineItem(id, parsed.data)
+    const before = await getReceiptLineItem(id)
+    const updated = await updateReceiptLineItem(id, parsed.data)
+    if (user) {
+      await logAction('receipt_line_items', id, 'UPDATE', user.id, before, updated)
+    }
     revalidatePath(`/app/receipts/${receiptId}`)
     return { success: true }
   } catch (error) {
@@ -224,6 +284,11 @@ export async function updateLineItemAction(id: string, formData: FormData) {
 
 export async function deleteLineItemAction(id: string, receiptId: string) {
   try {
+    const user = await getCurrentUser()
+    if (!hasPermission(user?.role, 'edit_receipts')) {
+      return { error: 'Permission denied' }
+    }
+
     // Check if line item has allocations before deleting
     const hasAllocations = await lineItemHasAllocations(id)
     
@@ -233,7 +298,11 @@ export async function deleteLineItemAction(id: string, receiptId: string) {
       }
     }
     
+    const before = await getReceiptLineItem(id)
     await deleteReceiptLineItem(id)
+    if (user) {
+      await logAction('receipt_line_items', id, 'DELETE', user.id, before, null)
+    }
     revalidatePath(`/app/receipts/${receiptId}`)
     return { success: true }
   } catch (error) {

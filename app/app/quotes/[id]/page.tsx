@@ -1,7 +1,9 @@
 import { getQuote, listQuoteLines, listProjects, listTaxRules, listQuotes, listParts, getWorkOrder } from '@/lib/data'
 import { QuoteDetails } from '@/components/quote-details'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { RelatedLinks } from '@/components/related-links'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/permissions'
 
 interface PageProps {
   params: {
@@ -11,6 +13,11 @@ interface PageProps {
 
 export default async function QuoteDetailPage({ params }: PageProps) {
   try {
+    const user = await getCurrentUser()
+    if (!hasPermission(user?.role, 'view_quotes')) {
+      redirect('/app/dashboard')
+    }
+
     const [quote, lines, projects, taxRules, quotes, parts] = await Promise.all([
       getQuote(params.id),
       listQuoteLines(params.id),
