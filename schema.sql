@@ -213,13 +213,6 @@ begin
       where id = s.id;
     return out_no;
 
-  elsif p_kind = 'work_order' then
-    out_no := s.work_order_number_prefix || lpad(s.next_work_order_seq::text, 6, '0');
-    update public.settings
-      set next_work_order_seq = next_work_order_seq + 1
-      where id = s.id;
-    return out_no;
-
   else
     raise exception 'Unknown kind: %', p_kind;
   end if;
@@ -818,7 +811,9 @@ CREATE TABLE IF NOT EXISTS "public"."receipts" (
     "allocated_overhead_bucket" "text",
     "created_by" "uuid",
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "vendor_id" "uuid",
+    "vendor_name_raw" "text"
 );
 
 
@@ -855,8 +850,6 @@ CREATE TABLE IF NOT EXISTS "public"."settings" (
     "next_project_seq" bigint DEFAULT 1 NOT NULL,
     "quote_number_prefix" "text" DEFAULT 'Q-'::"text" NOT NULL,
     "next_quote_seq" bigint DEFAULT 1 NOT NULL,
-    "work_order_number_prefix" "text" DEFAULT 'WO-'::"text" NOT NULL,
-    "next_work_order_seq" bigint DEFAULT 1 NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "created_by" "uuid",
@@ -886,6 +879,83 @@ CREATE TABLE IF NOT EXISTS "public"."tax_rules" (
 
 
 ALTER TABLE "public"."tax_rules" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."vendor_accounts" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "vendor_id" "uuid" NOT NULL,
+    "system" "text" NOT NULL,
+    "external_vendor_id" "text" NOT NULL,
+    "last_synced_at" timestamp with time zone
+);
+
+
+ALTER TABLE "public"."vendor_accounts" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."vendor_aliases" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "vendor_id" "uuid" NOT NULL,
+    "alias" "text" NOT NULL,
+    "normalized_alias" "text" NOT NULL,
+    "source" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."vendor_aliases" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."vendor_contacts" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "vendor_id" "uuid" NOT NULL,
+    "name" "text",
+    "email" "text",
+    "phone" "text",
+    "role" "text",
+    "is_primary" boolean DEFAULT false NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."vendor_contacts" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."vendor_locations" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "vendor_id" "uuid" NOT NULL,
+    "location_name" "text",
+    "address1" "text",
+    "address2" "text",
+    "city" "text",
+    "state" "text",
+    "postal_code" "text",
+    "country" "text" DEFAULT 'US'::"text",
+    "phone" "text",
+    "is_primary" boolean DEFAULT false NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."vendor_locations" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."vendors" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "vendor_code" "text",
+    "display_name" "text" NOT NULL,
+    "legal_name" "text",
+    "tax_id" "text",
+    "website" "text",
+    "notes" "text",
+    "is_active" boolean DEFAULT true NOT NULL,
+    "created_by" "uuid",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."vendors" OWNER TO "postgres";
 
 
 CREATE OR REPLACE VIEW "public"."vw_receipt_line_allocation_status" AS
@@ -1185,6 +1255,51 @@ ALTER TABLE ONLY "public"."qbo_entity_map"
 
 
 
+ALTER TABLE ONLY "public"."vendor_accounts"
+    ADD CONSTRAINT "vendor_accounts_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."vendor_accounts"
+    ADD CONSTRAINT "vendor_accounts_system_external_vendor_id_key" UNIQUE ("system", "external_vendor_id");
+
+
+
+ALTER TABLE ONLY "public"."vendor_accounts"
+    ADD CONSTRAINT "vendor_accounts_vendor_id_system_key" UNIQUE ("vendor_id", "system");
+
+
+
+ALTER TABLE ONLY "public"."vendor_aliases"
+    ADD CONSTRAINT "vendor_aliases_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."vendor_aliases"
+    ADD CONSTRAINT "vendor_aliases_vendor_id_normalized_alias_key" UNIQUE ("vendor_id", "normalized_alias");
+
+
+
+ALTER TABLE ONLY "public"."vendor_contacts"
+    ADD CONSTRAINT "vendor_contacts_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."vendor_locations"
+    ADD CONSTRAINT "vendor_locations_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."vendors"
+    ADD CONSTRAINT "vendors_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."vendors"
+    ADD CONSTRAINT "vendors_vendor_code_key" UNIQUE ("vendor_code");
+
+
+
 ALTER TABLE ONLY "public"."work_order_schedule"
     ADD CONSTRAINT "work_order_schedule_pkey" PRIMARY KEY ("id");
 
@@ -1377,6 +1492,22 @@ CREATE INDEX "ix_receipt_line_items_part_id" ON "public"."receipt_line_items" US
 
 
 CREATE INDEX "ix_receipt_line_items_receipt_id" ON "public"."receipt_line_items" USING "btree" ("receipt_id");
+
+
+
+CREATE INDEX "ix_vendor_aliases_normalized" ON "public"."vendor_aliases" USING "btree" ("normalized_alias");
+
+
+
+CREATE INDEX "ix_vendor_contacts_vendor" ON "public"."vendor_contacts" USING "btree" ("vendor_id");
+
+
+
+CREATE INDEX "ix_vendor_locations_vendor" ON "public"."vendor_locations" USING "btree" ("vendor_id");
+
+
+
+CREATE INDEX "ix_vendors_display_name" ON "public"."vendors" USING "btree" ("display_name");
 
 
 
@@ -1608,6 +1739,31 @@ ALTER TABLE ONLY "public"."receipts"
 
 ALTER TABLE ONLY "public"."receipts"
     ADD CONSTRAINT "receipts_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id");
+
+
+
+ALTER TABLE ONLY "public"."receipts"
+    ADD CONSTRAINT "receipts_vendor_id_fkey" FOREIGN KEY ("vendor_id") REFERENCES "public"."vendors"("id");
+
+
+
+ALTER TABLE ONLY "public"."vendor_accounts"
+    ADD CONSTRAINT "vendor_accounts_vendor_id_fkey" FOREIGN KEY ("vendor_id") REFERENCES "public"."vendors"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."vendor_aliases"
+    ADD CONSTRAINT "vendor_aliases_vendor_id_fkey" FOREIGN KEY ("vendor_id") REFERENCES "public"."vendors"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."vendor_contacts"
+    ADD CONSTRAINT "vendor_contacts_vendor_id_fkey" FOREIGN KEY ("vendor_id") REFERENCES "public"."vendors"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."vendor_locations"
+    ADD CONSTRAINT "vendor_locations_vendor_id_fkey" FOREIGN KEY ("vendor_id") REFERENCES "public"."vendors"("id") ON DELETE CASCADE;
 
 
 
@@ -2033,6 +2189,36 @@ GRANT ALL ON TABLE "public"."settings" TO "service_role";
 GRANT ALL ON TABLE "public"."tax_rules" TO "anon";
 GRANT ALL ON TABLE "public"."tax_rules" TO "authenticated";
 GRANT ALL ON TABLE "public"."tax_rules" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."vendor_accounts" TO "anon";
+GRANT ALL ON TABLE "public"."vendor_accounts" TO "authenticated";
+GRANT ALL ON TABLE "public"."vendor_accounts" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."vendor_aliases" TO "anon";
+GRANT ALL ON TABLE "public"."vendor_aliases" TO "authenticated";
+GRANT ALL ON TABLE "public"."vendor_aliases" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."vendor_contacts" TO "anon";
+GRANT ALL ON TABLE "public"."vendor_contacts" TO "authenticated";
+GRANT ALL ON TABLE "public"."vendor_contacts" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."vendor_locations" TO "anon";
+GRANT ALL ON TABLE "public"."vendor_locations" TO "authenticated";
+GRANT ALL ON TABLE "public"."vendor_locations" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."vendors" TO "anon";
+GRANT ALL ON TABLE "public"."vendors" TO "authenticated";
+GRANT ALL ON TABLE "public"."vendors" TO "service_role";
 
 
 
