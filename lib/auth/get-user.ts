@@ -12,23 +12,45 @@ export type CurrentUser = {
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   const supabase = await createClient()
-  
+
   const { data: { user } } = await supabase.auth.getUser()
   if (!user || !user.email) return null
-  
-  // Look up employee record by email
-  const { data: employeeData, error } = await supabase
+
+  const { data: employeeById } = await supabase
     .from('employees')
     .select('*')
-    .eq('email', user.email)
+    .eq('user_id', user.id)
     .maybeSingle()
-  
-  const employee = employeeData as Employee | null
-  
+
+  if (employeeById) {
+    return {
+      id: user.id,
+      email: user.email,
+      role: normalizeRole(employeeById.role) || 'TECH',
+      employee: employeeById as Employee,
+    }
+  }
+
+  await supabase.rpc('link_employee_user_id')
+
+  const { data: linkedEmployee } = await supabase
+    .from('employees')
+    .select('*')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (linkedEmployee) {
+    return {
+      id: user.id,
+      email: user.email,
+      role: normalizeRole(linkedEmployee.role) || 'TECH',
+      employee: linkedEmployee as Employee,
+    }
+  }
+
   return {
     id: user.id,
     email: user.email,
-    role: normalizeRole(employee?.role) || 'TECH',
-    employee: employee || undefined
+    role: 'TECH',
   }
 }
