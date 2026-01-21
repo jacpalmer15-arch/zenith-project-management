@@ -122,6 +122,10 @@ declare
   base_total numeric(12,2);
   co_total   numeric(12,2);
 begin
+  if not public.is_admin_or_office() then
+    raise exception 'permission denied';
+  end if;
+
   select * into q
   from public.quotes
   where id = p_quote_id
@@ -175,11 +179,36 @@ begin
       contract_amount = base_total + co_total,
       status = 'Active'
   where id = q.project_id;
-
 end $$;
 
 
 ALTER FUNCTION "public"."accept_quote"("p_quote_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."current_employee_id"() RETURNS "uuid"
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  select e.id
+  from public.employees e
+  where e.user_id = auth.uid();
+$$;
+
+
+ALTER FUNCTION "public"."current_employee_id"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."current_employee_role"() RETURNS "text"
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  select upper(e.role)
+  from public.employees e
+  where e.user_id = auth.uid();
+$$;
+
+
+ALTER FUNCTION "public"."current_employee_role"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_next_number"("p_kind" "text") RETURNS "text"
@@ -190,6 +219,10 @@ declare
   s public.settings%rowtype;
   out_no text;
 begin
+  if not public.is_admin_or_office() then
+    raise exception 'permission denied';
+  end if;
+
   select * into s from public.settings limit 1 for update;
 
   if p_kind = 'customer' then
@@ -213,6 +246,13 @@ begin
       where id = s.id;
     return out_no;
 
+  elsif p_kind = 'work_order' then
+    out_no := s.work_order_number_prefix || lpad(s.next_work_order_seq::text, 6, '0');
+    update public.settings
+      set next_work_order_seq = next_work_order_seq + 1
+      where id = s.id;
+    return out_no;
+
   else
     raise exception 'Unknown kind: %', p_kind;
   end if;
@@ -220,6 +260,79 @@ end $$;
 
 
 ALTER FUNCTION "public"."get_next_number"("p_kind" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_user_email"("p_user_id" "uuid") RETURNS "text"
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+begin
+  if not public.is_admin() then
+    return null;
+  end if;
+
+  return (select email from auth.users where id = p_user_id);
+end;
+$$;
+
+
+ALTER FUNCTION "public"."get_user_email"("p_user_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."is_admin"() RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  select coalesce((public.current_employee_role() = 'ADMIN'), false);
+$$;
+
+
+ALTER FUNCTION "public"."is_admin"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."is_admin_or_office"() RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  select coalesce((public.current_employee_role() in ('ADMIN', 'OFFICE')), false);
+$$;
+
+
+ALTER FUNCTION "public"."is_admin_or_office"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."link_employee_user_id"() RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  emp_id uuid;
+begin
+  if auth.uid() is null then
+    return null;
+  end if;
+
+  select id
+  into emp_id
+  from public.employees
+  where user_id is null
+    and email is not null
+    and lower(email) = lower(auth.jwt() ->> 'email');
+
+  if emp_id is null then
+    return null;
+  end if;
+
+  update public.employees
+  set user_id = auth.uid()
+  where id = emp_id;
+
+  return emp_id;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."link_employee_user_id"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."prevent_updates_on_accepted_quotes"() RETURNS "trigger"
@@ -390,6 +503,33 @@ COMMENT ON TABLE "public"."audit_logs" IS 'System audit log for tracking key bus
 
 
 
+CREATE OR REPLACE VIEW "public"."audit_log_entries" WITH ("security_invoker"='true') AS
+ SELECT "id",
+    "entity_type" AS "table_name",
+    ("entity_id")::"text" AS "record_id",
+        CASE
+            WHEN ("action" = ANY (ARRAY['CREATE'::"text", 'INSERT'::"text"])) THEN 'INSERT'::"text"
+            WHEN ("action" = 'DELETE'::"text") THEN 'DELETE'::"text"
+            ELSE 'UPDATE'::"text"
+        END AS "action",
+    "before_data" AS "old_values",
+    "after_data" AS "new_values",
+        CASE
+            WHEN (("before_data" IS NULL) OR ("after_data" IS NULL)) THEN NULL::"text"[]
+            ELSE ( SELECT "array_agg"("e"."key") AS "array_agg"
+               FROM "jsonb_each_text"("l"."after_data") "e"("key", "value")
+              WHERE (("l"."before_data" ->> "e"."key") IS DISTINCT FROM "e"."value"))
+        END AS "changed_fields",
+    "actor_user_id" AS "user_id",
+    "public"."get_user_email"("actor_user_id") AS "user_email",
+    "notes" AS "reason",
+    "created_at"
+   FROM "public"."audit_logs" "l";
+
+
+ALTER VIEW "public"."audit_log_entries" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."cost_codes" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "code" "text" NOT NULL,
@@ -452,7 +592,8 @@ CREATE TABLE IF NOT EXISTS "public"."employees" (
     "role" "text" DEFAULT 'TECH'::"text" NOT NULL,
     "is_active" boolean DEFAULT true NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "user_id" "uuid"
 );
 
 
@@ -854,7 +995,10 @@ CREATE TABLE IF NOT EXISTS "public"."settings" (
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "created_by" "uuid",
     "updated_by" "uuid",
-    "default_labor_rate" numeric(12,4) DEFAULT 0 NOT NULL
+    "default_labor_rate" numeric(12,4) DEFAULT 0 NOT NULL,
+    "work_order_number_prefix" "text" DEFAULT 'WO-'::"text" NOT NULL,
+    "next_work_order_seq" bigint DEFAULT 1 NOT NULL,
+    "is_singleton" boolean DEFAULT true NOT NULL
 );
 
 
@@ -1315,6 +1459,14 @@ ALTER TABLE ONLY "public"."work_orders"
 
 
 
+CREATE UNIQUE INDEX "employees_email_unique_lower" ON "public"."employees" USING "btree" ("lower"("email")) WHERE ("email" IS NOT NULL);
+
+
+
+CREATE UNIQUE INDEX "employees_user_id_unique" ON "public"."employees" USING "btree" ("user_id") WHERE ("user_id" IS NOT NULL);
+
+
+
 CREATE INDEX "idx_audit_logs_actor" ON "public"."audit_logs" USING "btree" ("actor_user_id");
 
 
@@ -1443,7 +1595,19 @@ CREATE INDEX "idx_schedule_tech_start" ON "public"."work_order_schedule" USING "
 
 
 
+CREATE INDEX "idx_time_entries_clock_in_at" ON "public"."work_order_time_entries" USING "btree" ("clock_in_at" DESC);
+
+
+
+CREATE INDEX "idx_time_entries_tech_user" ON "public"."work_order_time_entries" USING "btree" ("tech_user_id");
+
+
+
 CREATE INDEX "idx_time_entries_work_order" ON "public"."work_order_time_entries" USING "btree" ("work_order_id");
+
+
+
+CREATE INDEX "idx_work_orders_assigned_to" ON "public"."work_orders" USING "btree" ("assigned_to");
 
 
 
@@ -1508,6 +1672,10 @@ CREATE INDEX "ix_vendor_locations_vendor" ON "public"."vendor_locations" USING "
 
 
 CREATE INDEX "ix_vendors_display_name" ON "public"."vendors" USING "btree" ("display_name");
+
+
+
+CREATE UNIQUE INDEX "settings_singleton_unique" ON "public"."settings" USING "btree" ("is_singleton");
 
 
 
@@ -1614,6 +1782,11 @@ ALTER TABLE ONLY "public"."audit_logs"
 
 ALTER TABLE ONLY "public"."cost_codes"
     ADD CONSTRAINT "cost_codes_cost_type_id_fkey" FOREIGN KEY ("cost_type_id") REFERENCES "public"."cost_types"("id") ON DELETE RESTRICT;
+
+
+
+ALTER TABLE ONLY "public"."employees"
+    ADD CONSTRAINT "employees_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
 
 
 
@@ -1802,144 +1975,269 @@ ALTER TABLE ONLY "public"."work_orders"
 
 
 
-CREATE POLICY "Allow authenticated users to delete equipment" ON "public"."equipment" FOR DELETE TO "authenticated" USING (true);
+ALTER TABLE "public"."audit_logs" ENABLE ROW LEVEL SECURITY;
 
 
+CREATE POLICY "audit_logs_insert_actor_only" ON "public"."audit_logs" FOR INSERT TO "authenticated" WITH CHECK (("actor_user_id" = "auth"."uid"()));
 
-CREATE POLICY "Allow authenticated users to delete equipment_usage" ON "public"."equipment_usage" FOR DELETE TO "authenticated" USING (true);
 
 
-
-CREATE POLICY "Allow authenticated users to delete receipts" ON "public"."receipts" FOR DELETE TO "authenticated" USING (true);
-
-
-
-CREATE POLICY "Allow authenticated users to insert equipment" ON "public"."equipment" FOR INSERT TO "authenticated" WITH CHECK (true);
-
-
-
-CREATE POLICY "Allow authenticated users to insert equipment_usage" ON "public"."equipment_usage" FOR INSERT TO "authenticated" WITH CHECK (true);
-
-
-
-CREATE POLICY "Allow authenticated users to insert receipts" ON "public"."receipts" FOR INSERT TO "authenticated" WITH CHECK (true);
-
-
-
-CREATE POLICY "Allow authenticated users to update equipment" ON "public"."equipment" FOR UPDATE TO "authenticated" USING (true) WITH CHECK (true);
-
-
-
-CREATE POLICY "Allow authenticated users to update equipment_usage" ON "public"."equipment_usage" FOR UPDATE TO "authenticated" USING (true) WITH CHECK (true);
-
-
-
-CREATE POLICY "Allow authenticated users to update receipts" ON "public"."receipts" FOR UPDATE TO "authenticated" USING (true) WITH CHECK (true);
-
-
-
-CREATE POLICY "Allow authenticated users to view equipment" ON "public"."equipment" FOR SELECT TO "authenticated" USING (true);
-
-
-
-CREATE POLICY "Allow authenticated users to view equipment_usage" ON "public"."equipment_usage" FOR SELECT TO "authenticated" USING (true);
-
-
-
-CREATE POLICY "Allow authenticated users to view receipts" ON "public"."receipts" FOR SELECT TO "authenticated" USING (true);
-
-
-
-CREATE POLICY "auth_read_write_cost_codes" ON "public"."cost_codes" TO "authenticated" USING (true) WITH CHECK (true);
-
-
-
-CREATE POLICY "auth_read_write_cost_types" ON "public"."cost_types" TO "authenticated" USING (true) WITH CHECK (true);
-
-
-
-CREATE POLICY "auth_read_write_customers" ON "public"."customers" TO "authenticated" USING (true) WITH CHECK (true);
-
-
-
-CREATE POLICY "auth_read_write_files" ON "public"."files" TO "authenticated" USING (true) WITH CHECK (true);
-
-
-
-CREATE POLICY "auth_read_write_inventory_ledger" ON "public"."inventory_ledger" TO "authenticated" USING (true) WITH CHECK (true);
-
-
-
-CREATE POLICY "auth_read_write_job_cost_entries" ON "public"."job_cost_entries" TO "authenticated" USING (true) WITH CHECK (true);
-
-
-
-CREATE POLICY "auth_read_write_part_categories" ON "public"."part_categories" TO "authenticated" USING (true) WITH CHECK (true);
-
-
-
-CREATE POLICY "auth_read_write_parts" ON "public"."parts" TO "authenticated" USING (true) WITH CHECK (true);
-
-
-
-CREATE POLICY "auth_read_write_projects" ON "public"."projects" TO "authenticated" USING (true) WITH CHECK (true);
-
-
-
-CREATE POLICY "auth_read_write_quote_lines" ON "public"."quote_lines" TO "authenticated" USING (true) WITH CHECK (true);
-
-
-
-CREATE POLICY "auth_read_write_quotes" ON "public"."quotes" TO "authenticated" USING (true) WITH CHECK (true);
-
-
-
-CREATE POLICY "auth_read_write_receipt_line_items" ON "public"."receipt_line_items" TO "authenticated" USING (true) WITH CHECK (true);
-
-
-
-CREATE POLICY "auth_read_write_settings" ON "public"."settings" TO "authenticated" USING (true) WITH CHECK (true);
-
-
-
-CREATE POLICY "auth_read_write_tax_rules" ON "public"."tax_rules" TO "authenticated" USING (true) WITH CHECK (true);
+CREATE POLICY "audit_logs_select_admin" ON "public"."audit_logs" FOR SELECT TO "authenticated" USING ("public"."is_admin"());
 
 
 
 ALTER TABLE "public"."cost_codes" ENABLE ROW LEVEL SECURITY;
 
 
+CREATE POLICY "cost_codes_delete_admin_office" ON "public"."cost_codes" FOR DELETE TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "cost_codes_insert_admin_office" ON "public"."cost_codes" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "cost_codes_select_admin_office" ON "public"."cost_codes" FOR SELECT TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "cost_codes_update_admin_office" ON "public"."cost_codes" FOR UPDATE TO "authenticated" USING ("public"."is_admin_or_office"()) WITH CHECK ("public"."is_admin_or_office"());
+
+
+
 ALTER TABLE "public"."cost_types" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "cost_types_delete_admin_office" ON "public"."cost_types" FOR DELETE TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "cost_types_insert_admin_office" ON "public"."cost_types" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "cost_types_select_admin_office" ON "public"."cost_types" FOR SELECT TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "cost_types_update_admin_office" ON "public"."cost_types" FOR UPDATE TO "authenticated" USING ("public"."is_admin_or_office"()) WITH CHECK ("public"."is_admin_or_office"());
+
 
 
 ALTER TABLE "public"."customers" ENABLE ROW LEVEL SECURITY;
 
 
+CREATE POLICY "customers_delete_admin" ON "public"."customers" FOR DELETE TO "authenticated" USING ("public"."is_admin"());
+
+
+
+CREATE POLICY "customers_insert_admin_office" ON "public"."customers" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "customers_select_authenticated" ON "public"."customers" FOR SELECT TO "authenticated" USING (true);
+
+
+
+CREATE POLICY "customers_update_admin_office" ON "public"."customers" FOR UPDATE TO "authenticated" USING ("public"."is_admin_or_office"()) WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+ALTER TABLE "public"."employees" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "employees_delete_admin_office" ON "public"."employees" FOR DELETE TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "employees_insert_admin_office" ON "public"."employees" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "employees_select_admin_office" ON "public"."employees" FOR SELECT TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "employees_select_self" ON "public"."employees" FOR SELECT TO "authenticated" USING (("user_id" = "auth"."uid"()));
+
+
+
+CREATE POLICY "employees_update_admin_office" ON "public"."employees" FOR UPDATE TO "authenticated" USING ("public"."is_admin_or_office"()) WITH CHECK ("public"."is_admin_or_office"());
+
+
+
 ALTER TABLE "public"."equipment" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "equipment_delete_admin_office" ON "public"."equipment" FOR DELETE TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "equipment_insert_admin_office" ON "public"."equipment" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "equipment_select_admin_office" ON "public"."equipment" FOR SELECT TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "equipment_update_admin_office" ON "public"."equipment" FOR UPDATE TO "authenticated" USING ("public"."is_admin_or_office"()) WITH CHECK ("public"."is_admin_or_office"());
+
 
 
 ALTER TABLE "public"."equipment_usage" ENABLE ROW LEVEL SECURITY;
 
 
+CREATE POLICY "equipment_usage_delete_admin_office" ON "public"."equipment_usage" FOR DELETE TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "equipment_usage_insert_admin_office" ON "public"."equipment_usage" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "equipment_usage_select_admin_office" ON "public"."equipment_usage" FOR SELECT TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "equipment_usage_update_admin_office" ON "public"."equipment_usage" FOR UPDATE TO "authenticated" USING ("public"."is_admin_or_office"()) WITH CHECK ("public"."is_admin_or_office"());
+
+
+
 ALTER TABLE "public"."files" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "files_delete_admin_office" ON "public"."files" FOR DELETE TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "files_insert_admin_office" ON "public"."files" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "files_select_admin_office" ON "public"."files" FOR SELECT TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "files_update_admin_office" ON "public"."files" FOR UPDATE TO "authenticated" USING ("public"."is_admin_or_office"()) WITH CHECK ("public"."is_admin_or_office"());
+
 
 
 ALTER TABLE "public"."inventory_ledger" ENABLE ROW LEVEL SECURITY;
 
 
+CREATE POLICY "inventory_ledger_delete_admin_office" ON "public"."inventory_ledger" FOR DELETE TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "inventory_ledger_insert_admin_office" ON "public"."inventory_ledger" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "inventory_ledger_select_admin_office" ON "public"."inventory_ledger" FOR SELECT TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "inventory_ledger_update_admin_office" ON "public"."inventory_ledger" FOR UPDATE TO "authenticated" USING ("public"."is_admin_or_office"()) WITH CHECK ("public"."is_admin_or_office"());
+
+
+
 ALTER TABLE "public"."job_cost_entries" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "job_cost_entries_delete_admin_office" ON "public"."job_cost_entries" FOR DELETE TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "job_cost_entries_insert_admin_office" ON "public"."job_cost_entries" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "job_cost_entries_select_admin_office" ON "public"."job_cost_entries" FOR SELECT TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "job_cost_entries_update_admin_office" ON "public"."job_cost_entries" FOR UPDATE TO "authenticated" USING ("public"."is_admin_or_office"()) WITH CHECK ("public"."is_admin_or_office"());
+
 
 
 ALTER TABLE "public"."job_queue" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."locations" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "locations_delete_admin" ON "public"."locations" FOR DELETE TO "authenticated" USING ("public"."is_admin"());
+
+
+
+CREATE POLICY "locations_insert_admin_office" ON "public"."locations" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "locations_select_authenticated" ON "public"."locations" FOR SELECT TO "authenticated" USING (true);
+
+
+
+CREATE POLICY "locations_update_admin_office" ON "public"."locations" FOR UPDATE TO "authenticated" USING ("public"."is_admin_or_office"()) WITH CHECK ("public"."is_admin_or_office"());
+
+
+
 ALTER TABLE "public"."part_categories" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "part_categories_delete_admin_office" ON "public"."part_categories" FOR DELETE TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "part_categories_insert_admin_office" ON "public"."part_categories" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "part_categories_select_admin_office" ON "public"."part_categories" FOR SELECT TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "part_categories_update_admin_office" ON "public"."part_categories" FOR UPDATE TO "authenticated" USING ("public"."is_admin_or_office"()) WITH CHECK ("public"."is_admin_or_office"());
+
 
 
 ALTER TABLE "public"."parts" ENABLE ROW LEVEL SECURITY;
 
 
+CREATE POLICY "parts_delete_admin_office" ON "public"."parts" FOR DELETE TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "parts_insert_admin_office" ON "public"."parts" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "parts_select_authenticated" ON "public"."parts" FOR SELECT TO "authenticated" USING (true);
+
+
+
+CREATE POLICY "parts_update_admin_office" ON "public"."parts" FOR UPDATE TO "authenticated" USING ("public"."is_admin_or_office"()) WITH CHECK ("public"."is_admin_or_office"());
+
+
+
 ALTER TABLE "public"."projects" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "projects_delete_admin" ON "public"."projects" FOR DELETE TO "authenticated" USING ("public"."is_admin"());
+
+
+
+CREATE POLICY "projects_insert_admin_office" ON "public"."projects" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "projects_select_authenticated" ON "public"."projects" FOR SELECT TO "authenticated" USING (true);
+
+
+
+CREATE POLICY "projects_update_admin_office" ON "public"."projects" FOR UPDATE TO "authenticated" USING ("public"."is_admin_or_office"()) WITH CHECK ("public"."is_admin_or_office"());
+
 
 
 ALTER TABLE "public"."qbo_connections" ENABLE ROW LEVEL SECURITY;
@@ -1954,19 +2252,198 @@ ALTER TABLE "public"."qbo_webhook_events" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."quote_lines" ENABLE ROW LEVEL SECURITY;
 
 
+CREATE POLICY "quote_lines_delete_admin_office" ON "public"."quote_lines" FOR DELETE TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "quote_lines_insert_admin_office" ON "public"."quote_lines" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "quote_lines_select_admin_office" ON "public"."quote_lines" FOR SELECT TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "quote_lines_update_admin_office" ON "public"."quote_lines" FOR UPDATE TO "authenticated" USING ("public"."is_admin_or_office"()) WITH CHECK ("public"."is_admin_or_office"());
+
+
+
 ALTER TABLE "public"."quotes" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "quotes_delete_admin_office" ON "public"."quotes" FOR DELETE TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "quotes_insert_admin_office" ON "public"."quotes" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "quotes_select_authenticated" ON "public"."quotes" FOR SELECT TO "authenticated" USING (true);
+
+
+
+CREATE POLICY "quotes_update_admin_office" ON "public"."quotes" FOR UPDATE TO "authenticated" USING ("public"."is_admin_or_office"()) WITH CHECK ("public"."is_admin_or_office"());
+
 
 
 ALTER TABLE "public"."receipt_line_items" ENABLE ROW LEVEL SECURITY;
 
 
+CREATE POLICY "receipt_line_items_delete_admin_office" ON "public"."receipt_line_items" FOR DELETE TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "receipt_line_items_insert_admin_office" ON "public"."receipt_line_items" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "receipt_line_items_select_admin_office" ON "public"."receipt_line_items" FOR SELECT TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "receipt_line_items_update_admin_office" ON "public"."receipt_line_items" FOR UPDATE TO "authenticated" USING ("public"."is_admin_or_office"()) WITH CHECK ("public"."is_admin_or_office"());
+
+
+
 ALTER TABLE "public"."receipts" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "receipts_delete_admin_office" ON "public"."receipts" FOR DELETE TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "receipts_insert_admin_office" ON "public"."receipts" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "receipts_select_admin_office" ON "public"."receipts" FOR SELECT TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "receipts_update_admin_office" ON "public"."receipts" FOR UPDATE TO "authenticated" USING ("public"."is_admin_or_office"()) WITH CHECK ("public"."is_admin_or_office"());
+
 
 
 ALTER TABLE "public"."settings" ENABLE ROW LEVEL SECURITY;
 
 
+CREATE POLICY "settings_select_admin" ON "public"."settings" FOR SELECT TO "authenticated" USING ("public"."is_admin"());
+
+
+
+CREATE POLICY "settings_update_admin" ON "public"."settings" FOR UPDATE TO "authenticated" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
+
+
+
 ALTER TABLE "public"."tax_rules" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "tax_rules_delete_admin_office" ON "public"."tax_rules" FOR DELETE TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "tax_rules_insert_admin_office" ON "public"."tax_rules" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "tax_rules_select_authenticated" ON "public"."tax_rules" FOR SELECT TO "authenticated" USING (true);
+
+
+
+CREATE POLICY "tax_rules_update_admin_office" ON "public"."tax_rules" FOR UPDATE TO "authenticated" USING ("public"."is_admin_or_office"()) WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+ALTER TABLE "public"."work_order_schedule" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "work_order_schedule_delete_admin_office" ON "public"."work_order_schedule" FOR DELETE TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "work_order_schedule_insert_admin_office" ON "public"."work_order_schedule" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "work_order_schedule_select_admin_office" ON "public"."work_order_schedule" FOR SELECT TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "work_order_schedule_select_tech" ON "public"."work_order_schedule" FOR SELECT TO "authenticated" USING (("tech_user_id" = "public"."current_employee_id"()));
+
+
+
+CREATE POLICY "work_order_schedule_update_admin_office" ON "public"."work_order_schedule" FOR UPDATE TO "authenticated" USING ("public"."is_admin_or_office"()) WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+ALTER TABLE "public"."work_order_time_entries" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "work_order_time_entries_delete_admin_office" ON "public"."work_order_time_entries" FOR DELETE TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "work_order_time_entries_delete_tech" ON "public"."work_order_time_entries" FOR DELETE TO "authenticated" USING (("tech_user_id" = "public"."current_employee_id"()));
+
+
+
+CREATE POLICY "work_order_time_entries_insert_admin_office" ON "public"."work_order_time_entries" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "work_order_time_entries_insert_tech" ON "public"."work_order_time_entries" FOR INSERT TO "authenticated" WITH CHECK ((("tech_user_id" = "public"."current_employee_id"()) AND (EXISTS ( SELECT 1
+   FROM "public"."work_orders" "wo"
+  WHERE (("wo"."id" = "work_order_time_entries"."work_order_id") AND (("wo"."assigned_to" = "public"."current_employee_id"()) OR (EXISTS ( SELECT 1
+           FROM "public"."work_order_schedule" "s"
+          WHERE (("s"."work_order_id" = "work_order_time_entries"."work_order_id") AND ("s"."tech_user_id" = "public"."current_employee_id"()))))))))));
+
+
+
+CREATE POLICY "work_order_time_entries_select_admin_office" ON "public"."work_order_time_entries" FOR SELECT TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "work_order_time_entries_select_tech" ON "public"."work_order_time_entries" FOR SELECT TO "authenticated" USING (("tech_user_id" = "public"."current_employee_id"()));
+
+
+
+CREATE POLICY "work_order_time_entries_update_admin_office" ON "public"."work_order_time_entries" FOR UPDATE TO "authenticated" USING ("public"."is_admin_or_office"()) WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "work_order_time_entries_update_tech" ON "public"."work_order_time_entries" FOR UPDATE TO "authenticated" USING (("tech_user_id" = "public"."current_employee_id"())) WITH CHECK ((("tech_user_id" = "public"."current_employee_id"()) AND (EXISTS ( SELECT 1
+   FROM "public"."work_orders" "wo"
+  WHERE (("wo"."id" = "work_order_time_entries"."work_order_id") AND (("wo"."assigned_to" = "public"."current_employee_id"()) OR (EXISTS ( SELECT 1
+           FROM "public"."work_order_schedule" "s"
+          WHERE (("s"."work_order_id" = "work_order_time_entries"."work_order_id") AND ("s"."tech_user_id" = "public"."current_employee_id"()))))))))));
+
+
+
+ALTER TABLE "public"."work_orders" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "work_orders_delete_admin_office" ON "public"."work_orders" FOR DELETE TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "work_orders_insert_admin_office" ON "public"."work_orders" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "work_orders_select_admin_office" ON "public"."work_orders" FOR SELECT TO "authenticated" USING ("public"."is_admin_or_office"());
+
+
+
+CREATE POLICY "work_orders_select_tech" ON "public"."work_orders" FOR SELECT TO "authenticated" USING ((("assigned_to" = "public"."current_employee_id"()) OR (EXISTS ( SELECT 1
+   FROM "public"."work_order_schedule" "s"
+  WHERE (("s"."work_order_id" = "work_orders"."id") AND ("s"."tech_user_id" = "public"."current_employee_id"()))))));
+
+
+
+CREATE POLICY "work_orders_update_admin_office" ON "public"."work_orders" FOR UPDATE TO "authenticated" USING ("public"."is_admin_or_office"()) WITH CHECK ("public"."is_admin_or_office"());
+
 
 
 GRANT USAGE ON SCHEMA "public" TO "postgres";
@@ -1982,9 +2459,45 @@ GRANT ALL ON FUNCTION "public"."accept_quote"("p_quote_id" "uuid") TO "service_r
 
 
 
+GRANT ALL ON FUNCTION "public"."current_employee_id"() TO "anon";
+GRANT ALL ON FUNCTION "public"."current_employee_id"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."current_employee_id"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."current_employee_role"() TO "anon";
+GRANT ALL ON FUNCTION "public"."current_employee_role"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."current_employee_role"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."get_next_number"("p_kind" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_next_number"("p_kind" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_next_number"("p_kind" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_user_email"("p_user_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_user_email"("p_user_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_user_email"("p_user_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."is_admin"() TO "anon";
+GRANT ALL ON FUNCTION "public"."is_admin"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."is_admin"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."is_admin_or_office"() TO "anon";
+GRANT ALL ON FUNCTION "public"."is_admin_or_office"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."is_admin_or_office"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."link_employee_user_id"() TO "anon";
+GRANT ALL ON FUNCTION "public"."link_employee_user_id"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."link_employee_user_id"() TO "service_role";
 
 
 
@@ -2051,6 +2564,12 @@ GRANT ALL ON FUNCTION "public"."update_receipts_updated_at"() TO "service_role";
 GRANT ALL ON TABLE "public"."audit_logs" TO "anon";
 GRANT ALL ON TABLE "public"."audit_logs" TO "authenticated";
 GRANT ALL ON TABLE "public"."audit_logs" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."audit_log_entries" TO "anon";
+GRANT ALL ON TABLE "public"."audit_log_entries" TO "authenticated";
+GRANT ALL ON TABLE "public"."audit_log_entries" TO "service_role";
 
 
 
