@@ -627,6 +627,7 @@ export type Database = {
       employees: {
         Row: {
           id: string
+          user_id: string | null
           display_name: string
           email: string | null
           phone: string | null
@@ -637,6 +638,7 @@ export type Database = {
         }
         Insert: {
           id: string
+          user_id?: string | null
           display_name: string
           email?: string | null
           phone?: string | null
@@ -647,6 +649,7 @@ export type Database = {
         }
         Update: {
           id?: string
+          user_id?: string | null
           display_name?: string
           email?: string | null
           phone?: string | null
